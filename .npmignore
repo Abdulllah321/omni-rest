@@ -1,0 +1,12 @@
+src/
+test/
+tsup.config.ts
+tsconfig.json
+vitest.config.ts
+.github/
+.vscode/
+*.test.ts
+*.spec.ts
+coverage/
+.env
+.env.*

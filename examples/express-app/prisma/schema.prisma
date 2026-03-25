@@ -1,0 +1,52 @@
+// Sample Prisma schema for prisma-rest examples
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Department {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  categories Category[]
+}
+
+model Category {
+  id           Int      @id @default(autoincrement())
+  name         String
+  departmentId Int
+  department   Department @relation(fields: [departmentId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  products Product[]
+}
+
+model Product {
+  id         Int      @id @default(autoincrement())
+  name       String
+  price      Float
+  categoryId Int
+  category   Category @relation(fields: [categoryId], references: [id])
+  cityId     Int?
+  city       City?    @relation(fields: [cityId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model City {
+  id        Int      @id @default(autoincrement())
+  name      String
+  country   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
+}

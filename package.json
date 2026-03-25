@@ -1,0 +1,91 @@
+{
+  "name": "prisma-rest",
+  "version": "0.1.0",
+  "description": "Auto-generate REST APIs from your Prisma schema — zero config CRUD",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "prisma-rest": "dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./express": {
+      "types": "./dist/adapters/express.d.ts",
+      "import": "./dist/adapters/express.mjs",
+      "require": "./dist/adapters/express.js"
+    },
+    "./nextjs": {
+      "types": "./dist/adapters/nextjs.d.ts",
+      "import": "./dist/adapters/nextjs.mjs",
+      "require": "./dist/adapters/nextjs.js"
+    },
+    "./fastify": {
+      "types": "./dist/adapters/fastify.d.ts",
+      "import": "./dist/adapters/fastify.mjs",
+      "require": "./dist/adapters/fastify.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run clean && npm run build && npm test",
+    "release:patch": "npm version patch && npm publish",
+    "release:minor": "npm version minor && npm publish",
+    "release:major": "npm version major && npm publish",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@prisma/client": ">=4.0.0"
+  },
+  "devDependencies": {
+    "@prisma/client": "^5.0.0",
+    "@types/express": "^4.17.0",
+    "@types/node": "^20.0.0",
+    "prisma": "^5.0.0",
+    "rimraf": "^5.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "keywords": [
+    "prisma",
+    "rest",
+    "api",
+    "crud",
+    "auto",
+    "express",
+    "nextjs",
+    "fastify",
+    "postgrest"
+  ],
+  "author": {
+    "name": "Prisma REST Contributors",
+    "url": "https://github.com/prisma-rest/prisma-rest"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/prisma-rest/prisma-rest#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/prisma-rest/prisma-rest.git"
+  },
+  "bugs": {
+    "url": "https://github.com/prisma-rest/prisma-rest/issues"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "swagger-ui-express": "^5.0.1"
+  }
+}
