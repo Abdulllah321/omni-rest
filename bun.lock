@@ -2,7 +2,7 @@
   "lockfileVersion": 1,
   "workspaces": {
     "": {
-      "name": "prisma-rest",
+      "name": "omni-rest",
       "devDependencies": {
         "@prisma/client": "^5.0.0",
         "@types/node": "^20.0.0",

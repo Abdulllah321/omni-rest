@@ -1,5 +1,5 @@
 /**
- * prisma-rest
+ * omni-rest
  * Auto-generate REST APIs from your Prisma schema.
  *
  * Inspired by PostgREST — but for Prisma, TypeScript, and any Node.js framework.

@@ -1,7 +1,7 @@
 {
-  "name": "prisma-rest-nextjs-example",
+  "name": "omni-rest-nextjs-example",
   "version": "1.0.0",
-  "description": "Next.js example using prisma-rest for auto-generated REST APIs",
+  "description": "Next.js example using omni-rest for auto-generated REST APIs",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -16,7 +16,7 @@
     "next": "^14.0.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
-    "prisma-rest": "file:../.."
+    "omni-rest": "file:../.."
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

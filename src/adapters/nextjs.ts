@@ -3,13 +3,13 @@ import { createRouter } from "../router";
 import type { PrismaRestOptions } from "../types";
 
 /**
- * Next.js App Router adapter for prisma-rest.
+ * Next.js App Router adapter for omni-rest.
  *
  * @example
  * ```ts
  * // app/api/[...prismaRest]/route.ts
  * import { PrismaClient } from "@prisma/client";
- * import { nextjsAdapter } from "prisma-rest/nextjs";
+ * import { nextjsAdapter } from "omni-rest/nextjs";
  *
  * const prisma = new PrismaClient();
  * const handler = nextjsAdapter(prisma, {

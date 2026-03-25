@@ -1,7 +1,7 @@
 {
-  "name": "prisma-rest-express-example",
+  "name": "omni-rest-express-example",
   "version": "1.0.0",
-  "description": "Express.js example using prisma-rest for auto-generated REST APIs",
+  "description": "Express.js example using omni-rest for auto-generated REST APIs",
   "main": "index.ts",
   "scripts": {
     "dev": "tsx watch index.ts",
@@ -13,7 +13,7 @@
   "dependencies": {
     "@prisma/client": "^5.0.0",
     "express": "^4.22.1",
-    "prisma-rest": "file:../../",
+    "omni-rest": "file:../../",
     "swagger-ui-express": "^5.0.0"
   },
   "devDependencies": {

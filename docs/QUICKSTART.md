@@ -1,11 +1,11 @@
 # Quick Start Guide
 
-Get prisma-rest up and running in 5 minutes.
+Get omni-rest up and running in 5 minutes.
 
 ## 1. Installation
 
 ```bash
-npm install prisma-rest @prisma/client prisma -D
+npm install omni-rest @prisma/client prisma -D
 ```
 
 ## 2. Initialize Prisma (if needed)
@@ -56,8 +56,8 @@ Create `src/index.ts`:
 ```typescript
 import express from "express";
 import { PrismaClient } from "@prisma/client";
-import { expressAdapter } from "prisma-rest/express";
-import { generateOpenApiSpec } from "prisma-rest";
+import { expressAdapter } from "omni-rest/express";
+import { generateOpenApiSpec } from "omni-rest";
 import swaggerUi from "swagger-ui-express";
 
 const app = express();

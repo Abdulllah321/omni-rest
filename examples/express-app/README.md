@@ -1,6 +1,6 @@
-# Prisma-REST Express Example
+# omni-rest Express Example
 
-A complete Express.js server using prisma-rest for auto-generated REST APIs with validation and OpenAPI documentation.
+A complete Express.js server using omni-rest for auto-generated REST APIs with validation and OpenAPI documentation.
 
 ## Setup
 

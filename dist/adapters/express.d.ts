@@ -2,13 +2,13 @@ import { PrismaClient } from '@prisma/client';
 import { P as PrismaRestOptions } from '../types-CzjpYtyN.js';
 
 /**
- * Express adapter for prisma-rest.
+ * Express adapter for omni-rest.
  *
  * @example
  * ```ts
  * import express from "express";
  * import { PrismaClient } from "@prisma/client";
- * import { expressAdapter } from "prisma-rest/express";
+ * import { expressAdapter } from "omni-rest/express";
  *
  * const app = express();
  * const prisma = new PrismaClient();

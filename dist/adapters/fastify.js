@@ -29,12 +29,12 @@ function getModels(prisma) {
   }
   if (!raw) {
     throw new Error(
-      "[prisma-rest] Could not find Prisma DMMF. Ensure Prisma client is generated and you're passing a PrismaClient instance to prisma-rest."
+      "[omni-rest] Could not find Prisma DMMF. Ensure Prisma client is generated and you're passing a PrismaClient instance to omni-rest."
     );
   }
   if (!Array.isArray(raw)) {
     throw new Error(
-      `[prisma-rest] Expected models to be an array, got ${typeof raw}. Debug: prisma._runtimeDataModel.models=${!!prisma?._runtimeDataModel?.models}, raw value=${JSON.stringify(raw).slice(0, 100)}`
+      `[omni-rest] Expected models to be an array, got ${typeof raw}. Debug: prisma._runtimeDataModel.models=${!!prisma?._runtimeDataModel?.models}, raw value=${JSON.stringify(raw).slice(0, 100)}`
     );
   }
   return raw.map((model) => {
@@ -175,7 +175,7 @@ async function runHook(hook, ctx) {
   try {
     await hook(ctx);
   } catch (e) {
-    console.error("[prisma-rest] Hook error:", e);
+    console.error("[omni-rest] Hook error:", e);
   }
 }
 

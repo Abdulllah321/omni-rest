@@ -33,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2024-01-10
 
 ### Added
-- Initial release of prisma-rest
+- Initial release of omni-rest
 - **Auto-generated CRUD APIs** - Automatically generate REST endpoints from Prisma schema
 - **Multiple Framework Support** - Express.js, Next.js App Router, and Fastify adapters
 - **Advanced Queries** - Filtering, sorting, and pagination with query parameters

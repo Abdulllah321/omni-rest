@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { PrismaClient } from "@prisma/client";
-import { nextjsAdapter } from "prisma-rest";
-import { withValidation } from "prisma-rest";
+import { nextjsAdapter } from "omni-rest";
+import { withValidation } from "omni-rest";
 
 const prisma = new PrismaClient();
 

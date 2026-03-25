@@ -52,7 +52,7 @@ function buildModelSchema(meta: ModelMeta, forCreate = false): any {
  *
  * @example
  * ```ts
- * import { generateOpenApiSpec } from "prisma-rest";
+ * import { generateOpenApiSpec } from "omni-rest";
  * const spec = generateOpenApiSpec(prisma, { title: "My API", version: "1.0.0", basePath: "/api" });
  * fs.writeFileSync("openapi.json", JSON.stringify(spec, null, 2));
  * ```
@@ -68,7 +68,7 @@ export function generateOpenApiSpec(
   } = {}
 ): object {
   const {
-    title = "prisma-rest API",
+    title = "omni-rest API",
     version = "1.0.0",
     basePath = "/api",
     allow,

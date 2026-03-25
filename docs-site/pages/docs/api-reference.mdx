@@ -1,0 +1,312 @@
+# API Reference
+
+Complete reference for all Omni Rest endpoints.
+
+## Overview
+
+Each Prisma model automatically gets 8 REST endpoints:
+
+```
+LIST      GET    /api/:model
+CREATE    POST   /api/:model
+READ      GET    /api/:model/:id
+UPDATE    PUT    /api/:model/:id
+PATCH     PATCH  /api/:model/:id
+DELETE    DELETE /api/:model/:id
+BULK_UPD  PATCH  /api/:model/bulk/update
+BULK_DEL  DELETE /api/:model/bulk/delete
+```
+
+## Query Parameters
+
+### Pagination
+
+```javascript
+GET /api/product?limit=10&offset=20
+```
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `limit` | number | 10 | Maximum number of records to return |
+| `offset` | number | 0 | Number of records to skip |
+
+### Sorting
+
+```javascript
+GET /api/product?orderBy=price:desc&orderBy=name:asc
+```
+
+- Use `field:asc` for ascending order
+- Use `field:desc` for descending order
+- Multiple `orderBy` parameters are supported
+
+### Filtering
+
+```javascript
+GET /api/product?name=Laptop&price[gte]=100&price[lte]=1000&inventory[gt]=0
+```
+
+#### Filter Operators
+
+| Operator | Description | Example |
+|----------|-------------|---------|
+| `eq` | Equal | `name=MacBook` |
+| `ne` | Not equal | `name[ne]=MacBook` |
+| `lt` | Less than | `price[lt]=1000` |
+| `lte` | Less than or equal | `price[lte]=1000` |
+| `gt` | Greater than | `price[gt]=100` |
+| `gte` | Greater than or equal | `price[gte]=100` |
+| `in` | In array | `categoryId[in]=1,2,3` |
+| `nin` | Not in array | `categoryId[nin]=1,2,3` |
+| `contains` | Contains substring | `name[contains]=Mac` |
+| `startsWith` | Starts with | `name[startsWith]=Mac` |
+| `endsWith` | Ends with | `name[endsWith]=Book` |
+
+## Endpoints
+
+### LIST - Get All Records
+
+**GET** `/api/:model`
+
+Returns a paginated list of records.
+
+#### Query Parameters
+- `limit` (optional): Number of records per page
+- `offset` (optional): Number of records to skip
+- `orderBy` (optional): Sort field and direction
+- Filter parameters (optional): See filtering section
+
+#### Response
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "name": "Laptop",
+      "price": 999.99,
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    }
+  ],
+  "total": 1,
+  "limit": 10,
+  "offset": 0
+}
+```
+
+#### Status Codes
+- `200` - Success
+- `400` - Bad request (invalid query parameters)
+
+### CREATE - Create New Record
+
+**POST** `/api/:model`
+
+Creates a new record.
+
+#### Request Body
+JSON object with model fields (excluding auto-generated fields like `id`, `createdAt`).
+
+#### Example Request
+```json
+{
+  "name": "New Product",
+  "price": 29.99,
+  "inventory": 100
+}
+```
+
+#### Response
+```json
+{
+  "id": 2,
+  "name": "New Product",
+  "price": 29.99,
+  "inventory": 100,
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-01T00:00:00.000Z"
+}
+```
+
+#### Status Codes
+- `201` - Created
+- `400` - Bad request (validation error)
+- `409` - Conflict (unique constraint violation)
+
+### READ - Get Single Record
+
+**GET** `/api/:model/:id`
+
+Returns a single record by ID.
+
+#### Path Parameters
+- `id` - Record ID
+
+#### Response
+```json
+{
+  "id": 1,
+  "name": "Laptop",
+  "price": 999.99,
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-01T00:00:00.000Z"
+}
+```
+
+#### Status Codes
+- `200` - Success
+- `404` - Not found
+
+### UPDATE - Replace Record
+
+**PUT** `/api/:model/:id`
+
+Replaces an entire record.
+
+#### Path Parameters
+- `id` - Record ID
+
+#### Request Body
+Complete JSON object with all required fields.
+
+#### Response
+Updated record object.
+
+#### Status Codes
+- `200` - Success
+- `400` - Bad request
+- `404` - Not found
+- `409` - Conflict
+
+### PATCH - Update Record
+
+**PATCH** `/api/:model/:id`
+
+Partially updates a record.
+
+#### Path Parameters
+- `id` - Record ID
+
+#### Request Body
+JSON object with only the fields to update.
+
+#### Example Request
+```json
+{
+  "price": 899.99,
+  "inventory": 50
+}
+```
+
+#### Response
+Updated record object.
+
+#### Status Codes
+- `200` - Success
+- `400` - Bad request
+- `404` - Not found
+
+### DELETE - Delete Record
+
+**DELETE** `/api/:model/:id`
+
+Deletes a record by ID.
+
+#### Path Parameters
+- `id` - Record ID
+
+#### Response
+```json
+{
+  "message": "Record deleted successfully"
+}
+```
+
+#### Status Codes
+- `200` - Success
+- `404` - Not found
+
+### BULK UPDATE - Update Multiple Records
+
+**PATCH** `/api/:model/bulk/update`
+
+Updates multiple records in one request.
+
+#### Request Body
+```json
+{
+  "ids": [1, 2, 3],
+  "data": {
+    "status": "active",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  }
+}
+```
+
+#### Response
+```json
+{
+  "updated": 3,
+  "records": [
+    { "id": 1, "status": "active", ... },
+    { "id": 2, "status": "active", ... },
+    { "id": 3, "status": "active", ... }
+  ]
+}
+```
+
+#### Status Codes
+- `200` - Success
+- `400` - Bad request
+- `404` - Some records not found
+
+### BULK DELETE - Delete Multiple Records
+
+**DELETE** `/api/:model/bulk/delete`
+
+Deletes multiple records in one request.
+
+#### Request Body
+```json
+{
+  "ids": [1, 2, 3]
+}
+```
+
+#### Response
+```json
+{
+  "deleted": 3
+}
+```
+
+#### Status Codes
+- `200` - Success
+- `400` - Bad request
+- `404` - Some records not found
+
+## Error Responses
+
+All endpoints return consistent error responses:
+
+```json
+{
+  "error": {
+    "message": "Record not found",
+    "code": "NOT_FOUND",
+    "details": {}
+  }
+}
+```
+
+## Content Types
+
+- **Request**: `application/json`
+- **Response**: `application/json`
+
+## Authentication
+
+If your application requires authentication, implement it as middleware before mounting the omni-rest adapter:
+
+```typescript
+app.use("/api", authenticateMiddleware, expressAdapter(prisma));
+```

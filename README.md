@@ -1,15 +1,15 @@
-﻿# prisma-rest
+﻿# omni-rest
 
 > **Auto-generate REST APIs from your Prisma schema** — zero-config CRUD endpoints
 
-[![npm version](https://img.shields.io/npm/v/prisma-rest.svg)](https://www.npmjs.com/package/prisma-rest)
+[![npm version](https://img.shields.io/npm/v/omni-rest.svg)](https://www.npmjs.com/package/omni-rest)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 
-## What is prisma-rest?
+## What is omni-rest?
 
-prisma-rest automatically generates RESTful API endpoints from your Prisma schema. With zero configuration, you get:
+omni-rest automatically generates RESTful API endpoints from your Prisma schema. With zero configuration, you get:
 
 ✅ **CRUD Operations** - Create, Read, Update, Delete any model  
 ✅ **Bulk Operations** - Update/delete multiple records in one request  
@@ -25,7 +25,7 @@ prisma-rest automatically generates RESTful API endpoints from your Prisma schem
 ### Installation
 
 ```bash
-npm install prisma-rest @prisma/client
+npm install omni-rest @prisma/client
 npm install -D prisma
 ```
 
@@ -49,7 +49,7 @@ Mount the API:
 // server.ts
 import express from "express";
 import { PrismaClient } from "@prisma/client";
-import { expressAdapter } from "prisma-rest/express";
+import { expressAdapter } from "omni-rest/express";
 
 const app = express();
 const prisma = new PrismaClient();
@@ -175,7 +175,7 @@ Configuration Guide: [docs/CONFIGURATION.md](docs/CONFIGURATION.md)
 Automatically generate Swagger UI:
 
 ```typescript
-import { generateOpenApiSpec } from "prisma-rest";
+import { generateOpenApiSpec } from "omni-rest";
 import swaggerUi from "swagger-ui-express";
 
 const spec = generateOpenApiSpec(prisma, {
@@ -191,10 +191,12 @@ Visit http://localhost:3000/docs to explore your API!
 
 ## Documentation
 
+- **[📚 Documentation Site](https://omni-rest.vercel.app)** - Live documentation website
 - **[Quick Start Guide](docs/QUICKSTART.md)** - 5-minute setup
 - **[API Reference](docs/API.md)** - Complete endpoint documentation
 - **[Configuration](docs/CONFIGURATION.md)** - Guards, hooks, pagination
 - **[Contributing](docs/CONTRIBUTING.md)** - How to contribute
+- **[Vercel Deployment](docs/VERCEL_DEPLOYMENT.md)** - Deploy docs to Vercel
 
 ## Examples
 
@@ -203,7 +205,7 @@ Visit http://localhost:3000/docs to explore your API!
 ```typescript
 import express from "express";
 import { PrismaClient } from "@prisma/client";
-import { expressAdapter } from "prisma-rest/express";
+import { expressAdapter } from "omni-rest/express";
 
 const app = express();
 const prisma = new PrismaClient();
@@ -239,7 +241,7 @@ Full Express Example: [examples/express-app](examples/express-app)
 ```typescript
 // app/api/[...prismaRest]/route.ts
 import { PrismaClient } from "@prisma/client";
-import { nextjsAdapter } from "prisma-rest/nextjs";
+import { nextjsAdapter } from "omni-rest/nextjs";
 
 const prisma = new PrismaClient();
 
@@ -255,7 +257,7 @@ Full Next.js Example: [examples/nextjs-app](examples/nextjs-app)
 ```typescript
 import Fastify from "fastify";
 import { PrismaClient } from "@prisma/client";
-import { fastifyAdapter } from "prisma-rest/fastify";
+import { fastifyAdapter } from "omni-rest/fastify";
 
 const app = Fastify();
 const prisma = new PrismaClient();
@@ -272,7 +274,7 @@ app.listen({ port: 3000 });
 
 ### Custom Middleware
 
-Add authentication before prisma-rest routes:
+Add authentication before omni-rest routes:
 
 ```typescript
 app.use("/api", authenticate, expressAdapter(prisma));
@@ -326,17 +328,17 @@ Full Configuration: [docs/CONFIGURATION.md](docs/CONFIGURATION.md)
 
 ## CLI
 
-prisma-rest includes a CLI for schema introspection:
+omni-rest includes a CLI for schema introspection:
 
 ```bash
 # Introspect your Prisma schema
-npx prisma-rest introspect
+npx omni-rest introspect
 
 # Generate all endpoints
-npx prisma-rest generate
+npx omni-rest generate
 
 # Validate configuration
-npx prisma-rest validate
+npx omni-rest validate
 ```
 
 ## How It Works
@@ -356,7 +358,7 @@ import type {
   RouterInstance,
   PrismaRestOptions,
   HandlerResult,
-} from "prisma-rest";
+} from "omni-rest";
 ```
 
 ## Performance Considerations
@@ -424,7 +426,7 @@ npm install -D @types/express @types/node typescript
 
 ### Prisma Version Compatibility
 
-prisma-rest supports Prisma 4.0+. For best compatibility, use Prisma 5.0+:
+omni-rest supports Prisma 4.0+. For best compatibility, use Prisma 5.0+:
 
 ```bash
 npm install @prisma/client@^5.0.0
@@ -456,14 +458,14 @@ npm run build        # Build distribution
 
 ## License
 
-MIT © [Prisma REST Contributors](LICENSE)
+MIT © [Omni Rest Contributors](LICENSE)
 
 ## Support
 
 - 📖 [Documentation](docs/)
-- 🙋 [GitHub Discussions](https://github.com/prisma-rest/prisma-rest/discussions)
-- 🐛 [Report Issues](https://github.com/prisma-rest/prisma-rest/issues)
-- 💬 [Chat on Discord](https://discord.gg/prisma-rest)
+- 🙋 [GitHub Discussions](https://github.com/omni-rest/omni-rest/discussions)
+- 🐛 [Report Issues](https://github.com/omni-rest/omni-rest/issues)
+- 💬 [Chat on Discord](https://discord.gg/omni-rest)
 
 ## Acknowledgments
 
@@ -471,4 +473,4 @@ Inspired by PostgREST and built for the modern JavaScript/TypeScript ecosystem.
 
 ---
 
-**Made with ❤️ by the Prisma REST community**
+**Made with ❤️ by the Omni Rest community**

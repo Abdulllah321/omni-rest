@@ -2,10 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const client_1 = require("@prisma/client");
-const express_2 = require("prisma-rest/express");
-const prisma_rest_1 = require("prisma-rest");
+const express_2 = require("omni-rest/express");
+const prisma_rest_1 = require("omni-rest");
 const swagger_ui_express_1 = require("swagger-ui-express");
-const prisma_rest_2 = require("prisma-rest");
+const prisma_rest_2 = require("omni-rest");
 const prisma = new client_1.PrismaClient();
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
@@ -14,7 +14,7 @@ let openApiSpec = null;
 const getOpenApiSpec = () => {
     if (!openApiSpec) {
         openApiSpec = (0, prisma_rest_2.generateOpenApiSpec)({
-            title: "Express API with prisma-rest",
+            title: "Express API with omni-rest",
             version: "1.0.0",
             basePath: "/api",
         });
@@ -25,7 +25,7 @@ const getOpenApiSpec = () => {
 app.use("/docs", swagger_ui_express_1.default.serve, (req, res, next) => {
     swagger_ui_express_1.default.setup(getOpenApiSpec())(req, res, next);
 });
-// Mount prisma-rest with validation
+// Mount omni-rest with validation
 app.use("/api", (0, express_2.expressAdapter)(prisma, {
     guards: (0, prisma_rest_1.withValidation)(),
     hooks: {

@@ -1,6 +1,6 @@
 # API Reference
 
-Complete reference for prisma-rest endpoints, parameters, and responses.
+Complete reference for omni-rest endpoints, parameters, and responses.
 
 ## REST Endpoints
 

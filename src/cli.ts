@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
- * prisma-rest CLI
+ * omni-rest CLI
  *
  * Usage:
- *   npx prisma-rest generate:zod       → generates src/schemas.generated.ts
- *   npx prisma-rest generate:openapi   → generates openapi.json
- *   npx prisma-rest generate           → generates both
+ *   npx omni-rest generate:zod       → generates src/schemas.generated.ts
+ *   npx omni-rest generate:openapi   → generates openapi.json
+ *   npx omni-rest generate           → generates both
  */
 
 import fs from "fs";
@@ -32,7 +32,7 @@ function write(filePath: string, content: string) {
 }
 
 function run() {
-  console.log(COLORS.bold("\n  prisma-rest generator\n"));
+  console.log(COLORS.bold("\n  omni-rest generator\n"));
 
   if (command === "generate:zod" || command === "generate") {
     try {
@@ -60,9 +60,9 @@ function run() {
   if (!["generate", "generate:zod", "generate:openapi"].includes(command)) {
     console.log(`
   Usage:
-    npx prisma-rest generate            Generate both Zod schemas and OpenAPI spec
-    npx prisma-rest generate:zod        Generate Zod schemas only
-    npx prisma-rest generate:openapi    Generate OpenAPI spec only
+    npx omni-rest generate            Generate both Zod schemas and OpenAPI spec
+    npx omni-rest generate:zod        Generate Zod schemas only
+    npx omni-rest generate:openapi    Generate OpenAPI spec only
     `);
   }
 

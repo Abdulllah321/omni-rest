@@ -2,13 +2,13 @@ import { PrismaClient } from '@prisma/client';
 import { P as PrismaRestOptions } from '../types-CzjpYtyN.mjs';
 
 /**
- * Fastify adapter for prisma-rest.
+ * Fastify adapter for omni-rest.
  *
  * @example
  * ```ts
  * import Fastify from "fastify";
  * import { PrismaClient } from "@prisma/client";
- * import { fastifyAdapter } from "prisma-rest/fastify";
+ * import { fastifyAdapter } from "omni-rest/fastify";
  *
  * const app = Fastify();
  * const prisma = new PrismaClient();

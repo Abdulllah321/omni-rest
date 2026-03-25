@@ -1,6 +1,6 @@
 # NPM Publishing Guide
 
-This document provides a complete checklist and guide for publishing prisma-rest to npm.
+This document provides a complete checklist and guide for publishing omni-rest to npm.
 
 ## Pre-Publishing Checklist
 
@@ -64,10 +64,10 @@ Expected output: Your npm username
 
 ### Step 4: Verify Package Name Availability
 ```bash
-npm search prisma-rest
+npm search omni-rest
 ```
 
-Or check at: https://www.npmjs.com/package/prisma-rest
+Or check at: https://www.npmjs.com/package/omni-rest
 
 ### Step 5: Run Pre-publish Checks
 ```bash
@@ -107,9 +107,9 @@ After a few moments, verify the package is live:
 
 ```bash
 # Check npm registry
-npm info prisma-rest
+npm info omni-rest
 
-# Or visit: https://www.npmjs.com/package/prisma-rest
+# Or visit: https://www.npmjs.com/package/omni-rest
 ```
 
 ### Step 9: Create Git Tag (Recommended)
@@ -123,7 +123,7 @@ git push origin v0.1.0
 The npm package includes:
 
 ```
-prisma-rest/
+omni-rest/
 ├── dist/
 │   ├── index.js / index.mjs / index.d.ts
 │   ├── cli.js / cli.mjs
@@ -147,11 +147,11 @@ prisma-rest/
 
 ## Package Information
 
-**Name:** `prisma-rest`  
+**Name:** `omni-rest`  
 **Version:** 0.1.0  
 **License:** MIT  
-**Repository:** https://github.com/prisma-rest/prisma-rest  
-**Homepage:** https://github.com/prisma-rest/prisma-rest#readme  
+**Repository:** https://github.com/omni-rest/omni-rest  
+**Homepage:** https://github.com/omni-rest/omni-rest#readme  
 **Keywords:** prisma, rest, api, crud, express, nextjs, fastify
 
 ## Installation After Publishing
@@ -159,14 +159,14 @@ prisma-rest/
 Users will be able to install with:
 
 ```bash
-npm install prisma-rest
+npm install omni-rest
 ```
 
 And import from:
 ```typescript
-import { expressAdapter } from "prisma-rest/express";
-import { nextjsAdapter } from "prisma-rest/nextjs";
-import { fastifyAdapter } from "prisma-rest/fastify";
+import { expressAdapter } from "omni-rest/express";
+import { nextjsAdapter } from "omni-rest/nextjs";
+import { fastifyAdapter } from "omni-rest/fastify";
 ```
 
 ## Troubleshooting
@@ -178,7 +178,7 @@ npm whoami  # Verify login
 ```
 
 ### "This package name cannot be published"
-- Check if package name is already taken: `npm search prisma-rest`
+- Check if package name is already taken: `npm search omni-rest`
 - Try a different name or contact npm support if it's inactive
 
 ### "The server rejected the request"
@@ -194,13 +194,13 @@ npm run build
 
 ### Success but package not visible
 - npm can take a few moments to update
-- Check: `npm info prisma-rest`
-- Visit: https://www.npmjs.com/package/prisma-rest
+- Check: `npm info omni-rest`
+- Visit: https://www.npmjs.com/package/omni-rest
 
 ## After Publishing
 
 ### Create GitHub Release
-1. Go to https://github.com/prisma-rest/prisma-rest/releases
+1. Go to https://github.com/omni-rest/omni-rest/releases
 2. Click "Create new release"
 3. Select tag `v0.1.0`
 4. Add release notes from CHANGELOG.md
@@ -264,7 +264,7 @@ npm run clean && npm run build && npm test
 npm publish
 
 # 4. Verify
-npm info prisma-rest
+npm info omni-rest
 ```
 
 That's it! Your package is now published on npm! 🎉

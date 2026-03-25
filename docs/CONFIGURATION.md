@@ -1,6 +1,6 @@
 # Configuration Guide
 
-Learn how to configure prisma-rest for your specific needs.
+Learn how to configure omni-rest for your specific needs.
 
 ## Basic Configuration
 
@@ -9,7 +9,7 @@ Learn how to configure prisma-rest for your specific needs.
 Only expose specific models:
 
 ```typescript
-import { expressAdapter } from "prisma-rest/express";
+import { expressAdapter } from "omni-rest/express";
 
 expressAdapter(prisma, {
   allow: ["department", "product"],  // Only these models are exposed
@@ -125,7 +125,7 @@ GET /api/product?limit=200 // Capped at maxLimit (100)
 Generate customized API documentation:
 
 ```typescript
-import { generateOpenApiSpec } from "prisma-rest";
+import { generateOpenApiSpec } from "omni-rest";
 
 const spec = generateOpenApiSpec(prisma, {
   title: "My Company API",
@@ -166,8 +166,8 @@ app.use("/docs", swaggerUi.serve, swaggerUi.setup(spec, {
 ```typescript
 import express from "express";
 import { PrismaClient } from "@prisma/client";
-import { expressAdapter } from "prisma-rest/express";
-import { generateOpenApiSpec } from "prisma-rest";
+import { expressAdapter } from "omni-rest/express";
+import { generateOpenApiSpec } from "omni-rest";
 import swaggerUi from "swagger-ui-express";
 
 const app = express();
@@ -263,7 +263,7 @@ app.listen(3000, () => {
 ### Express
 
 ```typescript
-import { expressAdapter } from "prisma-rest/express";
+import { expressAdapter } from "omni-rest/express";
 
 app.use("/api", expressAdapter(prisma, options));
 ```
@@ -272,7 +272,7 @@ app.use("/api", expressAdapter(prisma, options));
 
 ```typescript
 // app/api/[...prismaRest]/route.ts
-import { nextjsAdapter } from "prisma-rest/nextjs";
+import { nextjsAdapter } from "omni-rest/nextjs";
 
 export const { GET, POST, PUT, PATCH, DELETE } = nextjsAdapter(prisma, options);
 ```
@@ -280,7 +280,7 @@ export const { GET, POST, PUT, PATCH, DELETE } = nextjsAdapter(prisma, options);
 ### Fastify
 
 ```typescript
-import { fastifyAdapter } from "prisma-rest/fastify";
+import { fastifyAdapter } from "omni-rest/fastify";
 
 fastifyAdapter(app, prisma, {
   ...options,

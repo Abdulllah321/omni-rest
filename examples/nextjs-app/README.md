@@ -1,6 +1,6 @@
-# Prisma-REST Next.js Example
+# omni-rest Next.js Example
 
-A complete Next.js application using prisma-rest for auto-generated REST APIs with React hooks and components.
+A complete Next.js application using omni-rest for auto-generated REST APIs with React hooks and components.
 
 ## Setup
 

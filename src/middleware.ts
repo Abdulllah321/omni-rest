@@ -32,6 +32,6 @@ export async function runHook(
     await hook(ctx);
   } catch (e) {
     // Hooks should not crash the request
-    console.error("[prisma-rest] Hook error:", e);
+    console.error("[omni-rest] Hook error:", e);
   }
 }

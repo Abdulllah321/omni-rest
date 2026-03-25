@@ -1,0 +1,58 @@
+# Introduction
+
+Welcome to **Omni Rest**! This documentation will help you get started with auto-generating REST APIs from your Prisma schema.
+
+## What is Omni Rest?
+
+Omni Rest automatically generates RESTful API endpoints from your Prisma schema. With zero configuration, you get:
+
+- ✅ **CRUD Operations** - Create, Read, Update, Delete any model
+- ✅ **Bulk Operations** - Update/delete multiple records in one request
+- ✅ **Advanced Queries** - Filter, sort, paginate with standard query parameters
+- ✅ **OpenAPI Docs** - Auto-generated Swagger UI for all endpoints
+- ✅ **Type Safety** - Full TypeScript support with generated types
+- ✅ **Framework Agnostic** - Works with Express, Next.js, Fastify, and more
+- ✅ **Security Guards** - Control access at operation level
+- ✅ **Audit Hooks** - Log operations and trigger side effects
+
+## Quick Example
+
+```typescript
+import express from "express";
+import { PrismaClient } from "@prisma/client";
+import { expressAdapter } from "omni-rest/express";
+
+const app = express();
+const prisma = new PrismaClient();
+
+app.use(express.json());
+app.use("/api", expressAdapter(prisma));
+
+app.listen(3000, () => {
+  console.log("🚀 API ready at http://localhost:3000/api");
+});
+```
+
+This creates a full REST API for all your Prisma models automatically!
+
+## Installation
+
+```bash
+npm install omni-rest @prisma/client
+npm install -D prisma
+```
+
+## Framework Support
+
+| Framework | Status | Import |
+|-----------|--------|--------|
+| **Express** | ✅ | `import { expressAdapter } from "omni-rest/express"` |
+| **Next.js App Router** | ✅ | `import { nextjsAdapter } from "omni-rest/nextjs"` |
+| **Fastify** | ✅ | `import { fastifyAdapter } from "omni-rest/fastify"` |
+
+## Next Steps
+
+- **[Getting Started](getting-started.md)** - 5-minute setup guide
+- **[API Reference](api-reference.md)** - Complete endpoint documentation
+- **[Configuration](configuration.md)** - Advanced options and customization
+- **[Examples](examples.md)** - Real-world usage examples

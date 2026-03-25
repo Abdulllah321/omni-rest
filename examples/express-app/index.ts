@@ -1,7 +1,7 @@
 import express from "express";
 import { PrismaClient } from "@prisma/client";
-import { expressAdapter } from "prisma-rest/express";
-import { generateOpenApiSpec } from "prisma-rest";
+import { expressAdapter } from "omni-rest/express";
+import { generateOpenApiSpec } from "omni-rest";
 import swaggerUi from "swagger-ui-express";
 
 const prisma = new PrismaClient();
@@ -9,7 +9,7 @@ const app = express();
 
 app.use(express.json());
 
-// Use prisma-rest express adapter (auto CRUD from Prisma schema)
+// Use omni-rest express adapter (auto CRUD from Prisma schema)
 app.use(
   "/api",
   expressAdapter(prisma, {
@@ -20,7 +20,7 @@ app.use(
 
 // Expose OpenAPI spec and interactive docs
 const openApiSpec = generateOpenApiSpec(prisma, {
-  title: "prisma-rest Express example",
+  title: "omni-rest Express example",
   version: "1.0.0",
   basePath: "/api",
   allow: ["department", "category", "city", "product"],

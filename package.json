@@ -1,12 +1,12 @@
 {
-  "name": "prisma-rest",
+  "name": "omni-rest",
   "version": "0.1.0",
   "description": "Auto-generate REST APIs from your Prisma schema — zero config CRUD",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "bin": {
-    "prisma-rest": "dist/cli.js"
+    "omni-rest": "dist/cli.js"
   },
   "exports": {
     ".": {
@@ -72,17 +72,17 @@
     "postgrest"
   ],
   "author": {
-    "name": "Prisma REST Contributors",
-    "url": "https://github.com/prisma-rest/prisma-rest"
+    "name": "Abdulllah321",
+    "url": "https://github.com/Abdulllah321"
   },
   "license": "MIT",
-  "homepage": "https://github.com/prisma-rest/prisma-rest#readme",
+  "homepage": "https://github.com/Abdulllah321/omni-rest#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/prisma-rest/prisma-rest.git"
+    "url": "https://github.com/Abdulllah321/omni-rest.git"
   },
   "bugs": {
-    "url": "https://github.com/prisma-rest/prisma-rest/issues"
+    "url": "https://github.com/Abdulllah321/omni-rest/issues"
   },
   "dependencies": {
     "express": "^5.2.1",

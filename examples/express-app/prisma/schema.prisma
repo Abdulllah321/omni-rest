@@ -1,4 +1,4 @@
-// Sample Prisma schema for prisma-rest examples
+// Sample Prisma schema for omni-rest examples
 generator client {
   provider = "prisma-client-js"
 }

@@ -1,6 +1,6 @@
-# Prisma-REST Examples
+# omni-rest Examples
 
-Complete, runnable examples showing how to use prisma-rest in real applications.
+Complete, runnable examples showing how to use omni-rest in real applications.
 
 ## Examples
 
@@ -69,7 +69,7 @@ Both examples use SQLite for simplicity. The schema includes:
 
 ## Testing Your Package
 
-To test prisma-rest locally:
+To test omni-rest locally:
 
 ```bash
 # In the root directory
@@ -77,7 +77,7 @@ npm run build
 npm link
 
 # In an example directory
-npm link prisma-rest
+npm link omni-rest
 ```
 
 This lets you test changes to the main package in the examples.

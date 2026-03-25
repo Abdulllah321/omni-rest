@@ -1,4 +1,4 @@
-# Contributing to prisma-rest
+# Contributing to omni-rest
 
 We love contributions! Here's how you can help.
 
@@ -15,8 +15,8 @@ We love contributions! Here's how you can help.
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/prisma-rest.git
-cd prisma-rest
+git clone https://github.com/yourusername/omni-rest.git
+cd omni-rest
 
 # Install dependencies
 npm install
@@ -34,7 +34,7 @@ npm run dev
 ### Project Structure
 
 ```
-prisma-rest/
+omni-rest/
 ├── src/                    # TypeScript source code
 │   ├── adapters/          # Framework adapters (Express, Next.js, Fastify)
 │   ├── cli.ts             # Command-line interface
@@ -297,4 +297,4 @@ By contributing, you agree your code will be licensed under the MIT License.
 
 ---
 
-Thank you for contributing to prisma-rest! 🎉
+Thank you for contributing to omni-rest! 🎉

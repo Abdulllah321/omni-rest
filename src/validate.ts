@@ -56,7 +56,7 @@ export function validateBody(
  *
  * @example
  * ```ts
- * import { withValidation } from "prisma-rest";
+ * import { withValidation } from "omni-rest";
  *
  * expressAdapter(prisma, {
  *   guards: withValidation(),  // validates ALL models

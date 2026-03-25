@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Prisma-REST Next.js Example",
+  title: "omni-rest Next.js Example",
   description: "Auto-generated REST APIs with React components",
 };
 

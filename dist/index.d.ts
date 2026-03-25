@@ -66,7 +66,7 @@ declare function runHook(hook: HookFn | undefined, ctx: HookContext): Promise<vo
  *
  * @example
  * ```ts
- * import { generateZodSchemas } from "prisma-rest";
+ * import { generateZodSchemas } from "omni-rest";
  * const code = generateZodSchemas();
  * fs.writeFileSync("src/schemas.ts", code);
  * ```
@@ -99,7 +99,7 @@ declare function validateBody(modelRouteName: string, method: string, body: any)
  *
  * @example
  * ```ts
- * import { withValidation } from "prisma-rest";
+ * import { withValidation } from "omni-rest";
  *
  * expressAdapter(prisma, {
  *   guards: withValidation(),  // validates ALL models
@@ -113,7 +113,7 @@ declare function withValidation(overrides?: PrismaRestOptions["guards"]): GuardM
  *
  * @example
  * ```ts
- * import { generateOpenApiSpec } from "prisma-rest";
+ * import { generateOpenApiSpec } from "omni-rest";
  * const spec = generateOpenApiSpec(prisma, { title: "My API", version: "1.0.0", basePath: "/api" });
  * fs.writeFileSync("openapi.json", JSON.stringify(spec, null, 2));
  * ```

@@ -2,7 +2,7 @@
 
 ## 🎉 Project Status: READY FOR NPM PUBLISHING
 
-Your prisma-rest package is fully prepared for publishing to npm. All code, documentation, and configuration is complete.
+Your omni-rest package is fully prepared for publishing to npm. All code, documentation, and configuration is complete.
 
 ---
 
@@ -28,10 +28,10 @@ Your prisma-rest package is fully prepared for publishing to npm. All code, docu
 
 ### Package Configuration
 - ✅ **package.json** - Updated with:
-  - Author name: "Prisma REST Contributors"
-  - Repository: https://github.com/prisma-rest/prisma-rest.git
-  - Homepage: https://github.com/prisma-rest/prisma-rest#readme
-  - Bugs: https://github.com/prisma-rest/prisma-rest/issues
+  - Author name: "Omni Rest Contributors"
+  - Repository: https://github.com/omni-rest/omni-rest.git
+  - Homepage: https://github.com/omni-rest/omni-rest#readme
+  - Bugs: https://github.com/omni-rest/omni-rest/issues
   - Proper export paths for all adapters
   - Proper peer dependencies and dev dependencies
 
@@ -47,14 +47,14 @@ Your prisma-rest package is fully prepared for publishing to npm. All code, docu
 
 | Property | Value |
 |----------|-------|
-| **Name** | prisma-rest |
+| **Name** | omni-rest |
 | **Version** | 0.1.0 |
 | **License** | MIT |
 | **Main Entry** | dist/index.js (CJS) / dist/index.mjs (ESM) |
 | **Types** | dist/index.d.ts |
-| **CLI** | dist/cli.js / prisma-rest command |
+| **CLI** | dist/cli.js / omni-rest command |
 | **Exports** | `.` (main), `./express`, `./nextjs`, `./fastify` |
-| **Repository** | github.com/prisma-rest/prisma-rest |
+| **Repository** | github.com/omni-rest/omni-rest |
 
 ---
 
@@ -71,14 +71,14 @@ npm login
 
 ### 3. Verify Package Name Availability
 ```bash
-npm search prisma-rest
+npm search omni-rest
 ```
 
 If the name is available, proceed to step 4.
 
 ### 4. Final Pre-publish Verification
 ```bash
-cd d:\projects\prisma-rest
+cd d:\projects\omni-rest
 npm run clean
 npm run build
 npm test
@@ -99,8 +99,8 @@ npm run prepublishOnly && npm publish
 ### 6. Verify Publication
 After 1-2 minutes, verify the package is live:
 ```bash
-npm info prisma-rest
-# Or visit: https://www.npmjs.com/package/prisma-rest
+npm info omni-rest
+# Or visit: https://www.npmjs.com/package/omni-rest
 ```
 
 ### 7. Create GitHub Tag (Optional)
@@ -137,7 +137,7 @@ All documentation is complete and covers:
 ## 🔄 Current Directory Structure
 
 ```
-d:\projects\prisma-rest\
+d:\projects\omni-rest\
 ├── src/                                - TypeScript source code
 │   ├── adapters/                      - Framework adapters (express, nextjs, fastify)
 │   ├── index.ts                       - Main entry point
@@ -173,7 +173,7 @@ Use this checklist before publishing:
 
 - [ ] npm account created and verified
 - [ ] Logged in to npm (`npm login`)
-- [ ] Package name is available (`npm search prisma-rest`)
+- [ ] Package name is available (`npm search omni-rest`)
 - [ ] All tests passing (`npm test`)
 - [ ] Build successful (`npm run build`)
 - [ ] No TypeScript errors (`npm run typecheck`)
@@ -190,20 +190,20 @@ Use this checklist before publishing:
 Once published, users can install with:
 
 ```bash
-npm install prisma-rest
+npm install omni-rest
 ```
 
 And use it in their projects:
 
 ```typescript
 // Express
-import { expressAdapter } from "prisma-rest/express";
+import { expressAdapter } from "omni-rest/express";
 
 // Next.js  
-import { nextjsAdapter } from "prisma-rest/nextjs";
+import { nextjsAdapter } from "omni-rest/nextjs";
 
 // Fastify
-import { fastifyAdapter } from "prisma-rest/fastify";
+import { fastifyAdapter } from "omni-rest/fastify";
 ```
 
 With full TypeScript support, OpenAPI documentation, and all features fully documented.
@@ -245,10 +245,10 @@ With full TypeScript support, OpenAPI documentation, and all features fully docu
 
 After publishing, your package will be available at:
 
-- **npm Registry:** https://www.npmjs.com/package/prisma-rest
-- **GitHub Repository:** https://github.com/prisma-rest/prisma-rest
-- **GitHub Releases:** https://github.com/prisma-rest/prisma-rest/releases
-- **npm Issues:** https://github.com/prisma-rest/prisma-rest/issues
+- **npm Registry:** https://www.npmjs.com/package/omni-rest
+- **GitHub Repository:** https://github.com/omni-rest/omni-rest
+- **GitHub Releases:** https://github.com/omni-rest/omni-rest/releases
+- **npm Issues:** https://github.com/omni-rest/omni-rest/issues
 
 ---
 
@@ -256,14 +256,14 @@ After publishing, your package will be available at:
 
 - Make sure to update the GitHub repository URL in package.json before publishing if it's different
 - Consider enabling two-factor authentication (2FA) on your npm account for security
-- After publishing, you can monitor download stats at: npm.im/prisma-rest
+- After publishing, you can monitor download stats at: npm.im/omni-rest
 - For subsequent releases, use `npm version patch|minor|major` to auto-update versions and create git tags
 
 ---
 
 ## 🎉 You're All Set!
 
-Your prisma-rest package is fully prepared for npm publishing. All code, documentation, and configuration is complete and tested.
+Your omni-rest package is fully prepared for npm publishing. All code, documentation, and configuration is complete and tested.
 
 **Next action:** Follow the "Next Steps to Publish" section above to publish your package to npm.
 

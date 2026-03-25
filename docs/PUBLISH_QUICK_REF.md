@@ -1,6 +1,6 @@
 #🚀 Quick Publish Reference Card
 
-**Ready to publish prisma-rest to npm?** Use this quick reference.
+**Ready to publish omni-rest to npm?** Use this quick reference.
 
 ---
 
@@ -42,12 +42,12 @@ npm publish
 
 Verify with:
 ```bash
-npm info prisma-rest
+npm info omni-rest
 ```
 
 View on npm.js:
 ```
-https://www.npmjs.com/package/prisma-rest
+https://www.npmjs.com/package/omni-rest
 ```
 
 ---
@@ -78,11 +78,11 @@ https://www.npmjs.com/package/prisma-rest
 ## 🎯 Default Package Info
 
 ```
-Name: prisma-rest
+Name: omni-rest
 Version: 0.1.0
 License: MIT
-Repository: github.com/prisma-rest/prisma-rest
-Homepage: github.com/prisma-rest/prisma-rest#readme
+Repository: github.com/omni-rest/omni-rest
+Homepage: github.com/omni-rest/omni-rest#readme
 ```
 
 ---
