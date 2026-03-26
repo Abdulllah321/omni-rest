@@ -1,21 +1,26 @@
+import { Cards, Card } from 'nextra/components'
+import { Rocket, ShieldCheck, Database, FileBox, Lock, RefreshCcw } from 'lucide-react'
+
 # Introduction
 
 Welcome to **Omni Rest**! This documentation will help you get started with auto-generating REST APIs from your Prisma schema.
 
 ## What is Omni Rest?
 
-Omni Rest automatically generates RESTful API endpoints from your Prisma schema. With zero configuration, you get:
+Omni Rest automatically generates fully-featured RESTful API endpoints from your Prisma schema. With zero configuration, you get:
 
-- ✅ **CRUD Operations** - Create, Read, Update, Delete any model
-- ✅ **Bulk Operations** - Update/delete multiple records in one request
-- ✅ **Advanced Queries** - Filter, sort, paginate with standard query parameters
-- ✅ **OpenAPI Docs** - Auto-generated Swagger UI for all endpoints
-- ✅ **Type Safety** - Full TypeScript support with generated types
-- ✅ **Framework Agnostic** - Works with Express, Next.js, Fastify, and more
-- ✅ **Security Guards** - Control access at operation level
-- ✅ **Audit Hooks** - Log operations and trigger side effects
+<Cards>
+  <Card icon={<Rocket />} title="CRUD Operations" href="#features" description="Create, Read, Update, Delete any model" />
+  <Card icon={<RefreshCcw />} title="Bulk Operations" href="#features" description="Update or delete multiple records in one request" />
+  <Card icon={<Database />} title="Advanced Queries" href="#features" description="Filter, sort, paginate with standard query parameters" />
+  <Card icon={<FileBox />} title="OpenAPI Docs" href="#features" description="Auto-generated Swagger UI for all endpoints" />
+  <Card icon={<ShieldCheck />} title="Type Safety" href="#features" description="Full TypeScript support with auto-generated interfaces" />
+  <Card icon={<Lock />} title="Security Guards" href="#features" description="Control access at operation level" />
+</Cards>
 
 ## Quick Example
+
+Instead of writing a dozen controllers, services, and routes for your API, simply wire `omni-rest` to your server instance. We'll handle everything perfectly!
 
 ```typescript
 import express from "express";
@@ -26,6 +31,7 @@ const app = express();
 const prisma = new PrismaClient();
 
 app.use(express.json());
+// 👇 This single line creates all the routes for you!
 app.use("/api", expressAdapter(prisma));
 
 app.listen(3000, () => {
@@ -33,26 +39,24 @@ app.listen(3000, () => {
 });
 ```
 
-This creates a full REST API for all your Prisma models automatically!
-
-## Installation
-
-```bash
-npm install omni-rest @prisma/client
-npm install -D prisma
-```
+This tiny snippet creates a full, robust REST API for **all** your Prisma models automatically!
 
 ## Framework Support
 
-| Framework | Status | Import |
-|-----------|--------|--------|
-| **Express** | ✅ | `import { expressAdapter } from "omni-rest/express"` |
-| **Next.js App Router** | ✅ | `import { nextjsAdapter } from "omni-rest/nextjs"` |
-| **Fastify** | ✅ | `import { fastifyAdapter } from "omni-rest/fastify"` |
+Omni Rest is natively framework agnostic but we provide out-of-the-box adapters for the most popular frameworks available:
+
+<Cards>
+  <Card title="Express" href="/docs/getting-started#expressjs" />
+  <Card title="Next.js App Router" href="/docs/getting-started#nextjs-app-router" />
+  <Card title="Fastify" href="/docs/getting-started#fastify" />
+</Cards>
 
 ## Next Steps
 
-- **[Getting Started](getting-started.md)** - 5-minute setup guide
-- **[API Reference](api-reference.md)** - Complete endpoint documentation
-- **[Configuration](configuration.md)** - Advanced options and customization
-- **[Examples](examples.md)** - Real-world usage examples
+Explore the rest of the documentation to discover the true power of Omni Rest:
+
+<Cards>
+  <Card title="Getting Started" href="/docs/getting-started" />
+  <Card title="API Reference" href="/docs/api-reference" />
+  <Card title="Configuration" href="/docs/configuration" />
+</Cards>

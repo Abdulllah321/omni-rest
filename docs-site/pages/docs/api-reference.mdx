@@ -1,288 +1,320 @@
+import { Tabs, Callout, Cards, Card } from 'nextra/components'
+import { Server, Type, List, Database, Layers } from 'lucide-react'
+
 # API Reference
 
 Complete reference for all Omni Rest endpoints.
 
 ## Overview
 
-Each Prisma model automatically gets 8 REST endpoints:
+<Callout type="info" emoji="💡">
+  Each Prisma model automatically gets 8 REST endpoints generated instantly without configuration.
+</Callout>
 
-```
-LIST      GET    /api/:model
-CREATE    POST   /api/:model
-READ      GET    /api/:model/:id
-UPDATE    PUT    /api/:model/:id
-PATCH     PATCH  /api/:model/:id
-DELETE    DELETE /api/:model/:id
-BULK_UPD  PATCH  /api/:model/bulk/update
-BULK_DEL  DELETE /api/:model/bulk/delete
-```
+<Cards>
+  <Card icon={<List />} title="LIST" href="#list---get-all-records" />
+  <Card icon={<Type />} title="CREATE" href="#create---create-new-record" />
+  <Card icon={<Database />} title="READ" href="#read---get-single-record" />
+  <Card icon={<Layers />} title="UPDATE" href="#update---replace-record" />
+  <Card icon={<Server />} title="PATCH" href="#patch---update-record" />
+  <Card icon={<Type />} title="DELETE" href="#delete---delete-record" />
+  <Card icon={<Layers />} title="BULK_UPD" href="#bulk-update---update-multiple-records" />
+  <Card icon={<List />} title="BULK_DEL" href="#bulk-delete---delete-multiple-records" />
+</Cards>
 
 ## Query Parameters
 
-### Pagination
+Omni Rest supports powerful filtering, sorting, and pagination via standard query parameters.
 
-```javascript
-GET /api/product?limit=10&offset=20
-```
+<Tabs items={['Pagination', 'Sorting', 'Filtering']}>
+  <Tabs.Tab>
+    ```javascript
+    GET /api/product?limit=10&offset=20
+    ```
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `limit` | number | 10 | Maximum number of records to return |
-| `offset` | number | 0 | Number of records to skip |
+    | Parameter | Type | Default | Description |
+    |-----------|------|---------|-------------|
+    | `limit` | number | 10 | Maximum number of records to return |
+    | `offset` | number | 0 | Number of records to skip |
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```javascript
+    GET /api/product?orderBy=price:desc&orderBy=name:asc
+    ```
 
-### Sorting
+    - Use `field:asc` for ascending order
+    - Use `field:desc` for descending order
+    - Multiple `orderBy` parameters are supported
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```javascript
+    GET /api/product?name=Laptop&price[gte]=100&price[lte]=1000&inventory[gt]=0
+    ```
 
-```javascript
-GET /api/product?orderBy=price:desc&orderBy=name:asc
-```
+    #### Filter Operators
 
-- Use `field:asc` for ascending order
-- Use `field:desc` for descending order
-- Multiple `orderBy` parameters are supported
-
-### Filtering
-
-```javascript
-GET /api/product?name=Laptop&price[gte]=100&price[lte]=1000&inventory[gt]=0
-```
-
-#### Filter Operators
-
-| Operator | Description | Example |
-|----------|-------------|---------|
-| `eq` | Equal | `name=MacBook` |
-| `ne` | Not equal | `name[ne]=MacBook` |
-| `lt` | Less than | `price[lt]=1000` |
-| `lte` | Less than or equal | `price[lte]=1000` |
-| `gt` | Greater than | `price[gt]=100` |
-| `gte` | Greater than or equal | `price[gte]=100` |
-| `in` | In array | `categoryId[in]=1,2,3` |
-| `nin` | Not in array | `categoryId[nin]=1,2,3` |
-| `contains` | Contains substring | `name[contains]=Mac` |
-| `startsWith` | Starts with | `name[startsWith]=Mac` |
-| `endsWith` | Ends with | `name[endsWith]=Book` |
+    | Operator | Description | Example |
+    |----------|-------------|---------|
+    | `eq` | Equal | `name=MacBook` |
+    | `ne` | Not equal | `name[ne]=MacBook` |
+    | `lt` | Less than | `price[lt]=1000` |
+    | `lte` | Less than or equal | `price[lte]=1000` |
+    | `gt` | Greater than | `price[gt]=100` |
+    | `gte` | Greater than or equal | `price[gte]=100` |
+    | `in` | In array | `categoryId[in]=1,2,3` |
+    | `nin` | Not in array | `categoryId[nin]=1,2,3` |
+    | `contains` | Contains substring | `name[contains]=Mac` |
+    | `startsWith` | Starts with | `name[startsWith]=Mac` |
+    | `endsWith` | Ends with | `name[endsWith]=Book` |
+  </Tabs.Tab>
+</Tabs>
 
 ## Endpoints
 
 ### LIST - Get All Records
 
-**GET** `/api/:model`
+<Tabs items={['Request', 'Response', 'Status Codes']}>
+  <Tabs.Tab>
+    **GET** `/api/:model`
 
-Returns a paginated list of records.
+    Returns a paginated list of records.
 
-#### Query Parameters
-- `limit` (optional): Number of records per page
-- `offset` (optional): Number of records to skip
-- `orderBy` (optional): Sort field and direction
-- Filter parameters (optional): See filtering section
+    **Query Parameters:**
+    - `limit` (optional): Number of records per page
+    - `offset` (optional): Number of records to skip
+    - `orderBy` (optional): Sort field and direction
+    - Filter parameters (optional): See filtering section
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```json
+    {
+      "data": [
+        {
+          "id": 1,
+          "name": "Laptop",
+          "price": 999.99,
+          "createdAt": "2024-01-01T00:00:00.000Z"
+        }
+      ],
+      "total": 1,
+      "limit": 10,
+      "offset": 0
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    - `200` - Success
+    - `400` - Bad request (invalid query parameters)
+  </Tabs.Tab>
+</Tabs>
 
-#### Response
-```json
-{
-  "data": [
+### CREATE - Create New Record
+
+<Tabs items={['Request', 'Response', 'Status Codes']}>
+  <Tabs.Tab>
+    **POST** `/api/:model`
+
+    Creates a new record. Provide a JSON object with model fields (excluding auto-generated fields like `id`, `createdAt`).
+
+    ```json
+    {
+      "name": "New Product",
+      "price": 29.99,
+      "inventory": 100
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```json
+    {
+      "id": 2,
+      "name": "New Product",
+      "price": 29.99,
+      "inventory": 100,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    - `201` - Created
+    - `400` - Bad request (validation error)
+    - `409` - Conflict (unique constraint violation)
+  </Tabs.Tab>
+</Tabs>
+
+### READ - Get Single Record
+
+<Tabs items={['Request', 'Response', 'Status Codes']}>
+  <Tabs.Tab>
+    **GET** `/api/:model/:id`
+
+    Returns a single record by ID.
+
+    **Path Parameters:**
+    - `id` - Record ID
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```json
     {
       "id": 1,
       "name": "Laptop",
       "price": 999.99,
-      "createdAt": "2024-01-01T00:00:00.000Z"
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
     }
-  ],
-  "total": 1,
-  "limit": 10,
-  "offset": 0
-}
-```
-
-#### Status Codes
-- `200` - Success
-- `400` - Bad request (invalid query parameters)
-
-### CREATE - Create New Record
-
-**POST** `/api/:model`
-
-Creates a new record.
-
-#### Request Body
-JSON object with model fields (excluding auto-generated fields like `id`, `createdAt`).
-
-#### Example Request
-```json
-{
-  "name": "New Product",
-  "price": 29.99,
-  "inventory": 100
-}
-```
-
-#### Response
-```json
-{
-  "id": 2,
-  "name": "New Product",
-  "price": 29.99,
-  "inventory": 100,
-  "createdAt": "2024-01-01T00:00:00.000Z",
-  "updatedAt": "2024-01-01T00:00:00.000Z"
-}
-```
-
-#### Status Codes
-- `201` - Created
-- `400` - Bad request (validation error)
-- `409` - Conflict (unique constraint violation)
-
-### READ - Get Single Record
-
-**GET** `/api/:model/:id`
-
-Returns a single record by ID.
-
-#### Path Parameters
-- `id` - Record ID
-
-#### Response
-```json
-{
-  "id": 1,
-  "name": "Laptop",
-  "price": 999.99,
-  "createdAt": "2024-01-01T00:00:00.000Z",
-  "updatedAt": "2024-01-01T00:00:00.000Z"
-}
-```
-
-#### Status Codes
-- `200` - Success
-- `404` - Not found
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    - `200` - Success
+    - `404` - Not found
+  </Tabs.Tab>
+</Tabs>
 
 ### UPDATE - Replace Record
 
-**PUT** `/api/:model/:id`
+<Tabs items={['Request', 'Response', 'Status Codes']}>
+  <Tabs.Tab>
+    **PUT** `/api/:model/:id`
 
-Replaces an entire record.
+    Replaces an entire record.
 
-#### Path Parameters
-- `id` - Record ID
+    **Path Parameters:**
+    - `id` - Record ID
 
-#### Request Body
-Complete JSON object with all required fields.
-
-#### Response
-Updated record object.
-
-#### Status Codes
-- `200` - Success
-- `400` - Bad request
-- `404` - Not found
-- `409` - Conflict
+    **Request Body:**
+    Complete JSON object with all required fields.
+  </Tabs.Tab>
+  <Tabs.Tab>
+    Updated record object.
+  </Tabs.Tab>
+  <Tabs.Tab>
+    - `200` - Success
+    - `400` - Bad request
+    - `404` - Not found
+    - `409` - Conflict
+  </Tabs.Tab>
+</Tabs>
 
 ### PATCH - Update Record
 
-**PATCH** `/api/:model/:id`
+<Tabs items={['Request', 'Response', 'Status Codes']}>
+  <Tabs.Tab>
+    **PATCH** `/api/:model/:id`
 
-Partially updates a record.
+    Partially updates a record.
 
-#### Path Parameters
-- `id` - Record ID
+    **Path Parameters:**
+    - `id` - Record ID
 
-#### Request Body
-JSON object with only the fields to update.
+    **Request Body:**
+    JSON object with only the fields to update.
 
-#### Example Request
-```json
-{
-  "price": 899.99,
-  "inventory": 50
-}
-```
-
-#### Response
-Updated record object.
-
-#### Status Codes
-- `200` - Success
-- `400` - Bad request
-- `404` - Not found
+    ```json
+    {
+      "price": 899.99,
+      "inventory": 50
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    Updated record object.
+  </Tabs.Tab>
+  <Tabs.Tab>
+    - `200` - Success
+    - `400` - Bad request
+    - `404` - Not found
+  </Tabs.Tab>
+</Tabs>
 
 ### DELETE - Delete Record
 
-**DELETE** `/api/:model/:id`
+<Tabs items={['Request', 'Response', 'Status Codes']}>
+  <Tabs.Tab>
+    **DELETE** `/api/:model/:id`
 
-Deletes a record by ID.
+    Deletes a record by ID.
 
-#### Path Parameters
-- `id` - Record ID
-
-#### Response
-```json
-{
-  "message": "Record deleted successfully"
-}
-```
-
-#### Status Codes
-- `200` - Success
-- `404` - Not found
+    **Path Parameters:**
+    - `id` - Record ID
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```json
+    {
+      "message": "Record deleted successfully"
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    - `200` - Success
+    - `404` - Not found
+  </Tabs.Tab>
+</Tabs>
 
 ### BULK UPDATE - Update Multiple Records
 
-**PATCH** `/api/:model/bulk/update`
+<Tabs items={['Request', 'Response', 'Status Codes']}>
+  <Tabs.Tab>
+    **PATCH** `/api/:model/bulk/update`
 
-Updates multiple records in one request.
+    Updates multiple records in one request.
 
-#### Request Body
-```json
-{
-  "ids": [1, 2, 3],
-  "data": {
-    "status": "active",
-    "updatedAt": "2024-01-01T00:00:00.000Z"
-  }
-}
-```
-
-#### Response
-```json
-{
-  "updated": 3,
-  "records": [
-    { "id": 1, "status": "active", ... },
-    { "id": 2, "status": "active", ... },
-    { "id": 3, "status": "active", ... }
-  ]
-}
-```
-
-#### Status Codes
-- `200` - Success
-- `400` - Bad request
-- `404` - Some records not found
+    ```json
+    {
+      "ids": [1, 2, 3],
+      "data": {
+        "status": "active",
+        "updatedAt": "2024-01-01T00:00:00.000Z"
+      }
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```json
+    {
+      "updated": 3,
+      "records": [
+        { "id": 1, "status": "active" },
+        { "id": 2, "status": "active" },
+        { "id": 3, "status": "active" }
+      ]
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    - `200` - Success
+    - `400` - Bad request
+    - `404` - Some records not found
+  </Tabs.Tab>
+</Tabs>
 
 ### BULK DELETE - Delete Multiple Records
 
-**DELETE** `/api/:model/bulk/delete`
+<Tabs items={['Request', 'Response', 'Status Codes']}>
+  <Tabs.Tab>
+    **DELETE** `/api/:model/bulk/delete`
 
-Deletes multiple records in one request.
+    Deletes multiple records in one request.
 
-#### Request Body
-```json
-{
-  "ids": [1, 2, 3]
-}
-```
-
-#### Response
-```json
-{
-  "deleted": 3
-}
-```
-
-#### Status Codes
-- `200` - Success
-- `400` - Bad request
-- `404` - Some records not found
+    ```json
+    {
+      "ids": [1, 2, 3]
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```json
+    {
+      "deleted": 3
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    - `200` - Success
+    - `400` - Bad request
+    - `404` - Some records not found
+  </Tabs.Tab>
+</Tabs>
 
 ## Error Responses
 
@@ -297,11 +329,6 @@ All endpoints return consistent error responses:
   }
 }
 ```
-
-## Content Types
-
-- **Request**: `application/json`
-- **Response**: `application/json`
 
 ## Authentication
 

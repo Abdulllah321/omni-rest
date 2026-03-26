@@ -1,0 +1,67 @@
+import { Callout, Steps, Tabs, Cards, Card } from 'nextra/components'
+import { Terminal, Code2, FileJson2 } from 'lucide-react'
+
+# CLI Tools
+
+Omni Rest provides a powerful built-in CLI interface that allows you to instantly generate artifacts from your Prisma schema, completely decoupled from runtime server execution.
+
+## Available Commands
+
+Run these directly in your terminal at the root of a project where a `schema.prisma` file is present.
+
+<Tabs items={['Generate All', 'Generate Zod Schemas', 'Generate OpenAPI Specification']}>
+  <Tabs.Tab>
+    ```bash
+    npx omni-rest generate
+    ```
+    This command runs all available generators. It will introspect your database schema and output both the Zod typescript schemas and the full `openapi.json` definition.
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    npx omni-rest generate:zod
+    ```
+    Generates TypeScript source code containing fully-typed Zod schemas for every model in your database. 
+    
+    The file is automatically written to `src/schemas.generated.ts`. You can import these types and schemas directly into your React frontend or other backend services!
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    npx omni-rest generate:openapi
+    ```
+    Generates a full OpenAPI 3.0 specification JSON file describing all generated endpoints, request bodies, and models.
+
+    The file is written to `./openapi.json`. It will automatically grab your `package.json` name and version to populate the final OpenAPI title and version metadata.
+  </Tabs.Tab>
+</Tabs>
+
+## Use Case Example
+
+<Steps>
+### Introspect your database with Prisma
+Make sure your Prisma schema is up-to-date by pushing or pulling your DB.
+```bash
+npx prisma db pull
+npx prisma generate
+```
+
+### Run the Omni CLI
+Run the generation command.
+```bash
+npx omni-rest generate:zod
+```
+
+### Utilize generated files
+Open `src/schemas.generated.ts`. You will see instantly usable Create/Update schemas for every model you own!
+
+```typescript
+import { UserCreateSchema } from "./src/schemas.generated";
+
+const userInput = { name: "John", age: 30 };
+// Validates using strict Zod types inferred directly from Prisma!
+UserCreateSchema.parse(userInput); 
+```
+</Steps>
+
+<Callout type="info" emoji="💡">
+  Every time you modify your `schema.prisma`, you should re-run `npx omni-rest generate` to keep your generated types and API spec in perfect sync!
+</Callout>

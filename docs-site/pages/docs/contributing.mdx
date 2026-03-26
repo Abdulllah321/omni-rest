@@ -1,298 +1,124 @@
+import { Steps, Callout, Cards, Card } from 'nextra/components'
+import { CheckCircle2, AlertTriangle, Lightbulb, GitPullRequest } from 'lucide-react'
+
 # Contributing
 
 We love contributions! Here's how you can help improve omni-rest.
 
 ## Getting Started
 
-### Prerequisites
+<Callout type="info">
+  To contribute, you'll need Node.js 18+, npm/pnpm, Git, and a Prisma project for testing.
+</Callout>
 
-- Node.js 18+
-- npm or pnpm
-- Git
-- A Prisma project for testing
+<Steps>
+### Setup Repository
 
-### Development Setup
-
+Clone the repository and install dependencies:
 ```bash
-# Clone the repository
 git clone https://github.com/Abdulllah321/omni-rest.git
 cd omni-rest
-
-# Install dependencies
 npm install
+```
 
-# Build the project
+### Build the Project
+```bash
 npm run build
+```
 
-# Run tests
+### Run Tests
+```bash
 npm test
+```
 
-# Start development mode
+### Start Development Mode
+```bash
 npm run dev
 ```
-
-### Project Structure
-
-```
-omni-rest/
-├── src/                    # TypeScript source code
-│   ├── adapters/          # Framework adapters (Express, Next.js, Fastify)
-│   ├── index.ts           # Main exports
-│   ├── router.ts          # Core routing logic
-│   ├── openapi.ts         # OpenAPI spec generation
-│   ├── introspect.ts      # Prisma introspection
-│   ├── query-builder.ts   # Query parameter parsing
-│   ├── middleware.ts      # Auth/guard middleware
-│   ├── types.ts           # TypeScript definitions
-│   ├── validate.ts        # Input validation
-│   ├── cli.ts             # CLI interface
-│   └── zod-generator.ts   # Zod schema generation
-├── test/                  # Test files
-├── docs/                  # Documentation
-├── examples/              # Example applications
-└── docs-site/             # Documentation website
-```
+</Steps>
 
 ## Development Workflow
 
 ### Making Changes
 
-1. **Create a feature branch:**
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
+<Steps>
+### Create a feature branch
+```bash
+git checkout -b feature/your-feature-name
+```
 
-2. **Make your changes in `src/`**
+### Make your changes
+Edit the source code inside `src/`. Be sure to follow our code style guidelines below.
 
-3. **Write/update tests in `test/`**
+### Write/Update tests
+Add tests for your features in the `test/` directory.
 
-4. **Build and test:**
-   ```bash
-   npm run build
-   npm test
-   ```
+### Build and Test
+```bash
+npm run build
+npm test
+```
 
-5. **Commit with descriptive messages:**
-   ```bash
-   git commit -m "feat: add bulk update support for all adapters"
-   ```
+### Commit
+Use descriptive commit messages:
+```bash
+git commit -m "feat: add bulk update support for all adapters"
+```
+</Steps>
 
 ### Code Style Guidelines
 
 We follow these conventions:
 
-- **TypeScript**: Use TypeScript for all code (no `any` unless necessary)
+- **TypeScript**: Use TypeScript for all code (no `any` unless absolutely necessary)
 - **Naming**: `camelCase` for functions/variables, `PascalCase` for classes/types
 - **JSDoc**: Add JSDoc comments for public functions
 - **Functions**: Keep functions focused and under 50 lines when possible
 - **Async/Await**: Use async/await, not callbacks
-- **Imports**: Group imports (external, internal, types)
-
-Example:
-
-```typescript
-/**
- * Generate REST endpoints for a Prisma model.
- * @param prisma - The Prisma client instance
- * @param modelName - Name of the model to generate endpoints for
- * @param options - Configuration options
- * @returns Router instance
- */
-async function createRouter(
-  prisma: any,
-  modelName: string,
-  options: RouterOptions
-): Promise<RouterInstance> {
-  // Implementation
-}
-```
-
-### Running Tests
-
-```bash
-# Run all tests
-npm test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Run a specific test file
-npm test -- Introspect.test.ts
-
-# Generate coverage report
-npm test -- --coverage
-```
-
-### Building
-
-```bash
-# Build for distribution (ESM, CJS, DTS)
-npm run build
-
-# Build with source maps
-npm run build -- --sourcemap
-
-# Development watch mode
-npm run dev
-```
-
-### Testing Your Changes
-
-#### 1. With Express Example
-
-```bash
-cd examples/express-app
-npm install
-npm start
-# Test at http://localhost:3000/docs
-```
-
-#### 2. With Next.js Example
-
-```bash
-cd examples/nextjs-app
-npm install
-npm run dev
-# Test at http://localhost:3000/masters/departments
-```
-
-#### 3. With Unit Tests
-
-```bash
-npm test
-npm run test:watch
-```
+- **Imports**: Group imports rationally (external, internal, types)
 
 ## Areas for Contribution
 
-### High Priority
-
-- [ ] **Additional Framework Support** - Hapi, Koa, Nest.js adapters
-- [ ] **Query Performance** - Optimize large dataset queries
-- [ ] **Validation Improvements** - Better error messages and Zod integration
-- [ ] **Test Coverage** - Increase test coverage above 80%
-
-### Medium Priority
-
-- [ ] **Caching Layer** - Add optional Redis caching
-- [ ] **Rate Limiting** - Built-in rate limiting middleware
-- [ ] **GraphQL Export** - Generate GraphQL schema from Prisma
-- [ ] **API Versioning** - Support model versioning in API
-
-### Low Priority
-
-- [ ] **CLI Enhancements** - Interactive setup wizard
-- [ ] **Documentation** - Add more examples and guides
-- [ ] **TypeScript Strict Mode** - Improve type definitions
+<Cards>
+  <Card icon={<AlertTriangle color="#ef4444" />} title="High Priority" href="#high-priority">
+    Additional Framework Support (Hapi, Koa, Nest.js), Query Performance Optimization, Validation Improvements (Zod integration), Test Coverage
+  </Card>
+  <Card icon={<Lightbulb color="#eab308" />} title="Medium Priority" href="#medium-priority">
+    Caching Layer (Redis), Rate Limiting Middleware, GraphQL Export, API Versioning
+  </Card>
+  <Card icon={<CheckCircle2 color="#3b82f6" />} title="Low Priority" href="#low-priority">
+    CLI Enhancements, Documentation additions, TypeScript Strict Mode completion
+  </Card>
+</Cards>
 
 ## Submitting Changes
 
 ### Pull Request Process
 
-1. **Update Documentation** - Changes in `docs/` and README.md
-2. **Add Tests** - New features must have tests
-3. **Update Changelog** - Add entry to CHANGELOG.md
-4. **Build & Test** - `npm run build && npm test` must pass
-5. **Create PR** - Clear title and description
+<Steps>
+### Update Documentation
+Changes in `docs/` and `README.md` must be updated if applicable.
 
-#### PR Template
+### Add Tests
+New features must be accompanied by new tests.
 
-```
-## Description
-Brief description of changes
+### Update Changelog
+Add an entry to `CHANGELOG.md`.
 
-## Type of Change
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Breaking change
-- [ ] Documentation update
+### Build & Test
+Ensure `npm run build && npm test` passes successfully.
 
-## Related Issues
-Closes #<issue_number>
+### Create PR
+Submit a Pull Request with a clear title and description using our PR template.
+</Steps>
 
-## Testing
-Description of how this was tested
+<Callout type="warning">
+  Your PR will be reviewed for Code Quality, Testing, Documentation, Performance, and Compatibility before merging.
+</Callout>
 
-## Checklist
-- [ ] Tests pass locally
-- [ ] Documentation updated
-- [ ] No console errors
-- [ ] Code follows style guide
-```
+## Reporting Bugs & Feature Requests
 
-### Review Criteria
-
-Your PR will be reviewed for:
-
-- ✅ **Code Quality** - Follows style guide, no linting errors
-- ✅ **Testing** - Tests cover new functionality
-- ✅ **Documentation** - Changes documented
-- ✅ **Performance** - No performance regressions
-- ✅ **Compatibility** - Supports Node 18+, current Prisma versions
-
-## Reporting Bugs
-
-Use GitHub Issues with this template:
-
-```
-**Describe the bug**
-A clear description of what the bug is.
-
-**To Reproduce**
-Steps to reproduce:
-1. Create schema with...
-2. Configure adapter...
-3. API call produces...
-
-**Expected behavior**
-What should happen
-
-**Environment**
-- Node version:
-- Prisma version:
-- OS:
-
-**Minimal reproduction**
-Code or repo demonstrating the issue
-```
-
-## Feature Requests
-
-Submit feature requests as GitHub Issues:
-
-```
-**Is your feature request related to a problem?**
-Description
-
-**Describe the solution**
-How should this work?
-
-**Alternative solutions**
-Other approaches considered
-
-**Additional context**
-Any other information
-```
-
-## Release Process
-
-Only maintainers can publish, but here's how releases work:
-
-1. Update version in `package.json`
-2. Update `CHANGELOG.md`
-3. Create git tag: `git tag v1.0.0`
-4. Push: `git push origin v1.0.0`
-5. GitHub Actions publishes to npm
-
-## Code of Conduct
-
-Please be respectful and constructive in all interactions.
-
-## Questions?
-
-- **GitHub Discussions** for questions
-- **GitHub Issues** for bugs/features
-- **Email:** support@example.com
+Please use GitHub Issues with the provided templates to report bugs or request features. Ensure you provide a minimal reproduction repository or code snippet for bugs.
 
 ## License
 
@@ -300,4 +126,6 @@ By contributing, you agree your code will be licensed under the MIT License.
 
 ---
 
-**Thank you for contributing to omni-rest! 🎉**
+<Callout emoji="🎉">
+  **Thank you for contributing to omni-rest!**
+</Callout>
