@@ -201,7 +201,7 @@ app.use("/docs", swaggerUi.serve, swaggerUi.setup(spec, {
 
 ## Per-Adapter Configuration
 
-<Tabs items={['Express', 'Next.js App Router', 'Fastify']}>
+<Tabs items={['Express', 'Next.js App Router', 'Fastify', 'Koa', 'Hapi', 'NestJS']}>
   <Tabs.Tab>
     ```typescript
     import { expressAdapter } from "omni-rest/express";
@@ -223,8 +223,57 @@ app.use("/docs", swaggerUi.serve, swaggerUi.setup(spec, {
 
     fastifyAdapter(app, prisma, {
       ...options,
-      prefix: "/api",  // Custom prefix
+      prefix: "/api",
     });
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    Requires: `npm install koa @koa/router koa-bodyparser`
+
+    ```typescript
+    import Koa from "koa";
+    import Router from "@koa/router";
+    import bodyParser from "koa-bodyparser";
+    import { koaAdapter } from "omni-rest/koa";
+
+    const app = new Koa();
+    const router = new Router({ prefix: "/api" });
+
+    app.use(bodyParser());
+    koaAdapter(router, prisma, options);
+    app.use(router.routes());
+    app.listen(3000);
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    Requires: `npm install @hapi/hapi`
+
+    ```typescript
+    import Hapi from "@hapi/hapi";
+    import { hapiAdapter } from "omni-rest/hapi";
+
+    const server = Hapi.server({ port: 3000 });
+
+    await server.register({
+      plugin: hapiAdapter,
+      options: { prisma, prefix: "/api", ...options },
+    });
+
+    await server.start();
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    Requires: `npm install @nestjs/core @nestjs/common @nestjs/platform-express`
+
+    ```typescript
+    // app.module.ts
+    import { Module } from "@nestjs/common";
+    import { nestjsController } from "omni-rest/nestjs";
+
+    const OmniRestController = nestjsController(prisma, options, "api");
+
+    @Module({ controllers: [OmniRestController] })
+    export class AppModule {}
     ```
   </Tabs.Tab>
 </Tabs>

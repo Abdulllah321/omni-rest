@@ -28,6 +28,21 @@
       "types": "./dist/adapters/fastify.d.ts",
       "import": "./dist/adapters/fastify.mjs",
       "require": "./dist/adapters/fastify.js"
+    },
+    "./koa": {
+      "types": "./dist/adapters/koa.d.ts",
+      "import": "./dist/adapters/koa.mjs",
+      "require": "./dist/adapters/koa.js"
+    },
+    "./hapi": {
+      "types": "./dist/adapters/hapi.d.ts",
+      "import": "./dist/adapters/hapi.mjs",
+      "require": "./dist/adapters/hapi.js"
+    },
+    "./nestjs": {
+      "types": "./dist/adapters/nestjs.d.ts",
+      "import": "./dist/adapters/nestjs.mjs",
+      "require": "./dist/adapters/nestjs.js"
     }
   },
   "files": [
@@ -48,7 +63,25 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "@prisma/client": ">=4.0.0"
+    "@prisma/client": ">=4.0.0",
+    "@hapi/hapi": "*",
+    "@koa/router": "*",
+    "@nestjs/common": "*",
+    "koa": "*"
+  },
+  "peerDependenciesMeta": {
+    "@hapi/hapi": {
+      "optional": true
+    },
+    "@koa/router": {
+      "optional": true
+    },
+    "@nestjs/common": {
+      "optional": true
+    },
+    "koa": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@prisma/client": "^5.0.0",

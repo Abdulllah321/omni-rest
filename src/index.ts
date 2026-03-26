@@ -22,6 +22,9 @@ export { generateOpenApiSpec } from "./openapi";
 export { expressAdapter } from "./adapters/express";
 export { nextjsAdapter } from "./adapters/nextjs";
 export { fastifyAdapter } from "./adapters/fastify";
+export { koaAdapter } from "./adapters/koa";
+export { hapiAdapter } from "./adapters/hapi";
+export { nestjsController } from "./adapters/nestjs";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type {
