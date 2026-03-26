@@ -81,8 +81,8 @@ export type ${name}Update = z.infer<typeof ${name}UpdateSchema>;
  * fs.writeFileSync("src/schemas.ts", code);
  * ```
  */
-export function generateZodSchemas(): string {
-  const models = getModels();
+export function generateZodSchemas(prisma?: any): string {
+  const models = getModels(prisma);
 
   const schemas = models.map(generateModelSchema).join("\n\n");
 
@@ -103,7 +103,7 @@ ${schemas}
  *
  * Requires "zod" to be installed in the host project.
  */
-export function buildRuntimeSchemas(): Record<
+export function buildRuntimeSchemas(prisma?: any): Record<
   string,
   { create: any; update: any }
 > {
@@ -128,7 +128,7 @@ export function buildRuntimeSchemas(): Record<
     Bytes: () => z.any(),
   };
 
-  const models = getModels();
+  const models = getModels(prisma);
   const result: Record<string, { create: any; update: any }> = {};
 
   for (const meta of models) {

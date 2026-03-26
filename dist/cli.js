@@ -110,8 +110,8 @@ export type ${name}Create = z.infer<typeof ${name}CreateSchema>;
 export type ${name}Update = z.infer<typeof ${name}UpdateSchema>;
 `.trim();
 }
-function generateZodSchemas() {
-  const models = getModels();
+function generateZodSchemas(prisma) {
+  const models = getModels(prisma);
   const schemas = models.map(generateModelSchema).join("\n\n");
   return `/**
  * Auto-generated Zod schemas from Prisma schema.
@@ -461,36 +461,61 @@ function write(filePath, content) {
   fs__default.default.writeFileSync(abs, content, "utf-8");
   console.log(COLORS.green(`  \u2713 Written: ${filePath}`));
 }
-function run() {
+function createPrismaClient() {
+  try {
+    const PrismaClientPath = path__default.default.resolve(cwd, "node_modules/@prisma/client");
+    const { PrismaClient } = __require(PrismaClientPath);
+    return new PrismaClient();
+  } catch {
+    throw new Error(
+      "[omni-rest] Could not load @prisma/client from your project. Run `npx prisma generate` first, then try again."
+    );
+  }
+}
+async function run() {
   console.log(COLORS.bold("\n  omni-rest generator\n"));
-  if (command === "generate:zod" || command === "generate") {
-    try {
-      console.log(COLORS.cyan("  \u2192 Generating Zod schemas from Prisma DMMF..."));
-      const code = generateZodSchemas();
-      write("src/schemas.generated.ts", code);
-    } catch (e) {
-      console.error(COLORS.red(`  \u2717 Zod generation failed: ${e.message}`));
-    }
-  }
-  if (command === "generate:openapi" || command === "generate") {
-    try {
-      console.log(COLORS.cyan("  \u2192 Generating OpenAPI spec from Prisma DMMF..."));
-      const spec = generateOpenApiSpec({
-        title: getPackageName(),
-        version: getPackageVersion()
-      });
-      write("openapi.json", JSON.stringify(spec, null, 2));
-    } catch (e) {
-      console.error(COLORS.red(`  \u2717 OpenAPI generation failed: ${e.message}`));
-    }
-  }
-  if (!["generate", "generate:zod", "generate:openapi"].includes(command)) {
+  if (![" generate", "generate:zod", "generate:openapi"].includes(command) && !["generate", "generate:zod", "generate:openapi"].includes(command)) {
     console.log(`
   Usage:
     npx omni-rest generate            Generate both Zod schemas and OpenAPI spec
     npx omni-rest generate:zod        Generate Zod schemas only
     npx omni-rest generate:openapi    Generate OpenAPI spec only
     `);
+    console.log(COLORS.bold("\n  Done!\n"));
+    return;
+  }
+  let prisma;
+  try {
+    prisma = createPrismaClient();
+  } catch (e) {
+    console.error(COLORS.red(`  \u2717 ${e.message}`));
+    console.log(COLORS.bold("\n  Done!\n"));
+    return;
+  }
+  try {
+    if (command === "generate:zod" || command === "generate") {
+      try {
+        console.log(COLORS.cyan("  \u2192 Generating Zod schemas from Prisma DMMF..."));
+        const code = generateZodSchemas(prisma);
+        write("src/schemas.generated.ts", code);
+      } catch (e) {
+        console.error(COLORS.red(`  \u2717 Zod generation failed: ${e.message}`));
+      }
+    }
+    if (command === "generate:openapi" || command === "generate") {
+      try {
+        console.log(COLORS.cyan("  \u2192 Generating OpenAPI spec from Prisma DMMF..."));
+        const spec = generateOpenApiSpec(prisma, {
+          title: getPackageName(),
+          version: getPackageVersion()
+        });
+        write("openapi.json", JSON.stringify(spec, null, 2));
+      } catch (e) {
+        console.error(COLORS.red(`  \u2717 OpenAPI generation failed: ${e.message}`));
+      }
+    }
+  } finally {
+    await prisma.$disconnect();
   }
   console.log(COLORS.bold("\n  Done!\n"));
 }
@@ -514,6 +539,9 @@ function getPackageVersion() {
     return "1.0.0";
   }
 }
-run();
+run().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
 //# sourceMappingURL=cli.js.map
 //# sourceMappingURL=cli.js.map

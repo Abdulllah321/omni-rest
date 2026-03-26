@@ -1,11 +1,22 @@
 import { Prisma } from '@prisma/client';
 
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
   get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
 }) : x)(function(x) {
   if (typeof require !== "undefined") return require.apply(this, arguments);
   throw Error('Dynamic require of "' + x + '" is not supported');
 });
+var __decorateClass = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc(target, key) : target;
+  for (var i = decorators.length - 1, decorator; i >= 0; i--)
+    if (decorator = decorators[i])
+      result = (kind ? decorator(target, key, result) : decorator(result)) || result;
+  if (kind && result) __defProp(target, key, result);
+  return result;
+};
+var __decorateParam = (index, decorator) => (target, key) => decorator(target, key, index);
 function getModels(prisma) {
   let raw;
   if (prisma?._runtimeDataModel?.models) {
@@ -417,8 +428,8 @@ export type ${name}Create = z.infer<typeof ${name}CreateSchema>;
 export type ${name}Update = z.infer<typeof ${name}UpdateSchema>;
 `.trim();
 }
-function generateZodSchemas() {
-  const models = getModels();
+function generateZodSchemas(prisma) {
+  const models = getModels(prisma);
   const schemas = models.map(generateModelSchema).join("\n\n");
   return `/**
  * Auto-generated Zod schemas from Prisma schema.
@@ -430,7 +441,7 @@ import { z } from "zod";
 ${schemas}
 `;
 }
-function buildRuntimeSchemas() {
+function buildRuntimeSchemas(prisma) {
   let z;
   try {
     z = __require("zod").z;
@@ -450,7 +461,7 @@ function buildRuntimeSchemas() {
     BigInt: () => z.bigint(),
     Bytes: () => z.any()
   };
-  const models = getModels();
+  const models = getModels(prisma);
   const result = {};
   for (const meta of models) {
     const shape = {};
@@ -1001,6 +1012,293 @@ function fastifyAdapter(fastify, prisma, options = {}) {
   });
 }
 
-export { buildModelMap, buildQuery, buildRuntimeSchemas, createRouter, expressAdapter, fastifyAdapter, generateOpenApiSpec, generateZodSchemas, getDelegate, getModels, nextjsAdapter, runGuard, runHook, toRouteName, validateBody, withValidation };
+// src/adapters/koa.ts
+function koaAdapter(router, prisma, options = {}) {
+  const { handle } = createRouter(prisma, options);
+  const getSearchParams = (ctx) => {
+    return new URLSearchParams(
+      Object.entries(ctx.query).map(([k, v]) => `${k}=${v}`).join("&")
+    );
+  };
+  const koaHandler = async (ctx) => {
+    try {
+      const { status, data } = await handle(
+        ctx.method,
+        ctx.params.model,
+        ctx.params.id ?? null,
+        ctx.request.body ?? {},
+        getSearchParams(ctx)
+      );
+      ctx.status = status;
+      if (status !== 204) {
+        ctx.body = data;
+      }
+    } catch (e) {
+      ctx.status = 500;
+      ctx.body = { error: e.message };
+    }
+  };
+  router.patch("/:model/bulk/update", async (ctx) => {
+    try {
+      const { status, data } = await handle(
+        "PATCH",
+        ctx.params.model,
+        null,
+        ctx.request.body ?? [],
+        getSearchParams(ctx),
+        "bulk-update"
+      );
+      ctx.status = status;
+      if (status !== 204) {
+        ctx.body = data;
+      }
+    } catch (e) {
+      ctx.status = 500;
+      ctx.body = { error: e.message };
+    }
+  });
+  router.delete("/:model/bulk/delete", async (ctx) => {
+    try {
+      const { status, data } = await handle(
+        "DELETE",
+        ctx.params.model,
+        null,
+        ctx.request.body ?? [],
+        getSearchParams(ctx),
+        "bulk-delete"
+      );
+      ctx.status = status;
+      if (status !== 204) {
+        ctx.body = data;
+      }
+    } catch (e) {
+      ctx.status = 500;
+      ctx.body = { error: e.message };
+    }
+  });
+  router.get("/:model", koaHandler);
+  router.post("/:model", koaHandler);
+  router.get("/:model/:id", koaHandler);
+  router.put("/:model/:id", koaHandler);
+  router.patch("/:model/:id", koaHandler);
+  router.delete("/:model/:id", koaHandler);
+  return router;
+}
+
+// src/adapters/hapi.ts
+var hapiAdapter = {
+  name: "omni-rest",
+  version: "1.0.0",
+  register: async (server, options) => {
+    if (!options.prisma) {
+      throw new Error("[omni-rest/hapi] You must provide the prisma client inside options.prisma");
+    }
+    const { prisma, prefix = "", ...restOptions } = options;
+    const { handle } = createRouter(prisma, restOptions);
+    const getSearchParams = (request) => {
+      const urlParams = new URLSearchParams();
+      for (const [key, value] of Object.entries(request.query || {})) {
+        if (Array.isArray(value)) {
+          value.forEach((v) => urlParams.append(key, v));
+        } else {
+          urlParams.append(key, value);
+        }
+      }
+      return urlParams;
+    };
+    const handler = async (request, h) => {
+      try {
+        const { status, data } = await handle(
+          request.method.toUpperCase(),
+          request.params.model,
+          request.params.id ?? null,
+          request.payload ?? {},
+          getSearchParams(request)
+        );
+        if (status === 204) {
+          return h.response().code(204);
+        }
+        return h.response(data).code(status);
+      } catch (e) {
+        return h.response({ error: e.message }).code(500);
+      }
+    };
+    const bulkUpdateHandler = async (request, h) => {
+      try {
+        const { status, data } = await handle(
+          "PATCH",
+          request.params.model,
+          null,
+          request.payload ?? [],
+          getSearchParams(request),
+          "bulk-update"
+        );
+        if (status === 204) return h.response().code(204);
+        return h.response(data).code(status);
+      } catch (e) {
+        return h.response({ error: e.message }).code(500);
+      }
+    };
+    const bulkDeleteHandler = async (request, h) => {
+      try {
+        const { status, data } = await handle(
+          "DELETE",
+          request.params.model,
+          null,
+          request.payload ?? [],
+          getSearchParams(request),
+          "bulk-delete"
+        );
+        if (status === 204) return h.response().code(204);
+        return h.response(data).code(status);
+      } catch (e) {
+        return h.response({ error: e.message }).code(500);
+      }
+    };
+    server.route({
+      method: "PATCH",
+      path: `${prefix}/{model}/bulk/update`,
+      handler: bulkUpdateHandler
+    });
+    server.route({
+      method: "DELETE",
+      path: `${prefix}/{model}/bulk/delete`,
+      handler: bulkDeleteHandler
+    });
+    server.route({
+      method: ["GET", "POST"],
+      path: `${prefix}/{model}`,
+      handler
+    });
+    server.route({
+      method: ["GET", "PUT", "PATCH", "DELETE"],
+      path: `${prefix}/{model}/{id}`,
+      handler
+    });
+  }
+};
+
+// src/adapters/nestjs.ts
+function nestjsController(prisma, options = {}, prefix = "api") {
+  const { Controller, Get, Post, Put, Patch, Delete, Param, Body, Query, Req, Res, HttpStatus } = __require("@nestjs/common");
+  const { handle } = createRouter(prisma, options);
+  const getSearchParams = (query) => {
+    return new URLSearchParams(
+      Object.entries(query || {}).map(([k, v]) => `${k}=${v}`).join("&")
+    );
+  };
+  let OmniRestDynamicController = class {
+    async bulkUpdate(model, body, query, res) {
+      try {
+        const { status, data } = await handle("PATCH", model, null, body ?? [], getSearchParams(query), "bulk-update");
+        if (status === 204) return res.status(HttpStatus.NO_CONTENT).send();
+        return res.status(status).json(data);
+      } catch (e) {
+        return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: e.message });
+      }
+    }
+    async bulkDelete(model, body, query, res) {
+      try {
+        const { status, data } = await handle("DELETE", model, null, body ?? [], getSearchParams(query), "bulk-delete");
+        if (status === 204) return res.status(HttpStatus.NO_CONTENT).send();
+        return res.status(status).json(data);
+      } catch (e) {
+        return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: e.message });
+      }
+    }
+    async list(model, query, res) {
+      return await this._processRequest("GET", model, null, {}, query, res);
+    }
+    async create(model, body, query, res) {
+      return await this._processRequest("POST", model, null, body, query, res);
+    }
+    async read(model, id, query, res) {
+      return await this._processRequest("GET", model, id, {}, query, res);
+    }
+    async replace(model, id, body, query, res) {
+      return await this._processRequest("PUT", model, id, body, query, res);
+    }
+    async update(model, id, body, query, res) {
+      return await this._processRequest("PATCH", model, id, body, query, res);
+    }
+    async remove(model, id, query, res) {
+      return await this._processRequest("DELETE", model, id, {}, query, res);
+    }
+    async _processRequest(method, model, id, body, query, res) {
+      try {
+        const { status, data } = await handle(method, model, id, body ?? {}, getSearchParams(query));
+        if (status === 204) {
+          return res.status(HttpStatus.NO_CONTENT).send();
+        }
+        return res.status(status).json(data);
+      } catch (e) {
+        return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: e.message });
+      }
+    }
+  };
+  __decorateClass([
+    Patch(":model/bulk/update"),
+    __decorateParam(0, Param("model")),
+    __decorateParam(1, Body()),
+    __decorateParam(2, Query()),
+    __decorateParam(3, Res())
+  ], OmniRestDynamicController.prototype, "bulkUpdate", 1);
+  __decorateClass([
+    Delete(":model/bulk/delete"),
+    __decorateParam(0, Param("model")),
+    __decorateParam(1, Body()),
+    __decorateParam(2, Query()),
+    __decorateParam(3, Res())
+  ], OmniRestDynamicController.prototype, "bulkDelete", 1);
+  __decorateClass([
+    Get(":model"),
+    __decorateParam(0, Param("model")),
+    __decorateParam(1, Query()),
+    __decorateParam(2, Res())
+  ], OmniRestDynamicController.prototype, "list", 1);
+  __decorateClass([
+    Post(":model"),
+    __decorateParam(0, Param("model")),
+    __decorateParam(1, Body()),
+    __decorateParam(2, Query()),
+    __decorateParam(3, Res())
+  ], OmniRestDynamicController.prototype, "create", 1);
+  __decorateClass([
+    Get(":model/:id"),
+    __decorateParam(0, Param("model")),
+    __decorateParam(1, Param("id")),
+    __decorateParam(2, Query()),
+    __decorateParam(3, Res())
+  ], OmniRestDynamicController.prototype, "read", 1);
+  __decorateClass([
+    Put(":model/:id"),
+    __decorateParam(0, Param("model")),
+    __decorateParam(1, Param("id")),
+    __decorateParam(2, Body()),
+    __decorateParam(3, Query()),
+    __decorateParam(4, Res())
+  ], OmniRestDynamicController.prototype, "replace", 1);
+  __decorateClass([
+    Patch(":model/:id"),
+    __decorateParam(0, Param("model")),
+    __decorateParam(1, Param("id")),
+    __decorateParam(2, Body()),
+    __decorateParam(3, Query()),
+    __decorateParam(4, Res())
+  ], OmniRestDynamicController.prototype, "update", 1);
+  __decorateClass([
+    Delete(":model/:id"),
+    __decorateParam(0, Param("model")),
+    __decorateParam(1, Param("id")),
+    __decorateParam(2, Query()),
+    __decorateParam(3, Res())
+  ], OmniRestDynamicController.prototype, "remove", 1);
+  OmniRestDynamicController = __decorateClass([
+    Controller(prefix)
+  ], OmniRestDynamicController);
+  return OmniRestDynamicController;
+}
+
+export { buildModelMap, buildQuery, buildRuntimeSchemas, createRouter, expressAdapter, fastifyAdapter, generateOpenApiSpec, generateZodSchemas, getDelegate, getModels, hapiAdapter, koaAdapter, nestjsController, nextjsAdapter, runGuard, runHook, toRouteName, validateBody, withValidation };
 //# sourceMappingURL=index.mjs.map
 //# sourceMappingURL=index.mjs.map

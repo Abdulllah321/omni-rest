@@ -71,14 +71,14 @@ declare function runHook(hook: HookFn | undefined, ctx: HookContext): Promise<vo
  * fs.writeFileSync("src/schemas.ts", code);
  * ```
  */
-declare function generateZodSchemas(): string;
+declare function generateZodSchemas(prisma?: any): string;
 /**
  * Returns Zod schema OBJECTS at runtime (not source code).
  * Useful for request validation in middleware.
  *
  * Requires "zod" to be installed in the host project.
  */
-declare function buildRuntimeSchemas(): Record<string, {
+declare function buildRuntimeSchemas(prisma?: any): Record<string, {
     create: any;
     update: any;
 }>;
@@ -129,4 +129,88 @@ declare function generateOpenApiSpec(prisma: any, options?: {
     }[];
 }): object;
 
-export { GuardMap, HookContext, HookFn, ModelMeta, ParsedQuery, PrismaRestOptions, RouterInstance, buildModelMap, buildQuery, buildRuntimeSchemas, createRouter, generateOpenApiSpec, generateZodSchemas, getDelegate, getModels, runGuard, runHook, toRouteName, validateBody, withValidation };
+/**
+ * Koa adapter for omni-rest.
+ * Allows using omni-rest within a Koa application using @koa/router.
+ *
+ * @example
+ * ```ts
+ * import Koa from "koa";
+ * import bodyParser from "koa-bodyparser";
+ * import Router from "@koa/router";
+ * import { PrismaClient } from "@prisma/client";
+ * import { koaAdapter } from "omni-rest/koa";
+ *
+ * const app = new Koa();
+ * const router = new Router({ prefix: "/api" });
+ * const prisma = new PrismaClient();
+ *
+ * app.use(bodyParser());
+ * koaAdapter(router, prisma, {
+ *   allow: ["product", "category"],
+ * });
+ *
+ * app.use(router.routes());
+ * ```
+ */
+declare function koaAdapter(router: any, prisma: PrismaClient, options?: PrismaRestOptions): any;
+
+interface HapiAdapterOptions extends PrismaRestOptions {
+    prisma: PrismaClient;
+    prefix?: string;
+}
+/**
+ * Hapi plugin adapter for omni-rest.
+ * Registers dynamic REST endpoints directly on the Hapi server instance.
+ *
+ * @example
+ * ```ts
+ * import Hapi from "@hapi/hapi";
+ * import { PrismaClient } from "@prisma/client";
+ * import { hapiAdapter } from "omni-rest/hapi";
+ *
+ * const prisma = new PrismaClient();
+ * const server = Hapi.server({ port: 3000 });
+ *
+ * await server.register({
+ *   plugin: hapiAdapter,
+ *   options: {
+ *     prisma,
+ *     prefix: "/api",
+ *     allow: ["product", "category"],
+ *   }
+ * });
+ * ```
+ */
+declare const hapiAdapter: {
+    name: string;
+    version: string;
+    register: (server: any, options: HapiAdapterOptions) => Promise<void>;
+};
+
+/**
+ * NestJS adapter for omni-rest.
+ * Generates a dynamic controller block that maps wildcard routes directly into omni-rest handlers.
+ *
+ * @example
+ * ```ts
+ * import { Controller, Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
+ * import { PrismaClient } from '@prisma/client';
+ * import { nestjsController } from 'omni-rest/nestjs';
+ *
+ * const prisma = new PrismaClient();
+ *
+ * // Create generating Controller natively via factory
+ * export const OmniRestController = nestjsController(prisma, {
+ *   allow: ["product", "category"],
+ * });
+ *
+ * @Module({
+ *   controllers: [OmniRestController],
+ * })
+ * export class AppModule {}
+ * ```
+ */
+declare function nestjsController(prisma: PrismaClient, options?: PrismaRestOptions, prefix?: string): any;
+
+export { GuardMap, HookContext, HookFn, ModelMeta, ParsedQuery, PrismaRestOptions, RouterInstance, buildModelMap, buildQuery, buildRuntimeSchemas, createRouter, generateOpenApiSpec, generateZodSchemas, getDelegate, getModels, hapiAdapter, koaAdapter, nestjsController, runGuard, runHook, toRouteName, validateBody, withValidation };
