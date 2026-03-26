@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "autoprefixer": "^10.4.0",
-    "lucide-react": "^1.7.0",
-    "next": "6.0.0",
+    "lucide-react": "^0.400.0",
+    "next": "^14.2.0",
     "nextra": "^2.13.0",
     "nextra-theme-docs": "^2.13.0",
     "postcss": "^8.4.0",
