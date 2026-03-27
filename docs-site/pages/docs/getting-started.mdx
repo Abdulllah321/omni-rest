@@ -81,7 +81,7 @@ npx prisma generate
 
 Choose your preferred framework below to see how to initialize the API instance:
 
-<Tabs items={['Express.js', 'Next.js App Router', 'Fastify']}>
+<Tabs items={['Express.js', 'Next.js App Router', 'Fastify', 'Koa', 'Hapi', 'NestJS']}>
   <Tabs.Tab>
     ```typescript
     // server.ts
@@ -126,6 +126,73 @@ Choose your preferred framework below to see how to initialize the API instance:
     });
 
     app.listen({ port: 3000 });
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```typescript
+    // server.ts
+    import Koa from "koa";
+    import bodyParser from "koa-bodyparser";
+    import Router from "@koa/router";
+    import { PrismaClient } from "@prisma/client";
+    import { koaAdapter } from "omni-rest/koa";
+
+    const app = new Koa();
+    const router = new Router({ prefix: "/api" });
+    const prisma = new PrismaClient();
+
+    app.use(bodyParser());
+    koaAdapter(router, prisma);
+
+    app.use(router.routes());
+
+    app.listen(3000, () => {
+      console.log("🚀 Server running on http://localhost:3000");
+    });
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```typescript
+    // server.ts
+    import Hapi from "@hapi/hapi";
+    import { PrismaClient } from "@prisma/client";
+    import { hapiAdapter } from "omni-rest/hapi";
+
+    const init = async () => {
+      const prisma = new PrismaClient();
+      const server = Hapi.server({ port: 3000 });
+
+      await server.register({
+        plugin: hapiAdapter,
+        options: {
+          prisma,
+          prefix: "/api",
+        }
+      });
+
+      await server.start();
+      console.log("🚀 Server running on %s", server.info.uri);
+    };
+
+    init();
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```typescript
+    // app.module.ts
+    import { Module } from '@nestjs/common';
+    import { PrismaClient } from '@prisma/client';
+    import { nestjsController } from 'omni-rest/nestjs';
+
+    const prisma = new PrismaClient();
+
+    // Create generating Controller natively via factory
+    export const OmniRestController = nestjsController(prisma, {}, "api");
+
+    @Module({
+      controllers: [OmniRestController],
+    })
+    export class AppModule {}
     ```
   </Tabs.Tab>
 </Tabs>
