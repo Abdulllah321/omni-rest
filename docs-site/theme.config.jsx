@@ -2,6 +2,24 @@ import Image from "next/image";
 import { useRouter } from "next/router";
 import { useConfig } from "nextra-theme-docs";
 
+let timestamps = {}
+try {
+  timestamps = require('./timestamps.json')
+} catch {
+  // file not generated yet (local dev without running build)
+}
+
+function LastUpdated() {
+  const { filePath } = useConfig()
+  const file = filePath?.split('/').pop()
+  const raw = timestamps[file]
+  if (!raw) return null
+  const date = new Date(raw).toLocaleDateString('en-US', {
+    year: 'numeric', month: 'long', day: 'numeric'
+  })
+  return <span>Last updated on {date}</span>
+}
+
 export default {
   logo: <span className="flex items-center gap-2">
     <Image src="/logo-removebg.png" alt="Logo" width={48} height={48} className="" />
@@ -57,7 +75,7 @@ export default {
     content: "Question? Give us feedback →",
     labels: "feedback",
   },
-  gitTimestamp: "Last updated on",
+  gitTimestamp: <LastUpdated />,
   toc: {
     backToTop: true,
     float: true,
