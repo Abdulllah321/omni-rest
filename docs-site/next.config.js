@@ -5,13 +5,13 @@ const withNextra = require('nextra')({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
+  // output: 'export',
   images: {
     unoptimized: true
   },
   trailingSlash: true,
-  basePath: process.env.NODE_ENV === 'production' ? '/omni-rest' : '',
-  assetPrefix: process.env.NODE_ENV === 'production' ? '/omni-rest/' : '',
+  // basePath: process.env.NODE_ENV === 'production' ? '/omni-rest' : '',
+  // assetPrefix: process.env.NODE_ENV === 'production' ? '/omni-rest/' : '',
 }
 
 module.exports = withNextra(nextConfig)
