@@ -11,13 +11,13 @@ Run these directly in your terminal at the root of a project where a `schema.pri
 
 <Tabs items={['Generate All', 'Generate Zod Schemas', 'Generate OpenAPI Specification']}>
   <Tabs.Tab>
-    ```bash
+    ```bash copy
     npx omni-rest generate
     ```
     This command runs all available generators. It will introspect your database schema and output both the Zod typescript schemas and the full `openapi.json` definition.
   </Tabs.Tab>
   <Tabs.Tab>
-    ```bash
+    ```bash copy
     npx omni-rest generate:zod
     ```
     Generates TypeScript source code containing fully-typed Zod schemas for every model in your database. 
@@ -25,7 +25,7 @@ Run these directly in your terminal at the root of a project where a `schema.pri
     The file is automatically written to `src/schemas.generated.ts`. You can import these types and schemas directly into your React frontend or other backend services!
   </Tabs.Tab>
   <Tabs.Tab>
-    ```bash
+    ```bash copy
     npx omni-rest generate:openapi
     ```
     Generates a full OpenAPI 3.0 specification JSON file describing all generated endpoints, request bodies, and models.
@@ -39,21 +39,21 @@ Run these directly in your terminal at the root of a project where a `schema.pri
 <Steps>
 ### Introspect your database with Prisma
 Make sure your Prisma schema is up-to-date by pushing or pulling your DB.
-```bash
+```bash copy
 npx prisma db pull
 npx prisma generate
 ```
 
 ### Run the Omni CLI
 Run the generation command.
-```bash
+```bash copy
 npx omni-rest generate:zod
 ```
 
 ### Utilize generated files
 Open `src/schemas.generated.ts`. You will see instantly usable Create/Update schemas for every model you own!
 
-```typescript
+```typescript copy
 import { UserCreateSchema } from "./src/schemas.generated";
 
 const userInput = { name: "John", age: 30 };

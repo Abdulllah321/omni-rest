@@ -1,5 +1,6 @@
 import { Tabs, Callout, FileTree, Cards, Card } from 'nextra/components'
 import { MonitorPlay, Package, Triangle } from 'lucide-react'
+import { Icon } from '@iconify/react'
 
 # Examples
 
@@ -27,7 +28,7 @@ A complete Express.js server with authentication, guards, and OpenAPI documentat
 
 <Tabs items={['package.json', 'schema.prisma', 'src/auth.ts', 'src/guards.ts', 'src/server.ts']}>
   <Tabs.Tab>
-    ```json
+    ```json copy
     {
       "name": "express-example",
       "version": "1.0.0",
@@ -58,7 +59,7 @@ A complete Express.js server with authentication, guards, and OpenAPI documentat
     ```
   </Tabs.Tab>
   <Tabs.Tab>
-    ```prisma
+    ```prisma copy
     generator client {
       provider = "prisma-client-js"
     }
@@ -124,7 +125,7 @@ A complete Express.js server with authentication, guards, and OpenAPI documentat
     ```
   </Tabs.Tab>
   <Tabs.Tab>
-    ```typescript
+    ```typescript copy
     import jwt from 'jsonwebtoken';
     import bcrypt from 'bcryptjs';
     import { Request, Response, NextFunction } from 'express';
@@ -172,7 +173,7 @@ A complete Express.js server with authentication, guards, and OpenAPI documentat
     ```
   </Tabs.Tab>
   <Tabs.Tab>
-    ```typescript
+    ```typescript copy
     import { PrismaClient } from '@prisma/client';
     import { AuthUser } from './auth';
 
@@ -210,7 +211,7 @@ A complete Express.js server with authentication, guards, and OpenAPI documentat
     ```
   </Tabs.Tab>
   <Tabs.Tab>
-    ```typescript
+    ```typescript copy
     import express from 'express';
     import cors from 'cors';
     import helmet from 'helmet';
@@ -283,7 +284,7 @@ A complete Next.js application with React components and API routes.
 
 <Tabs items={['API Route', 'React Hook', 'Component']}>
   <Tabs.Tab>
-    ```typescript
+    ```typescript copy
     // app/api/[...prismaRest]/route.ts
     import { PrismaClient } from '@prisma/client';
     import { nextjsAdapter } from 'omni-rest/nextjs';
@@ -300,8 +301,7 @@ A complete Next.js application with React components and API routes.
     ```
   </Tabs.Tab>
   <Tabs.Tab>
-    ```typescript
-    // hooks/useApi.ts
+    ```typescript filename="hooks/useApi.ts" copy
     import { useState, useEffect } from 'react';
 
     export function useProducts() {
@@ -320,8 +320,7 @@ A complete Next.js application with React components and API routes.
     ```
   </Tabs.Tab>
   <Tabs.Tab>
-    ```tsx
-    // components/ProductList.tsx
+    ```tsx filename="components/ProductList.tsx" copy
     import { useProducts } from '@/hooks/useApi';
 
     export default function ProductList() {
@@ -348,7 +347,7 @@ A complete Next.js application with React components and API routes.
 ## Running the Examples
 
 <Cards>
-  <Card icon={<Triangle />} title="Express" href="#expressjs-example" />
-  <Card icon={<MonitorPlay />} title="Next.js" href="#nextjs-app-router-example" />
-  <Card icon={<Package />} title="Fastify" href="#fastify-example" />
+  <Card icon={<Icon icon="logos:express" className="text-xl dark:invert"/>} title="Express" href="#expressjs-example" />
+  <Card icon={<Icon icon="logos:nextjs-icon" className="text-xl dark:invert"/>} title="Next.js" href="#nextjs-app-router-example" />
+  <Card icon={<Icon icon="logos:fastify-icon" className="text-xl dark:invert"/>} title="Fastify" href="#fastify-example" />
 </Cards>

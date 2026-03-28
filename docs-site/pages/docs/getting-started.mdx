@@ -1,5 +1,6 @@
-import { Steps, Tabs, Callout, Cards, Card } from 'nextra/components'
-import { Server, Zap, Compass, CheckCircle2 } from 'lucide-react'
+import { Steps, Tabs, Callout, Cards, Card } from "nextra/components";
+import { Server, Zap, Compass, CheckCircle2 } from "lucide-react";
+import { Icon } from "@iconify/react";
 
 # Getting Started
 
@@ -16,24 +17,15 @@ Get up and running with Omni Rest in 5 minutes.
 
 Install the required packages using your preferred package manager.
 
-<Tabs items={['npm', 'pnpm', 'yarn']}>
+<Tabs items={["npm", "pnpm", "yarn"]}>
   <Tabs.Tab>
-    ```bash
-    npm install omni-rest @prisma/client
-    npm install -D prisma
-    ```
+    ```bash npm install omni-rest @prisma/client npm install -D prisma ```
   </Tabs.Tab>
   <Tabs.Tab>
-    ```bash
-    pnpm add omni-rest @prisma/client
-    pnpm add -D prisma
-    ```
+    ```bash pnpm add omni-rest @prisma/client pnpm add -D prisma ```
   </Tabs.Tab>
   <Tabs.Tab>
-    ```bash
-    yarn add omni-rest @prisma/client
-    yarn add -D prisma
-    ```
+    ```bash yarn add omni-rest @prisma/client yarn add -D prisma ```
   </Tabs.Tab>
 </Tabs>
 
@@ -81,7 +73,44 @@ npx prisma generate
 
 Choose your preferred framework below to see how to initialize the API instance:
 
-<Tabs items={['Express.js', 'Next.js App Router', 'Fastify', 'Koa', 'Hapi', 'NestJS']}>
+<Tabs items={[
+  <div key="express" className="flex items-center gap-2 font-medium">
+    <div className="bg-white p-1 rounded-full size-8 flex items-center justify-center flex-shrink-0">
+      <Icon icon="logos:express" className="text-xl" />
+    </div>
+     
+  </div>,
+  <div key="nextjs" className="flex items-center gap-2 font-medium">
+    <div className="bg-white p-1 rounded-full size-8 flex items-center justify-center flex-shrink-0">
+      <Icon icon="logos:nextjs-icon" className="text-xl dark:invert"/>
+    </div>
+    
+  </div>,
+  <div key="fastify" className="flex items-center gap-2 font-medium">
+    <div className="bg-white p-1 rounded-full size-8 flex items-center justify-center flex-shrink-0">
+      <Icon icon="logos:fastify-icon" className="text-xl dark:invert"/> 
+    </div>
+    
+  </div>,
+  <div key="koa" className="flex items-center gap-2 font-medium">
+    <div className="bg-white p-1 rounded-full size-8 flex items-center justify-center flex-shrink-0">
+      <Icon icon="logos:koa" className="text-xl dark:invert"/> 
+    </div>
+    
+  </div>,
+  <div key="hapi" className="flex items-center gap-2 font-medium">
+    <div className="bg-white p-1 rounded-full size-8 flex items-center justify-center flex-shrink-0">
+      <Icon icon="logos:hapi" className="text-xl"/>
+    </div>
+    
+  </div>,
+  <div key="nestjs" className="flex items-center gap-2 font-medium">
+    <div className="bg-white p-1 rounded-full size-8 flex items-center justify-center flex-shrink-0">
+      <Icon icon="logos:nestjs" className="text-xl"/>
+    </div>
+     
+  </div>
+]}>
   <Tabs.Tab>
     ```typescript
     // server.ts
@@ -99,6 +128,7 @@ Choose your preferred framework below to see how to initialize the API instance:
       console.log("🚀 Server running on http://localhost:3000");
     });
     ```
+
   </Tabs.Tab>
   <Tabs.Tab>
     ```typescript
@@ -110,6 +140,7 @@ Choose your preferred framework below to see how to initialize the API instance:
 
     export const { GET, POST, PUT, PATCH, DELETE } = nextjsAdapter(prisma);
     ```
+
   </Tabs.Tab>
   <Tabs.Tab>
     ```typescript
@@ -127,6 +158,7 @@ Choose your preferred framework below to see how to initialize the API instance:
 
     app.listen({ port: 3000 });
     ```
+
   </Tabs.Tab>
   <Tabs.Tab>
     ```typescript
@@ -150,6 +182,7 @@ Choose your preferred framework below to see how to initialize the API instance:
       console.log("🚀 Server running on http://localhost:3000");
     });
     ```
+
   </Tabs.Tab>
   <Tabs.Tab>
     ```typescript
@@ -176,6 +209,7 @@ Choose your preferred framework below to see how to initialize the API instance:
 
     init();
     ```
+
   </Tabs.Tab>
   <Tabs.Tab>
     ```typescript
@@ -194,6 +228,7 @@ Choose your preferred framework below to see how to initialize the API instance:
     })
     export class AppModule {}
     ```
+
   </Tabs.Tab>
 </Tabs>
 

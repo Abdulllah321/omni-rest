@@ -1,5 +1,6 @@
 import { Tabs, Callout, Steps, Cards, Card } from 'nextra/components'
 import { Shield, Zap, Settings, BookOpen } from 'lucide-react'
+import { Icon } from '@iconify/react'
 
 # Configuration
 
@@ -11,7 +12,7 @@ Learn how to configure Omni Rest for your specific needs.
   <Tabs.Tab>
     Only expose specific models:
 
-    ```typescript
+    ```typescript copy
     import { expressAdapter } from "omni-rest/express";
 
     expressAdapter(prisma, {
@@ -22,7 +23,7 @@ Learn how to configure Omni Rest for your specific needs.
   <Tabs.Tab>
     Control pagination behavior:
 
-    ```typescript
+    ```typescript copy
     expressAdapter(prisma, {
       defaultLimit: 20,  // Default items per page
       maxLimit: 100,     // Maximum items per page
@@ -38,7 +39,7 @@ Learn how to configure Omni Rest for your specific needs.
   <Tabs.Tab>
     Set dynamic configurations based on the environment:
 
-    ```typescript
+    ```typescript copy
     const isProduction = process.env.NODE_ENV === "production";
 
     const config = {
@@ -57,7 +58,7 @@ Learn how to configure Omni Rest for your specific needs.
 
 Control access to operations per model:
 
-```typescript
+```typescript copy
 expressAdapter(prisma, {
   guards: {
     product: {
@@ -105,7 +106,7 @@ expressAdapter(prisma, {
 
 Omni Rest provides an incredibly powerful, out-of-the-box guard called `withValidation()`. By simply wrapping your guards with it, Omni Rest will automatically intercept and validate all incoming `POST`/`PUT`/`PATCH` payloads against strict Zod schemas generated precisely from your database models.
 
-```typescript
+```typescript copy
 import { expressAdapter, withValidation } from "omni-rest";
 
 expressAdapter(prisma, {
@@ -116,7 +117,7 @@ expressAdapter(prisma, {
 
 You can effortlessly combine `withValidation` with your specific custom guards:
 
-```typescript
+```typescript copy
 expressAdapter(prisma, {
   guards: withValidation({
     product: {
@@ -132,7 +133,7 @@ expressAdapter(prisma, {
 
 Run code before/after operations:
 
-```typescript
+```typescript copy
 expressAdapter(prisma, {
   beforeOperation: async ({ model, method, id, body }) => {
     // Log all operations
@@ -175,7 +176,7 @@ expressAdapter(prisma, {
 
 Generate customized API documentation and serve it natively:
 
-```typescript
+```typescript copy
 import { generateOpenApiSpec } from "omni-rest";
 import swaggerUi from "swagger-ui-express";
 
@@ -201,16 +202,23 @@ app.use("/docs", swaggerUi.serve, swaggerUi.setup(spec, {
 
 ## Per-Adapter Configuration
 
-<Tabs items={['Express', 'Next.js App Router', 'Fastify', 'Koa', 'Hapi', 'NestJS']}>
+<Tabs items={[
+  <div key="express" className="flex items-center gap-2 font-medium"><Icon icon="logos:express" className="text-xl dark:invert"/> Express</div>,
+  <div key="nextjs" className="flex items-center gap-2 font-medium"><Icon icon="logos:nextjs-icon" className="text-xl dark:invert"/> Next.js App Router</div>,
+  <div key="fastify" className="flex items-center gap-2 font-medium"><Icon icon="logos:fastify-icon" className="text-xl dark:invert"/> Fastify</div>,
+  <div key="koa" className="flex items-center gap-2 font-medium"><Icon icon="logos:koa" className="text-xl dark:invert"/> Koa</div>,
+  <div key="hapi" className="flex items-center gap-2 font-medium"><Icon icon="logos:hapi" className="text-xl"/> Hapi</div>,
+  <div key="nestjs" className="flex items-center gap-2 font-medium"><Icon icon="logos:nestjs" className="text-xl"/> NestJS</div>
+]}>
   <Tabs.Tab>
-    ```typescript
+    ```typescript copy
     import { expressAdapter } from "omni-rest/express";
 
     app.use("/api", expressAdapter(prisma, options));
     ```
   </Tabs.Tab>
   <Tabs.Tab>
-    ```typescript
+    ```typescript copy
     // app/api/[...prismaRest]/route.ts
     import { nextjsAdapter } from "omni-rest/nextjs";
 
@@ -218,7 +226,7 @@ app.use("/docs", swaggerUi.serve, swaggerUi.setup(spec, {
     ```
   </Tabs.Tab>
   <Tabs.Tab>
-    ```typescript
+    ```typescript copy
     import { fastifyAdapter } from "omni-rest/fastify";
 
     fastifyAdapter(app, prisma, {
@@ -230,7 +238,7 @@ app.use("/docs", swaggerUi.serve, swaggerUi.setup(spec, {
   <Tabs.Tab>
     Requires: `npm install koa @koa/router koa-bodyparser`
 
-    ```typescript
+    ```typescript copy
     import Koa from "koa";
     import Router from "@koa/router";
     import bodyParser from "koa-bodyparser";
@@ -248,7 +256,7 @@ app.use("/docs", swaggerUi.serve, swaggerUi.setup(spec, {
   <Tabs.Tab>
     Requires: `npm install @hapi/hapi`
 
-    ```typescript
+    ```typescript copy
     import Hapi from "@hapi/hapi";
     import { hapiAdapter } from "omni-rest/hapi";
 
@@ -265,8 +273,7 @@ app.use("/docs", swaggerUi.serve, swaggerUi.setup(spec, {
   <Tabs.Tab>
     Requires: `npm install @nestjs/core @nestjs/common @nestjs/platform-express`
 
-    ```typescript
-    // app.module.ts
+    ```typescript filename="app.module.ts" copy
     import { Module } from "@nestjs/common";
     import { nestjsController } from "omni-rest/nestjs";
 

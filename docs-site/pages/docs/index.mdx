@@ -1,5 +1,6 @@
 import { Cards, Card } from 'nextra/components'
 import { Rocket, ShieldCheck, Database, FileBox, Lock, RefreshCcw } from 'lucide-react'
+import { Icon } from '@iconify/react'
 
 # Introduction
 
@@ -22,7 +23,7 @@ Omni Rest automatically generates fully-featured RESTful API endpoints from your
 
 Instead of writing a dozen controllers, services, and routes for your API, simply wire `omni-rest` to your server instance. We'll handle everything perfectly!
 
-```typescript
+```typescript copy
 import express from "express";
 import { PrismaClient } from "@prisma/client";
 import { expressAdapter } from "omni-rest/express";
@@ -46,9 +47,60 @@ This tiny snippet creates a full, robust REST API for **all** your Prisma models
 Omni Rest is natively framework agnostic but we provide out-of-the-box adapters for the most popular frameworks available:
 
 <Cards>
-  <Card title="Express" href="/docs/getting-started#expressjs" />
-  <Card title="Next.js App Router" href="/docs/getting-started#nextjs-app-router" />
-  <Card title="Fastify" href="/docs/getting-started#fastify" />
+<Card 
+  icon={
+    <div className="bg-white p-1 rounded-full size-8 flex items-center justify-center flex-shrink-0">
+      <Icon icon="logos:express" className="text-xl" />
+    </div>
+  } 
+  title="Express" 
+  href="/docs/getting-started#expressjs" 
+/>
+<Card 
+  icon={
+    <div className="bg-white p-1 rounded-full size-8 flex items-center justify-center flex-shrink-0">
+      <Icon icon="logos:nextjs-icon" className="text-xl" />
+    </div>
+  } 
+  title="Next.js App Router" 
+  href="/docs/getting-started#nextjs-app-router" 
+/>
+<Card 
+  icon={
+    <div className="bg-white p-1 rounded-full size-8 flex items-center justify-center flex-shrink-0">
+      <Icon icon="logos:fastify-icon" className="text-xl" />
+    </div>
+  } 
+  title="Fastify" 
+  href="/docs/getting-started#fastify" 
+/>
+<Card 
+  icon={
+    <div className="bg-white p-1 rounded-full size-8 flex items-center justify-center flex-shrink-0">
+      <Icon icon="logos:koa" className="text-xl" />
+    </div>
+  } 
+  title="Koa" 
+  href="/docs/getting-started#koa" 
+/>
+<Card 
+  icon={
+    <div className="bg-white p-1 rounded-full size-8 flex items-center justify-center flex-shrink-0">
+      <Icon icon="logos:hapi" className="text-xl" />
+    </div>
+  } 
+  title="Hapi" 
+  href="/docs/getting-started#hapi" 
+/>
+<Card 
+  icon={
+    <div className="bg-white p-1 rounded-full size-8 flex items-center justify-center flex-shrink-0">
+      <Icon icon="logos:nestjs" className="text-xl" />
+    </div>
+  } 
+  title="NestJS" 
+  href="/docs/getting-started#nestjs" 
+/>
 </Cards>
 
 ## Next Steps

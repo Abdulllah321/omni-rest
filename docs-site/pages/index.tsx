@@ -1,20 +1,17 @@
 import Head from 'next/head'
 import Link from 'next/link'
 import Image from 'next/image'
-import { 
-  Zap, 
-  ShieldCheck, 
-  FileText, 
-  Search, 
-  Lock, 
-  RefreshCw, 
-  Layers, 
-  Terminal, 
+import {
+  Zap,
+  ShieldCheck,
+  Lock,
+  Terminal,
   ArrowRight,
   Database,
-  Code2,
   Cpu
 } from 'lucide-react'
+import { Icon } from '@iconify/react'
+import Navbar from '../components/Navbar'
 
 export default function Home() {
   return (
@@ -22,22 +19,24 @@ export default function Home() {
       <Head>
         <title>Omni Rest | Auto-generate REST APIs from Prisma</title>
         <meta name="description" content="Turn your Prisma schema into a production-ready REST API in seconds. Zero configuration, type-safe, and framework-agnostic." />
-        <meta name="og:title" content="Omni Rest" />
-        <meta name="og:description" content="Auto-generate REST APIs from your Prisma schema — zero config CRUD endpoints" />
-        <meta name="og:image" content="/og-image.png" />
+        <meta property="og:title" content="Omni Rest" />
+        <meta property="og:description" content="Auto-generate REST APIs from your Prisma schema — zero config CRUD endpoints" />
+        <meta property="og:image" content="/og-image.png" />
       </Head>
 
       <div className="bg-mesh" />
+      <Navbar />
 
-      <main className="relative overflow-hidden">
-        {/* Hero Section */}
+      <main>
+
+        {/* ── Hero ── */}
         <section className="hero">
           <div className="container mx-auto px-6 max-w-7xl">
             <div className="grid lg:grid-cols-2 gap-16 items-center">
-              <div className="text-left">
+              <div>
                 <div className="glass-pill">
                   <span className="flex h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
-                  Now supporting Next.js 14 & Fastify
+                  Now supporting Next.js 14 &amp; Fastify
                 </div>
                 <h1 className="hero-title">
                   Turn your <span className="text-gradient">Prisma Schema</span> into a Production API
@@ -45,110 +44,71 @@ export default function Home() {
                 <p className="hero-subtitle">
                   Stop writing boilerplate CRUD. Omni Rest auto-generates type-safe REST endpoints from your Prisma models in a single line of code.
                 </p>
-                <div className="flex flex-wrap gap-4">
+                <div className="hero-actions">
                   <Link href="/docs/getting-started" className="btn-premium btn-premium-primary">
-                    Get Started Free
-                    <ArrowRight size={20} />
+                    Get Started Free <ArrowRight size={20} />
                   </Link>
                   <a href="https://github.com/Abdulllah321/omni-rest" className="btn-premium btn-premium-secondary" target="_blank" rel="noopener noreferrer">
-                    <Terminal size={20} />
-                    View Source
+                    <Terminal size={20} /> View Source
                   </a>
                 </div>
-                
-                <div className="mt-12 flex items-center gap-6 text-slate-500 font-medium">
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck size={18} className="text-blue-500" />
-                    Security First
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Zap size={18} className="text-purple-500" />
-                    Zero Config
-                  </div>
+                <div className="hero-badges">
+                  <span className="hero-badge">
+                    <ShieldCheck size={17} style={{ color: 'var(--accent-1)' }} /> Security First
+                  </span>
+                  <span className="hero-badge">
+                    <Zap size={17} style={{ color: 'var(--accent-2)' }} /> Zero Config
+                  </span>
                 </div>
               </div>
 
-              <div className="relative lg:block hidden">
-                <div className="absolute -top-20 -right-20 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pulse-slow" />
-                <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pulse-slow" />
-                <div className="animate-float relative z-10 glass-card p-4">
-                   <Image 
-                    src="/hero_visual.png" 
-                    alt="Omni Rest Architecture" 
-                    width={600} 
-                    height={450} 
-                    className="rounded-xl shadow-2xl"
-                  />
+              <div className="hero-visual">
+                <div className="hero-glow hero-glow--blue" />
+                <div className="hero-glow hero-glow--purple" />
+                <div className="animate-float glass-card" style={{ padding: '1rem', position: 'relative', zIndex: 10 }}>
+                  <Image src="/hero_visual.png" alt="Omni Rest Architecture" width={600} height={450} className="rounded-xl" style={{ boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }} />
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Feature Showcase */}
-        <section className="py-24 relative">
+        {/* ── Features ── */}
+        <section className="page-section">
           <div className="container mx-auto px-6 max-w-7xl">
-            <div className="text-center mb-20">
-              <h2 className="text-4xl md:text-5xl font-bold mb-6">Engineered for Velocity</h2>
-              <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-                Everything you need to ship high-performance backends without the mental overhead of manual route definition.
-              </p>
+            <div className="section-header">
+              <h2 className="section-title">Engineered for Velocity</h2>
+              <p className="section-sub">Everything you need to ship high-performance backends without the mental overhead of manual route definition.</p>
             </div>
-
             <div className="grid md:grid-cols-3 gap-8">
-              <div className="feature-card-v2">
-                <div className="feature-icon-v2">
-                  <Cpu size={28} />
+              {[
+                { icon: <Cpu size={28} />, title: 'Intelligent Introspection', body: 'Automatically detects your Prisma models, relations, and types to build a perfectly mirrored REST structure.' },
+                { icon: <Database size={28} />, title: 'Powerful Query Engine', body: 'Built-in support for complex filtering, sorting, and pagination out of the box. No extra code required.' },
+                { icon: <Lock size={28} />, title: 'Granular Protection', body: 'Secure your endpoints with fine-grained guards. Control access at the model or even operation level.' },
+              ].map((f, i) => (
+                <div key={i} className="feature-card-v2">
+                  <div className="feature-icon-v2">{f.icon}</div>
+                  <h3 className="feature-title">{f.title}</h3>
+                  <p className="feature-body">{f.body}</p>
                 </div>
-                <h3 className="text-xl font-bold mb-4">Intelligent Introspection</h3>
-                <p className="text-slate-400">
-                  Automatically detects your Prisma models, relations, and types to build a perfectly mirrored REST structure.
-                </p>
-              </div>
-
-              <div className="feature-card-v2">
-                <div className="feature-icon-v2">
-                  <Database size={28} />
-                </div>
-                <h3 className="text-xl font-bold mb-4">Powerful Query Engine</h3>
-                <p className="text-slate-400">
-                  Built-in support for complex filtering, sorting, and pagination out of the box. No extra code required.
-                </p>
-              </div>
-
-              <div className="feature-card-v2">
-                <div className="feature-icon-v2">
-                  <Lock size={28} />
-                </div>
-                <h3 className="text-xl font-bold mb-4">Granular Protection</h3>
-                <p className="text-slate-400">
-                  Secure your endpoints with fine-grained guards. Control access at the model or even operation level.
-                </p>
-              </div>
+              ))}
             </div>
           </div>
         </section>
 
-        {/* Code Demo */}
-        <section className="py-24 bg-slate-900/40 border-y border-slate-800/50">
+        {/* ── Code Demo ── */}
+        <section className="code-section">
           <div className="container mx-auto px-6 max-w-7xl">
             <div className="grid lg:grid-cols-2 gap-16 items-center">
               <div>
-                <h2 className="text-4xl font-bold mb-6">Write code that scales</h2>
-                <p className="text-slate-400 text-lg mb-8">
+                <h2 className="section-title" style={{ textAlign: 'left' }}>Write code that scales</h2>
+                <p className="section-sub" style={{ textAlign: 'left', margin: '1rem 0 2rem' }}>
                   Focus on your business logic, let Omni Rest handle the repetitive plumbing. It integrates seamlessly into your existing stack.
                 </p>
-                <ul className="space-y-4">
-                  {[
-                    "Auto-generated OpenAPI/Swagger docs",
-                    "Bulk update and delete operations",
-                    "Operation-level hooks for auditing",
-                    "Custom middleware support"
-                  ].map((item, i) => (
-                    <li key={i} className="flex items-center gap-3 text-slate-300">
-                      <div className="h-5 w-5 rounded-full bg-blue-500/20 flex items-center justify-center">
-                        <ArrowRight size={12} className="text-blue-400" />
-                      </div>
+                <ul className="checklist">
+                  {['Auto-generated OpenAPI/Swagger docs', 'Bulk update and delete operations', 'Operation-level hooks for auditing', 'Custom middleware support'].map((item, i) => (
+                    <li key={i} className="checklist-item">
+                      <span className="checklist-dot"><ArrowRight size={11} /></span>
                       {item}
                     </li>
                   ))}
@@ -157,39 +117,26 @@ export default function Home() {
 
               <div className="code-preview">
                 <div className="code-header">
-                  <div className="dot dot-red" />
-                  <div className="dot dot-yellow" />
-                  <div className="dot dot-green" />
-                  <span className="ml-4 text-xs text-slate-500 font-mono">server.ts</span>
+                  <div className="dot dot-red" /><div className="dot dot-yellow" /><div className="dot dot-green" />
+                  <span style={{ marginLeft: '0.75rem', fontSize: '0.75rem', color: '#64748b', fontFamily: 'monospace' }}>server.ts</span>
                 </div>
-                <pre className="text-sm overflow-x-auto">
-                  <code className="text-slate-300">
-                    <span className="text-purple-400">import</span> express <span className="text-purple-400">from</span> <span className="text-green-400">"express"</span>;<br />
-                    <span className="text-purple-400">import</span> &#123; expressAdapter &#125; <span className="text-purple-400">from</span> <span className="text-green-400">"omni-rest/express"</span>;<br />
-                    <br />
-                    <span className="text-slate-500">// 🚀 Mount your Prisma-powered API</span><br />
-                    app.<span className="text-blue-400">use</span>(<span className="text-green-400">"/api"</span>, <span className="text-yellow-400">expressAdapter</span>(prisma));<br />
+                <pre className="code-body">
+                  <code>
+                    <span className="tok-kw">import</span>{' '}express{' '}<span className="tok-kw">from</span>{' '}<span className="tok-str">"express"</span>;{'\n'}
+                    <span className="tok-kw">import</span>{' '}{'{ expressAdapter }'}{' '}<span className="tok-kw">from</span>{' '}<span className="tok-str">"omni-rest/express"</span>;{'\n\n'}
+                    <span className="tok-cmt">{'// 🚀 Mount your Prisma-powered API'}</span>{'\n'}
+                    app.<span className="tok-fn">use</span>(<span className="tok-str">"/api"</span>,{' '}<span className="tok-id">expressAdapter</span>(prisma));
                   </code>
                 </pre>
-                
-                <div className="mt-8 pt-6 border-t border-slate-800">
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Resulting Endpoints</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">AUTO-GENERATED</span>
+                <div className="endpoints-block">
+                  <div className="endpoints-header">
+                    <span className="endpoints-label">Resulting Endpoints</span>
+                    <span className="endpoints-badge">AUTO-GENERATED</span>
                   </div>
-                  <div className="space-y-2 font-mono text-xs">
-                    <div className="flex items-center gap-3">
-                      <span className="text-green-400 w-12">GET</span>
-                      <span className="text-slate-400">/api/user/:id</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-blue-400 w-12">POST</span>
-                      <span className="text-slate-400">/api/product</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-yellow-400 w-12">PATCH</span>
-                      <span className="text-slate-400">/api/order/bulk/update</span>
-                    </div>
+                  <div className="endpoints-list">
+                    <div className="endpoint-row"><span className="method method--get">GET</span><span className="endpoint-path">/api/user/:id</span></div>
+                    <div className="endpoint-row"><span className="method method--post">POST</span><span className="endpoint-path">/api/product</span></div>
+                    <div className="endpoint-row"><span className="method method--patch">PATCH</span><span className="endpoint-path">/api/order/bulk/update</span></div>
                   </div>
                 </div>
               </div>
@@ -197,64 +144,59 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Frameworks */}
-        <section className="py-24">
+        {/* ── Frameworks ── */}
+        <section className="page-section">
           <div className="container mx-auto px-6 max-w-7xl">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl font-bold mb-4">Agnostic by Design</h2>
-              <p className="text-slate-400">Works with the libraries you already love.</p>
+            <div className="section-header">
+              <h2 className="section-title">Agnostic by Design</h2>
+              <p className="section-sub">Works with the libraries you already love.</p>
             </div>
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
               {[
-                { name: "Express.js", icon: <Layers size={24} /> },
-                { name: "Next.js", icon: <Layers size={24} /> },
-                { name: "Fastify", icon: <Layers size={24} /> },
-                { name: "Hapi (Soon)", icon: <Layers size={24} /> },
+                { name: 'Express.js', icon: 'logos:express',      invert: true },
+                { name: 'Next.js',    icon: 'logos:nextjs-icon',  invert: true },
+                { name: 'Fastify',    icon: 'logos:fastify-icon', invert: true },
+                { name: 'Koa',        icon: 'logos:koa',          invert: true },
+                { name: 'Hapi',       icon: 'logos:hapi',         invert: false },
+                { name: 'NestJS',     icon: 'logos:nestjs',       invert: false },
               ].map((fw, i) => (
-                <div key={i} className="glass-card p-6 flex items-center justify-center gap-3 hover:border-blue-500/50 transition-colors cursor-default">
-                  <div className="text-blue-500">{fw.icon}</div>
-                  <span className="font-semibold text-slate-200">{fw.name}</span>
+                <div key={i} className="framework-card">
+                  <Icon icon={fw.icon} width={32} height={32} className={fw.invert ? 'fw-icon-invert' : ''} />
+                  <span className="framework-name">{fw.name}</span>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* Footer CTA */}
-        <section className="py-24">
-          <div className="container mx-auto px-6 max-w-4xl text-center">
-            <div className="glass-card p-12 relative overflow-hidden">
-               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
-               <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to accelerate your development?</h2>
-               <p className="text-slate-400 mb-10 text-lg">
-                 Join hundreds of developers building faster with Omni Rest.
-               </p>
-               <div className="flex justify-center gap-4">
-                <Link href="/docs" className="btn-premium btn-premium-primary">
-                  Start Building Now
-                </Link>
-               </div>
+        {/* ── CTA ── */}
+        <section className="page-section">
+          <div className="container mx-auto px-6 max-w-4xl">
+            <div className="glass-card cta-card">
+              <div className="cta-bar" />
+              <h2 className="cta-title">Ready to accelerate your development?</h2>
+              <p className="cta-body">Join hundreds of developers building faster with Omni Rest.</p>
+              <Link href="/docs" className="btn-premium btn-premium-primary">
+                Start Building Now
+              </Link>
             </div>
           </div>
         </section>
+
       </main>
 
-      <footer className="py-12 border-t border-slate-900">
-        <div className="container mx-auto px-6 max-w-7xl flex flex-col md:row justify-between items-center gap-6">
-          <div className="flex items-center gap-2 font-bold text-xl">
-             <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white">
-               O
-             </div>
-             Omni Rest
+      {/* ── Footer ── */}
+      <footer className="site-footer">
+        <div className="container mx-auto px-6 max-w-7xl footer-inner">
+          <div className="footer-logo">
+            <Image src="/logo-removebg.png" alt="Omni Rest" width={32} height={32} className="footer-logo-img" />
+            Omni Rest
           </div>
-          <div className="text-slate-500 text-sm">
-            © 2024 Omni Rest. Built for the Prisma community.
-          </div>
-          <div className="flex items-center gap-6 text-slate-400">
-             <a href="#" className="hover:text-white transition-colors">Twitter</a>
-             <a href="#" className="hover:text-white transition-colors">GitHub</a>
-             <a href="#" className="hover:text-white transition-colors">Discord</a>
+          <p className="footer-copy">© 2025 Omni Rest. Built for the Prisma community.</p>
+          <div className="footer-links">
+            <a href="#" className="footer-link">Twitter</a>
+            <a href="#" className="footer-link">GitHub</a>
+            <a href="#" className="footer-link">Discord</a>
           </div>
         </div>
       </footer>

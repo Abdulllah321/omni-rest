@@ -28,7 +28,7 @@ Omni Rest supports powerful filtering, sorting, and pagination via standard quer
 
 <Tabs items={['Pagination', 'Sorting', 'Filtering']}>
   <Tabs.Tab>
-    ```javascript
+    ```javascript copy
     GET /api/product?limit=10&offset=20
     ```
 
@@ -38,7 +38,7 @@ Omni Rest supports powerful filtering, sorting, and pagination via standard quer
     | `offset` | number | 0 | Number of records to skip |
   </Tabs.Tab>
   <Tabs.Tab>
-    ```javascript
+    ```javascript copy
     GET /api/product?orderBy=price:desc&orderBy=name:asc
     ```
 
@@ -47,7 +47,7 @@ Omni Rest supports powerful filtering, sorting, and pagination via standard quer
     - Multiple `orderBy` parameters are supported
   </Tabs.Tab>
   <Tabs.Tab>
-    ```javascript
+    ```javascript copy
     GET /api/product?name=Laptop&price[gte]=100&price[lte]=1000&inventory[gt]=0
     ```
 
@@ -86,7 +86,7 @@ Omni Rest supports powerful filtering, sorting, and pagination via standard quer
     - Filter parameters (optional): See filtering section
   </Tabs.Tab>
   <Tabs.Tab>
-    ```json
+    ```json copy
     {
       "data": [
         {
@@ -116,7 +116,7 @@ Omni Rest supports powerful filtering, sorting, and pagination via standard quer
 
     Creates a new record. Provide a JSON object with model fields (excluding auto-generated fields like `id`, `createdAt`).
 
-    ```json
+    ```json copy
     {
       "name": "New Product",
       "price": 29.99,
@@ -125,7 +125,7 @@ Omni Rest supports powerful filtering, sorting, and pagination via standard quer
     ```
   </Tabs.Tab>
   <Tabs.Tab>
-    ```json
+    ```json copy
     {
       "id": 2,
       "name": "New Product",
@@ -155,7 +155,7 @@ Omni Rest supports powerful filtering, sorting, and pagination via standard quer
     - `id` - Record ID
   </Tabs.Tab>
   <Tabs.Tab>
-    ```json
+    ```json copy
     {
       "id": 1,
       "name": "Laptop",
@@ -210,7 +210,7 @@ Omni Rest supports powerful filtering, sorting, and pagination via standard quer
     **Request Body:**
     JSON object with only the fields to update.
 
-    ```json
+    ```json copy
     {
       "price": 899.99,
       "inventory": 50
@@ -239,7 +239,7 @@ Omni Rest supports powerful filtering, sorting, and pagination via standard quer
     - `id` - Record ID
   </Tabs.Tab>
   <Tabs.Tab>
-    ```json
+    ```json copy
     {
       "message": "Record deleted successfully"
     }
@@ -259,7 +259,7 @@ Omni Rest supports powerful filtering, sorting, and pagination via standard quer
 
     Updates multiple records in one request.
 
-    ```json
+    ```json copy
     {
       "ids": [1, 2, 3],
       "data": {
@@ -270,7 +270,7 @@ Omni Rest supports powerful filtering, sorting, and pagination via standard quer
     ```
   </Tabs.Tab>
   <Tabs.Tab>
-    ```json
+    ```json copy
     {
       "updated": 3,
       "records": [
@@ -296,14 +296,14 @@ Omni Rest supports powerful filtering, sorting, and pagination via standard quer
 
     Deletes multiple records in one request.
 
-    ```json
+    ```json copy
     {
       "ids": [1, 2, 3]
     }
     ```
   </Tabs.Tab>
   <Tabs.Tab>
-    ```json
+    ```json copy
     {
       "deleted": 3
     }
@@ -320,7 +320,7 @@ Omni Rest supports powerful filtering, sorting, and pagination via standard quer
 
 All endpoints return consistent error responses:
 
-```json
+```json copy
 {
   "error": {
     "message": "Record not found",
@@ -334,6 +334,6 @@ All endpoints return consistent error responses:
 
 If your application requires authentication, implement it as middleware before mounting the omni-rest adapter:
 
-```typescript
+```typescript copy
 app.use("/api", authenticateMiddleware, expressAdapter(prisma));
 ```
