@@ -28,7 +28,7 @@ export default {
         property="og:description"
         content="Auto-generate REST APIs from your Prisma schema — zero config CRUD endpoints"
       />
-      <meta property="og:image" content="https://omnirest.dev/og-image.png" />
+      <meta property="og:image" content="https://omnirest-api.vercel.app/og-image.png" />
     </>
   ),
   banner: {
