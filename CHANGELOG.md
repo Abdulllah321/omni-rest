@@ -5,7 +5,75 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0] - 2024-01-15
+## [0.4.0] - 2026-03-29
+
+### Added
+- **`omni-rest-client` package** — standalone frontend code generator with zero Prisma dependency
+  - New `npx omni-rest-client generate:frontend` CLI reads `omni-rest.config.json` and generates all frontend code without needing Prisma, `schema.prisma`, or a DB connection
+  - Ships its own `base-components/` (data-table, form-generator) so it's fully self-contained
+- **`generate:config` command** — new backend CLI command that serializes Prisma DMMF + Zod schemas into a portable `omni-rest.config.json` file
+  ```bash
+  npx omni-rest generate:config
+  ```
+- **`generateConfig()` API** — exported from `omni-rest` for programmatic use
+- **Generic hook types** — generated hooks no longer import from `@prisma/client`; use `Record<string, any>` instead, making them usable in any project without Prisma installed
+- **Zod schemas embedded in config** — `omni-rest.config.json` includes the full `schemas.generated.ts` source; the client CLI writes it automatically so the frontend never needs to run `npx omni-rest generate`
+
+### Changed
+- **Frontend generation is now a two-package workflow** — backend generates config, client generates UI (both CLIs stay lightweight)
+- `generate:frontend` in the backend CLI is now marked legacy; prefer the new split workflow
+
+### Architecture
+```
+Backend (omni-rest)                    Client (omni-rest-client)
+─────────────────────────────          ──────────────────────────────────
+npx omni-rest generate:config    →     npx omni-rest-client generate:frontend
+  writes omni-rest.config.json           reads omni-rest.config.json
+  (models + zod schemas)                 writes hooks, components, pages
+  No frontend knowledge needed           No Prisma knowledge needed
+```
+
+## [0.3.2] - 2026-03-29
+
+### Added
+- **QueryClientProvider setup** — Auto-generates `components/providers.tsx` for Next.js App Router projects with proper React Query configuration
+
+### Fixed
+- **Component placement** — Components, hooks, and lib files now generate in root directory (or `src/`) for Next.js App Router projects, not inside `app/` directory
+- **Import paths** — Fixed generated component imports to use correct relative paths (`../../hooks/` instead of `../hooks/`)
+- **DataTable import** — Changed from named import to default import (`import DataTable from "../data-table"`)
+- **Schema imports** — Updated to use `${Model}CreateSchema` instead of `${Model}Schema` in generated forms
+- **Test suite** — Updated all tests to match the actual directory structure and behavior
+
+## [0.3.1] - 2026-03-28
+
+### Fixed
+- **Next.js middleware conflict** — Renamed `src/middleware.ts` to `src/middleware-helpers.ts` to prevent Next.js from detecting it as a middleware file when workspace root is incorrectly inferred
+
+## [0.3.0] - 2026-03-28
+
+### Added
+- **`generate:frontend` command** — scaffolds a complete React data layer from your Prisma schema
+  - TanStack Query hooks (`useUsers`, `useUser`, `useCreateUser`, `useUpdateUser`, `useDeleteUser`, `useBulkDeleteUsers`) with optimistic updates
+  - TanStack Table column definitions typed as `ColumnDef<Model>[]` with camelCase → Title Case headers
+  - DataTable wrapper components wired to hooks, bulk delete, and CSV/JSON export
+  - FormGenerator wrapper components with Zod validation and relational searchable-select dropdowns
+  - Shared `DataTable` and `FormGenerator` base components copied into the user's project once
+- **Auto-detection** — framework (`nextjs` / `vite-react` / `react`), frontend directory (scored candidate scanning), and API base URL (`.env.local` / `.env`)
+- **Interactive mode** — per-model prompts for field selection, relations, bulk delete, export, and multi-step forms
+- **Autopilot mode** (`--autopilot`) — no prompts, all models, sensible defaults; CI-friendly
+- **Multi-step forms** — auto-enabled when a model has >6 fields; configurable via `--steps auto|always|never`
+- **Dependency validation** — warns about missing `@tanstack/react-query`, `@tanstack/react-table`, `react-hook-form`, `zod`, `@hookform/resolvers` before writing files
+- **Idempotent output** — re-running regenerates hooks and columns; base components are skipped if already present
+- **Colour-coded summary** — ✓ created, ⚠ overwritten, ℹ skipped, ✗ error per file
+- **Next.js App Router support** — generates pages in `app/(route-group)/[model]/page.tsx` with route groups
+- **Menu data generation** — creates `lib/menu-data.ts` with TypeScript interfaces for sidebar navigation
+- `frontend-next/` base components now included in the published package
+
+### Flags added
+`--schema`, `--frontend-dir`, `--out`, `--models`, `--autopilot`, `--no-bulk`, `--no-optimistic`, `--no-pages`, `--no-menu`, `--route-group`, `--stale-time`, `--gc-time`, `--steps`
+
+## [0.2.0] - 2025-10-15
 
 ### Added
 - **Bulk Operations** - Added `PATCH /api/:model/bulk/update` and `DELETE /api/:model/bulk/delete` endpoints
@@ -30,7 +98,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced OpenAPI spec generation with request/response examples
 - Improved documentation structure with separate guides
 
-## [0.1.0] - 2024-01-10
+## [0.1.0] - 2025-12-10
 
 ### Added
 - Initial release of omni-rest

@@ -1,11 +1,11 @@
-import { Prisma } from '@prisma/client';
-
 var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
   get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
 }) : x)(function(x) {
   if (typeof require !== "undefined") return require.apply(this, arguments);
   throw Error('Dynamic require of "' + x + '" is not supported');
 });
+
+// src/introspect.ts
 function getModels(prisma) {
   let raw;
   if (prisma?._runtimeDataModel?.models) {
@@ -20,9 +20,13 @@ function getModels(prisma) {
     }));
   }
   if (!raw) {
-    const dmmfModels = Prisma?.dmmf?.datamodel?.models || __require("@prisma/client")?.Prisma?.dmmf?.datamodel?.models;
-    if (dmmfModels) {
-      raw = dmmfModels;
+    try {
+      const prismaModule = __require("@prisma/client");
+      const dmmfModels = prismaModule?.Prisma?.dmmf?.datamodel?.models;
+      if (dmmfModels) {
+        raw = dmmfModels;
+      }
+    } catch {
     }
   }
   if (!raw) {
@@ -42,7 +46,9 @@ function getModels(prisma) {
       isId: f.isId,
       isRequired: f.isRequired,
       isList: f.isList,
-      isRelation: !!f.relationName
+      isRelation: !!f.relationName,
+      hasDefaultValue: !!f.hasDefaultValue || !!f.default,
+      isUpdatedAt: !!f.isUpdatedAt
     }));
     const idField = model.fields.find((f) => f.isId)?.name ?? "id";
     return {
@@ -160,7 +166,7 @@ function buildQuery(searchParams, defaultLimit = 20, maxLimit = 100) {
   return { where, orderBy, skip, take, include, select };
 }
 
-// src/middleware.ts
+// src/middleware-helpers.ts
 async function runGuard(guards, model, method, ctx) {
   const modelGuards = guards[model];
   if (!modelGuards) return null;

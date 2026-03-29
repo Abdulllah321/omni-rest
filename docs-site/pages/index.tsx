@@ -305,7 +305,7 @@ export default function Home() {
             Omni Rest
           </div>
           <p className="footer-copy">
-            © 2025 Omni Rest. Built for the Prisma community.
+            © {new Date().getFullYear().toLocaleString()} Omni Rest. Built for the Prisma community.
           </p>
           <div className="footer-links">
             <a href="#" className="footer-link">
@@ -314,7 +314,7 @@ export default function Home() {
             <a href="#" className="footer-link">
               GitHub
             </a>
-            <a href="#" className="footer-link">
+            <a href="#"  className="footer-link">
               Discord
             </a>
           </div>

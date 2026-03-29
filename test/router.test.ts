@@ -1,14 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createMockPrisma, mockDMMF } from "./fixtures/mockPrisma";
-
-// Mock @prisma/client before importing router
-vi.mock("@prisma/client", () => ({
-  Prisma: { dmmf: mockDMMF },
-  PrismaClient: vi.fn(),
-}));
-
-// Import AFTER mock is set up
-const { createRouter } = await import("../src/router");
+import { createMockPrisma } from "./fixtures/mockPrisma";
+import { createRouter } from "../src/router";
 
 describe("createRouter", () => {
   let prisma: ReturnType<typeof createMockPrisma>;

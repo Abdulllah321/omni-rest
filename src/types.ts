@@ -9,6 +9,8 @@ export interface FieldMeta {
   isRequired: boolean;
   isList: boolean;
   isRelation: boolean;
+  hasDefaultValue: boolean;  // Has @default() or @default(autoincrement())
+  isUpdatedAt: boolean;      // Has @updatedAt
 }
 
 export interface ModelMeta {

@@ -29,7 +29,7 @@ export default {
     link: "https://github.com/Abdulllah321/omni-rest",
   },
   docsRepositoryBase:
-    "https://github.com/Abdulllah321/omni-rest/blob/main/docs-site",
+    "https://github.com/Abdulllah321/omni-rest/blob/master/docs-site",
   useNextSeoProps() {
     const { asPath } = useRouter();
     if (asPath !== "/") {

@@ -172,3 +172,4 @@ http://localhost:3000/api/department?select=id,name
 - Read [API Reference](./API.md)
 - Check [Examples](../examples)
 - Learn about [Configuration](./CONFIGURATION.md)
+- **Scaffold a frontend**: `npx omni-rest generate:frontend --autopilot`

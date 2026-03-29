@@ -150,8 +150,8 @@ omni-rest/
 **Name:** `omni-rest`  
 **Version:** 0.1.0  
 **License:** MIT  
-**Repository:** https://github.com/omni-rest/omni-rest  
-**Homepage:** https://github.com/omni-rest/omni-rest#readme  
+**Repository:** https://github.com/Abdulllah321/omni-rest  
+**Homepage:** https://github.com/Abdulllah321/omni-rest#readme  
 **Keywords:** prisma, rest, api, crud, express, nextjs, fastify
 
 ## Installation After Publishing
@@ -200,7 +200,7 @@ npm run build
 ## After Publishing
 
 ### Create GitHub Release
-1. Go to https://github.com/omni-rest/omni-rest/releases
+1. Go to https://github.com/Abdulllah321/omni-rest/releases
 2. Click "Create new release"
 3. Select tag `v0.1.0`
 4. Add release notes from CHANGELOG.md

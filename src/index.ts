@@ -9,7 +9,7 @@
 export { createRouter } from "./router";
 export { getModels, buildModelMap, getDelegate, toRouteName } from "./introspect";
 export { buildQuery } from "./query-builder";
-export { runGuard, runHook } from "./middleware";
+export { runGuard, runHook } from "./middleware-helpers";
 
 // ─── Zod + Validation ────────────────────────────────────────────────────────
 export { generateZodSchemas, buildRuntimeSchemas } from "./zod-generator";
@@ -17,6 +17,10 @@ export { validateBody, withValidation } from "./validate";
 
 // ─── OpenAPI ──────────────────────────────────────────────────────────────────
 export { generateOpenApiSpec } from "./openapi";
+
+// ─── Config (for omni-rest-client) ───────────────────────────────────────────
+export { generateConfig } from "./config-generator";
+export type { OmniRestConfig } from "./config-generator";
 
 // ─── Adapters ─────────────────────────────────────────────────────────────────
 export { expressAdapter } from "./adapters/express";

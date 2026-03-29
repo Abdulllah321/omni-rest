@@ -328,18 +328,72 @@ Full Configuration: [docs/CONFIGURATION.md](docs/CONFIGURATION.md)
 
 ## CLI
 
-omni-rest includes a CLI for schema introspection:
+### Backend generators
 
 ```bash
-# Introspect your Prisma schema
-npx omni-rest introspect
-
-# Generate all endpoints
-npx omni-rest generate
-
-# Validate configuration
-npx omni-rest validate
+npx omni-rest generate           # Zod schemas + OpenAPI spec
+npx omni-rest generate:zod       # src/schemas.generated.ts only
+npx omni-rest generate:openapi   # openapi.json only
 ```
+
+### Frontend generator
+
+Scaffold a complete React data layer from your Prisma schema — TanStack Query hooks, DataTable components, FormGenerator components, and column definitions — all typed against `@prisma/client`.
+
+```bash
+# guided (prompts per model)
+npx omni-rest generate:frontend
+
+# autopilot (no prompts, all models, sensible defaults)
+npx omni-rest generate:frontend --autopilot
+```
+
+Given a `User` model this produces:
+
+```
+src/
+  hooks/
+    useUser.ts          ← useUsers, useUser, useCreateUser, useUpdateUser, useDeleteUser, useBulkDeleteUsers
+  components/
+    user/
+      UserColumns.tsx   ← ColumnDef<User>[] with camelCase → Title Case headers
+      UserTable.tsx     ← DataTable wired to hooks, bulk delete, export
+      UserForm.tsx      ← FormGenerator with Zod validation + relational dropdowns
+    data-table.tsx      ← shared base component (copied once)
+    form-generator.tsx  ← shared base component (copied once)
+```
+
+Drop the components into a page:
+
+```tsx
+import { UserTable } from '@/src/components/user/UserTable'
+import { UserForm }  from '@/src/components/user/UserForm'
+
+export default function UsersPage() {
+  return (
+    <div className="p-6 space-y-6">
+      <UserForm />
+      <UserTable />
+    </div>
+  )
+}
+```
+
+**Key flags:**
+
+| Flag | Default | Description |
+|---|---|---|
+| `--autopilot` | `false` | Skip all prompts |
+| `--models <names>` | all | Comma-separated model names |
+| `--frontend-dir <path>` | auto-scan | Frontend project root |
+| `--out <dir>` | `src/` | Output directory |
+| `--no-bulk` | — | Disable bulk delete |
+| `--no-optimistic` | — | Disable optimistic updates |
+| `--steps auto\|always\|never` | `auto` | Multi-step form control |
+| `--stale-time <ms>` | `30000` | TanStack Query staleTime |
+| `--gc-time <ms>` | `300000` | TanStack Query gcTime |
+
+See the [Frontend Generator docs](https://omni-rest.vercel.app/docs/generate-frontend) for the full guide.
 
 ## How It Works
 
@@ -463,8 +517,8 @@ MIT © [Omni Rest Contributors](LICENSE)
 ## Support
 
 - 📖 [Documentation](docs/)
-- 🙋 [GitHub Discussions](https://github.com/omni-rest/omni-rest/discussions)
-- 🐛 [Report Issues](https://github.com/omni-rest/omni-rest/issues)
+- 🙋 [GitHub Discussions](https://github.com/Abdulllah321/omni-rest/discussions)
+- 🐛 [Report Issues](https://github.com/Abdulllah321/omni-rest/issues)
 - 💬 [Chat on Discord](https://discord.gg/omni-rest)
 
 ## Acknowledgments

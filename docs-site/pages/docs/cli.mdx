@@ -1,67 +1,235 @@
-import { Callout, Steps, Tabs, Cards, Card } from 'nextra/components'
-import { Terminal, Code2, FileJson2 } from 'lucide-react'
+import { Callout, Steps, Tabs, Cards, Card, FileTree } from 'nextra/components'
+import { Layers, Wand2, ArrowRight } from 'lucide-react'
 
 # CLI Tools
 
-Omni Rest provides a powerful built-in CLI interface that allows you to instantly generate artifacts from your Prisma schema, completely decoupled from runtime server execution.
+omni-rest ships two CLIs:
 
-## Available Commands
+- **`omni-rest`** — backend generators (Prisma-aware). Produces Zod schemas, OpenAPI specs, and the shared config file.
+- **`omni-rest-client`** — frontend generator (no Prisma). Reads the config file and scaffolds React components.
 
-Run these directly in your terminal at the root of a project where a `schema.prisma` file is present.
+---
 
-<Tabs items={['Generate All', 'Generate Zod Schemas', 'Generate OpenAPI Specification']}>
+## omni-rest (backend CLI)
+
+Run these from any directory that contains a `schema.prisma` file (or has one in a parent directory).
+
+<Tabs items={['generate:config', 'generate (all)', 'generate:zod', 'generate:openapi']}>
+  <Tabs.Tab>
+    ```bash copy
+    npx omni-rest generate:config
+    ```
+    Writes `omni-rest.config.json` — a portable JSON file containing all model metadata and Zod schema source. This is the bridge between the backend and `omni-rest-client`.
+
+    ```json
+    {
+      "version": "1",
+      "generatedAt": "2026-03-29T10:00:00.000Z",
+      "models": [
+        {
+          "name": "User",
+          "routeName": "user",
+          "idField": "id",
+          "fields": [...]
+        }
+      ],
+      "zodSchemas": "import { z } from 'zod';\n\nexport const UserCreateSchema = ..."
+    }
+    ```
+
+    <Callout type="info">
+      Re-run this command any time your Prisma schema changes, then re-run `npx omni-rest-client generate:frontend` in your frontend project.
+    </Callout>
+  </Tabs.Tab>
   <Tabs.Tab>
     ```bash copy
     npx omni-rest generate
     ```
-    This command runs all available generators. It will introspect your database schema and output both the Zod typescript schemas and the full `openapi.json` definition.
+    Runs both `generate:zod` and `generate:openapi` in sequence.
   </Tabs.Tab>
   <Tabs.Tab>
     ```bash copy
     npx omni-rest generate:zod
     ```
-    Generates TypeScript source code containing fully-typed Zod schemas for every model in your database. 
-    
-    The file is automatically written to `src/schemas.generated.ts`. You can import these types and schemas directly into your React frontend or other backend services!
+    Writes fully-typed Zod schemas for every Prisma model to `src/schemas.generated.ts`.
+
+    ```typescript
+    // src/schemas.generated.ts  (auto-generated)
+    import { z } from 'zod'
+
+    export const UserCreateSchema = z.object({
+      name:  z.string(),
+      email: z.string(),
+    })
+
+    export const UserUpdateSchema = z.object({
+      name:  z.string().optional(),
+      email: z.string().optional(),
+    })
+    ```
   </Tabs.Tab>
   <Tabs.Tab>
     ```bash copy
     npx omni-rest generate:openapi
     ```
-    Generates a full OpenAPI 3.0 specification JSON file describing all generated endpoints, request bodies, and models.
-
-    The file is written to `./openapi.json`. It will automatically grab your `package.json` name and version to populate the final OpenAPI title and version metadata.
+    Writes a complete OpenAPI 3.0 JSON file to `./openapi.json`. Picks up `name` and `version` from your `package.json` automatically.
   </Tabs.Tab>
 </Tabs>
 
-## Use Case Example
+---
+
+## omni-rest-client (frontend CLI)
+
+Reads `omni-rest.config.json` and generates a complete React data layer — no Prisma, no `schema.prisma`, no DB connection needed.
+
+```bash copy
+npx omni-rest-client generate:frontend
+```
+
+<Cards>
+  <Card icon={<Wand2 />} title="Full omni-rest-client Guide →" href="/docs/omni-rest-client" />
+</Cards>
+
+### Quick example
+
+Given a `User` model in your config, the generator produces:
+
+<FileTree>
+  <FileTree.Folder name="src" defaultOpen>
+    <FileTree.File name="schemas.generated.ts" />
+    <FileTree.Folder name="hooks" defaultOpen>
+      <FileTree.File name="useUser.ts" />
+    </FileTree.Folder>
+    <FileTree.Folder name="components" defaultOpen>
+      <FileTree.Folder name="user" defaultOpen>
+        <FileTree.File name="UserColumns.tsx" />
+        <FileTree.File name="UserTable.tsx" />
+        <FileTree.File name="UserForm.tsx" />
+      </FileTree.Folder>
+      <FileTree.File name="data-table.tsx" />
+      <FileTree.File name="form-generator.tsx" />
+      <FileTree.File name="providers.tsx" />
+    </FileTree.Folder>
+    <FileTree.Folder name="lib" defaultOpen>
+      <FileTree.File name="menu-data.ts" />
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
+
+Drop the components into a page:
+
+```tsx copy
+import { UserTable } from '@/src/components/user/UserTable'
+
+export default function UsersPage() {
+  return (
+    <div className="container mx-auto py-10">
+      <h1 className="text-3xl font-bold mb-6">Users</h1>
+      <UserTable />
+    </div>
+  )
+}
+```
+
+---
+
+## Full workflow
 
 <Steps>
-### Introspect your database with Prisma
-Make sure your Prisma schema is up-to-date by pushing or pulling your DB.
+
+### Set up your backend
+
 ```bash copy
-npx prisma db pull
 npx prisma generate
+npx omni-rest generate        # Zod schemas + OpenAPI spec
+npx omni-rest generate:config # omni-rest.config.json
 ```
 
-### Run the Omni CLI
-Run the generation command.
+### Install frontend dependencies
+
 ```bash copy
-npx omni-rest generate:zod
+npm install -D omni-rest-client
+npm install @tanstack/react-query @tanstack/react-table \
+  react-hook-form zod @hookform/resolvers
 ```
 
-### Utilize generated files
-Open `src/schemas.generated.ts`. You will see instantly usable Create/Update schemas for every model you own!
+### Generate frontend code
 
-```typescript copy
-import { UserCreateSchema } from "./src/schemas.generated";
-
-const userInput = { name: "John", age: 30 };
-// Validates using strict Zod types inferred directly from Prisma!
-UserCreateSchema.parse(userInput); 
+```bash copy
+# Reference the config from your backend (monorepo example)
+npx omni-rest-client generate:frontend \
+  --config ../backend/omni-rest.config.json \
+  --autopilot
 ```
+
+### Add the providers wrapper
+
+```tsx copy
+// app/layout.tsx
+import { Providers } from '@/src/components/providers'
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
+    </html>
+  )
+}
+```
+
+### Use the generated components
+
+```tsx copy
+// app/users/page.tsx
+import { UserTable } from '@/src/components/user/UserTable'
+
+export default function UsersPage() {
+  return (
+    <div className="container mx-auto py-10">
+      <UserTable />
+    </div>
+  )
+}
+```
+
+### Re-run after schema changes
+
+```bash copy
+# Backend
+npx prisma generate
+npx omni-rest generate:config
+
+# Frontend
+npx omni-rest-client generate:frontend --autopilot
+```
+
 </Steps>
 
-<Callout type="info" emoji="💡">
-  Every time you modify your `schema.prisma`, you should re-run `npx omni-rest generate` to keep your generated types and API spec in perfect sync!
+<Callout type="info" emoji="♻️">
+  Hook and column files are overwritten on each run. The shared base components (`data-table.tsx`, `form-generator.tsx`) are skipped if they already exist, preserving any customizations.
 </Callout>
+
+---
+
+## omni-rest-client flags
+
+| Flag | Default | Description |
+|---|---|---|
+| `--config <path>` | `./omni-rest.config.json` | Path to config file |
+| `--frontend-dir <path>` | cwd | Frontend project root |
+| `--out <dir>` | `src/` or root | Output directory |
+| `--models <names>` | all | Comma-separated model names |
+| `--base-url <url>` | `/api` | API base URL |
+| `--framework <name>` | auto-detect | `nextjs` \| `vite-react` \| `react` |
+| `--autopilot` | `false` | Skip all prompts |
+| `--no-bulk` | — | Disable bulk delete |
+| `--no-optimistic` | — | Disable optimistic updates |
+| `--no-pages` | — | Disable Next.js page generation |
+| `--no-menu` | — | Disable `menu-data.ts` |
+| `--no-schemas` | — | Skip writing `schemas.generated.ts` |
+| `--steps <mode>` | `auto` | `auto` \| `always` \| `never` |
+| `--stale-time <ms>` | `30000` | TanStack Query `staleTime` |
+| `--gc-time <ms>` | `300000` | TanStack Query `gcTime` |
+| `--help` | — | Print usage |

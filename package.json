@@ -1,6 +1,6 @@
 {
   "name": "omni-rest",
-  "version": "0.1.0",
+  "version": "0.3.3",
   "description": "Auto-generate REST APIs from your Prisma schema — zero config CRUD",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -47,6 +47,7 @@
   },
   "files": [
     "dist",
+    "frontend-next",
     "README.md",
     "LICENSE"
   ],

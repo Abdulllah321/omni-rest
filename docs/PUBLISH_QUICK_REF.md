@@ -81,8 +81,8 @@ https://www.npmjs.com/package/omni-rest
 Name: omni-rest
 Version: 0.1.0
 License: MIT
-Repository: github.com/omni-rest/omni-rest
-Homepage: github.com/omni-rest/omni-rest#readme
+Repository: github.com/Abdulllah321/omni-rest
+Homepage: github.com/Abdulllah321/omni-rest#readme
 ```
 
 ---

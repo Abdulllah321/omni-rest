@@ -1,4 +1,3 @@
-import { Prisma } from "@prisma/client";
 import type { ModelMeta, FieldMeta } from "./types";
 
 /**
@@ -24,14 +23,19 @@ export function getModels(prisma?: any): ModelMeta[] {
     }));
   }
 
-  // Fallback to DMMF from @prisma/client module
+  // Fallback to DMMF from @prisma/client module — use plain require so
+  // vi.mock("@prisma/client") can intercept it in tests. The CLI handles
+  // the global-install path resolution separately before calling getModels.
   if (!raw) {
-    const dmmfModels =
-      (Prisma as any)?.dmmf?.datamodel?.models ||
-      (require("@prisma/client")?.Prisma as any)?.dmmf?.datamodel?.models;
-
-    if (dmmfModels) {
-      raw = dmmfModels;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const prismaModule = require("@prisma/client");
+      const dmmfModels = prismaModule?.Prisma?.dmmf?.datamodel?.models;
+      if (dmmfModels) {
+        raw = dmmfModels;
+      }
+    } catch {
+      // @prisma/client not available or not generated — handled below
     }
   }
 
@@ -55,6 +59,8 @@ export function getModels(prisma?: any): ModelMeta[] {
       isRequired: f.isRequired,
       isList: f.isList,
       isRelation: !!f.relationName,
+      hasDefaultValue: !!f.hasDefaultValue || !!f.default,
+      isUpdatedAt: !!f.isUpdatedAt,
     }));
 
     const idField =

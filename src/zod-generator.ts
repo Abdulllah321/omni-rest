@@ -41,14 +41,15 @@ function fieldToZod(field: FieldMeta): string {
  * Generates Zod schema source code for a single model.
  *
  * Produces two schemas:
- *   - CreateSchema  — all required fields must be present
+ *   - CreateSchema  — required fields (excludes id, @default, @updatedAt)
  *   - UpdateSchema  — all fields are optional (for PATCH)
  */
 function generateModelSchema(meta: ModelMeta): string {
   const name = meta.name;
 
-  const fields = meta.fields
-    .filter((f) => !f.isRelation && !f.isId) // skip relations and id (auto)
+  // For CREATE: exclude id, fields with @default, and @updatedAt
+  const createFields = meta.fields
+    .filter((f) => !f.isRelation && !f.isId && !f.hasDefaultValue && !f.isUpdatedAt)
     .map((f) => {
       const zodExpr = fieldToZod(f);
       if (!zodExpr) return null;
@@ -57,14 +58,29 @@ function generateModelSchema(meta: ModelMeta): string {
     .filter(Boolean)
     .join("\n");
 
+  // For UPDATE: include all non-relation fields (but make them optional)
+  const updateFields = meta.fields
+    .filter((f) => !f.isRelation && !f.isId && !f.isUpdatedAt)
+    .map((f) => {
+      const zodExpr = fieldToZod(f);
+      if (!zodExpr) return null;
+      // Make everything optional for updates
+      const optionalZod = zodExpr.includes('.optional()') ? zodExpr : `${zodExpr}.optional()`;
+      return `  ${f.name}: ${optionalZod},`;
+    })
+    .filter(Boolean)
+    .join("\n");
+
   return `
 // ─── ${name} ──────────────────────────────────────────────────────────────────
 
 export const ${name}CreateSchema = z.object({
-${fields}
+${createFields}
 });
 
-export const ${name}UpdateSchema = ${name}CreateSchema.partial();
+export const ${name}UpdateSchema = z.object({
+${updateFields}
+});
 
 export type ${name}Create = z.infer<typeof ${name}CreateSchema>;
 export type ${name}Update = z.infer<typeof ${name}UpdateSchema>;
@@ -132,10 +148,11 @@ export function buildRuntimeSchemas(prisma?: any): Record<
   const result: Record<string, { create: any; update: any }> = {};
 
   for (const meta of models) {
-    const shape: Record<string, any> = {};
+    const createShape: Record<string, any> = {};
+    const updateShape: Record<string, any> = {};
 
     for (const field of meta.fields) {
-      if (field.isRelation || field.isId) continue;
+      if (field.isRelation) continue;
 
       const factory = ZOD_FACTORIES[field.type] ?? (() => z.any());
       let schema = factory();
@@ -143,13 +160,23 @@ export function buildRuntimeSchemas(prisma?: any): Record<
       if (!field.isRequired) schema = schema.optional();
       if (field.isList) schema = z.array(schema);
 
-      shape[field.name] = schema;
+      // CREATE: exclude id, @default, @updatedAt
+      if (!field.isId && !field.hasDefaultValue && !field.isUpdatedAt) {
+        createShape[field.name] = schema;
+      }
+
+      // UPDATE: include all except id and @updatedAt, make optional
+      if (!field.isId && !field.isUpdatedAt) {
+        updateShape[field.name] = schema.optional();
+      }
     }
 
-    const createSchema = z.object(shape);
+    const createSchema = z.object(createShape);
+    const updateSchema = z.object(updateShape);
+    
     result[meta.routeName] = {
       create: createSchema,
-      update: createSchema.partial(),
+      update: updateSchema,
     };
   }
 

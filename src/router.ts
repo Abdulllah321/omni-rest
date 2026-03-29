@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { getModels, buildModelMap, getDelegate } from "./introspect";
 import { buildQuery } from "./query-builder";
-import { runGuard, runHook } from "./middleware";
+import { runGuard, runHook } from "./middleware-helpers";
 import type {
   PrismaRestOptions,
   HandlerResult,

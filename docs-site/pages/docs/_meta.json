@@ -4,6 +4,8 @@
   "api-reference": "API Reference",
   "configuration": "Configuration",
   "cli": "CLI Tools",
+  "generate-frontend": "Frontend Generator",
+  "omni-rest-client": "omni-rest-client",
   "examples": "Examples",
   "contributing": "Contributing"
 }

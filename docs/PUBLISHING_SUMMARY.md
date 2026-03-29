@@ -29,9 +29,9 @@ Your omni-rest package is fully prepared for publishing to npm. All code, docume
 ### Package Configuration
 - ✅ **package.json** - Updated with:
   - Author name: "Omni Rest Contributors"
-  - Repository: https://github.com/omni-rest/omni-rest.git
-  - Homepage: https://github.com/omni-rest/omni-rest#readme
-  - Bugs: https://github.com/omni-rest/omni-rest/issues
+  - Repository: https://github.com/Abdulllah321/omni-rest.git
+  - Homepage: https://github.com/Abdulllah321/omni-rest#readme
+  - Bugs: https://github.com/Abdulllah321/omni-rest/issues
   - Proper export paths for all adapters
   - Proper peer dependencies and dev dependencies
 
@@ -54,7 +54,7 @@ Your omni-rest package is fully prepared for publishing to npm. All code, docume
 | **Types** | dist/index.d.ts |
 | **CLI** | dist/cli.js / omni-rest command |
 | **Exports** | `.` (main), `./express`, `./nextjs`, `./fastify` |
-| **Repository** | github.com/omni-rest/omni-rest |
+| **Repository** | github.com/Abdulllah321/omni-rest |
 
 ---
 
@@ -246,9 +246,9 @@ With full TypeScript support, OpenAPI documentation, and all features fully docu
 After publishing, your package will be available at:
 
 - **npm Registry:** https://www.npmjs.com/package/omni-rest
-- **GitHub Repository:** https://github.com/omni-rest/omni-rest
-- **GitHub Releases:** https://github.com/omni-rest/omni-rest/releases
-- **npm Issues:** https://github.com/omni-rest/omni-rest/issues
+- **GitHub Repository:** https://github.com/Abdulllah321/omni-rest
+- **GitHub Releases:** https://github.com/Abdulllah321/omni-rest/releases
+- **npm Issues:** https://github.com/Abdulllah321/omni-rest/issues
 
 ---
 

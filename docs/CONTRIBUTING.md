@@ -1,15 +1,35 @@
 # Contributing to omni-rest
 
-We love contributions! Here's how you can help.
+We love contributions! This guide covers everything — from first-time contributors to advanced feature work.
+
+---
+
+## Table of Contents
+
+- [Getting Started](#getting-started)
+- [Project Structure](#project-structure)
+- [Development Workflow](#development-workflow)
+- [Contribution Areas](#contribution-areas)
+  - [🟢 Good First Issues](#-good-first-issues)
+  - [🟡 Intermediate](#-intermediate-features)
+  - [🔴 Advanced](#-advanced-features)
+  - [📦 New Adapters](#-new-adapters)
+  - [🧪 Testing & Quality](#-testing--quality)
+  - [📄 Docs & DX](#-docs--dx)
+- [Submitting Changes](#submitting-changes)
+- [Release Process](#release-process)
+- [Code of Conduct](#code-of-conduct)
+
+---
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ 
+- Node.js 18+
 - npm or pnpm
 - Git
-- A Prisma project
+- A Prisma project (for integration testing)
 
 ### Setup Development Environment
 
@@ -35,266 +55,657 @@ npm run dev
 
 ```
 omni-rest/
-├── src/                    # TypeScript source code
+├── src/
 │   ├── adapters/          # Framework adapters (Express, Next.js, Fastify)
-│   ├── cli.ts             # Command-line interface
+│   ├── cli.ts             # CLI — npx omni-rest generate
 │   ├── index.ts           # Main exports
-│   ├── introspect.ts      # Prisma introspection
-│   ├── middleware.ts      # Auth/guard middleware
-│   ├── openapi.ts         # OpenAPI spec generation
-│   ├── query-builder.ts   # Query parsing
-│   ├── router.ts          # Core router logic
-│   ├── types.ts           # TypeScript definitions
-│   ├── validate.ts        # Input validation
-│   └── zod-generator.ts   # Zod schema generation
-├── test/                  # Test files
-├── docs/                  # Documentation
-└── examples/              # Example applications
+│   ├── introspect.ts      # Prisma DMMF introspection
+│   ├── middleware.ts      # Guard + hook runner
+│   ├── openapi.ts         # OpenAPI 3.0 spec generation
+│   ├── query-builder.ts   # URL params → Prisma query
+│   ├── router.ts          # Core CRUD handler (framework-agnostic)
+│   ├── types.ts           # TypeScript type definitions
+│   ├── validate.ts        # Zod-based request validation
+│   └── zod-generator.ts   # Auto-generates Zod schemas from DMMF
+├── test/
+│   └── fixtures/
+│       └── mockPrisma.ts  # Mock client + DMMF for tests
+├── examples/
+│   ├── express-app/       # Full Express example
+│   └── nextjs-app/        # Full Next.js App Router example
+└── docs/                  # Extended documentation
 ```
+
+### Where to Start Per Feature Type
+
+| You want to work on... | Start in |
+|---|---|
+| Filtering, sorting, search | `src/query-builder.ts` |
+| New CRUD operations | `src/router.ts` |
+| Request/response transforms | `src/middleware.ts` |
+| New framework support | `src/adapters/` |
+| Schema/type generation | `src/zod-generator.ts` + `src/openapi.ts` |
+| CLI commands | `src/cli.ts` |
+| Types | `src/types.ts` |
+
+---
 
 ## Development Workflow
 
 ### Making Changes
 
-1. Create a feature branch:
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
+```bash
+# 1. Create a feature branch
+git checkout -b feature/your-feature-name
 
-2. Make your changes in `src/`
+# 2. Make changes in src/
 
-3. Write/update tests in `test/`
+# 3. Write tests in test/
 
-4. Build and test:
-   ```bash
-   npm run build
-   npm test
-   ```
+# 4. Build and test
+npm run build && npm test
 
-5. Commit with descriptive messages:
-   ```bash
-   git commit -m "feat: add bulk update support for all adapters"
-   ```
+# 5. Test in a real app
+npm link
+cd my-test-app && npm link omni-rest
+
+# 6. Commit
+git commit -m "feat: add bulk update support"
+```
+
+### Commit Convention
+
+We use [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+feat: add ?search= global search param
+fix: coerce numeric IDs on findUnique
+docs: add cursor pagination example
+test: add guard async rejection tests
+refactor: split query-builder into filters/pagination
+chore: bump tsup to 8.1
+```
 
 ### Code Style
 
-We use TypeScript with strict mode enabled. Follow these conventions:
-
-- Use TypeScript for all code (no `any` unless necessary)
-- Use consistent naming: `camelCase` for functions/variables, `PascalCase` for classes/types
-- Add JSDoc comments for public functions
-- Keep functions focused and under 50 lines when possible
-- Use async/await, not callbacks
-
-Example:
+- Strict TypeScript — no `any` unless documented
+- `camelCase` for functions/variables, `PascalCase` for types/interfaces
+- JSDoc on every exported function
+- Functions under 50 lines — split into helpers if larger
+- `async/await` everywhere — no callbacks or `.then()` chains
 
 ```typescript
 /**
- * Generate REST endpoints for a Prisma model.
- * @param prisma - The Prisma client instance
- * @param modelName - Name of the model to generate endpoints for
- * @param options - Configuration options
- * @returns Router instance
+ * Parses URLSearchParams into a Prisma-compatible query object.
+ * @param searchParams - URL search parameters from the request
+ * @param defaultLimit - Default page size (default: 20)
+ * @param maxLimit - Maximum allowed page size (default: 100)
  */
-async function createRouter(
-  prisma: any,
-  modelName: string,
-  options: RouterOptions
-): Promise<RouterInstance> {
-  // Implementation
+export function buildQuery(
+  searchParams: URLSearchParams,
+  defaultLimit = 20,
+  maxLimit = 100
+): ParsedQuery {
+  // implementation
 }
 ```
 
 ### Running Tests
 
 ```bash
-# Run all tests
-npm test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Run a specific test file
-npm test -- Introspect.test.ts
-
-# Generate coverage report
-npm test -- --coverage
+npm test                              # run all
+npm run test:watch                    # watch mode
+npm test -- query-builder.test.ts     # single file
+npm test -- --coverage                # with coverage
 ```
 
-### Building
+---
+
+## Contribution Areas
+
+---
+
+## 🟢 Good First Issues
+
+These are self-contained, well-scoped, and a great way to learn the codebase.
+
+---
+
+### #1 — `?search=` Global Search
+
+**File:** `src/query-builder.ts`
+
+Add a `?search=` param that queries all `String` fields of a model using OR.
+
+```
+GET /api/department?search=eng
+→ WHERE name LIKE '%eng%' OR code LIKE '%eng%' OR description LIKE '%eng%'
+```
+
+**Implementation hint:**
+1. In `buildQuery`, detect `search` as a reserved key
+2. Read the model's fields from options (pass `ModelMeta` into query builder)
+3. Build `where: { OR: stringFields.map(f => ({ [f.name]: { contains: value } })) }`
+
+**Tests needed:** exact match, partial match, no string fields edge case.
+
+---
+
+### #2 — Soft Delete Support
+
+**File:** `src/router.ts`, `src/types.ts`
+
+If a model has `deletedAt: DateTime?` or `isActive: Boolean`, `DELETE` should update that field instead of destroying the record.
+
+```ts
+omniRest(prisma, {
+  softDelete: true,               // global
+  softDeleteField: "deletedAt",  // default: "deletedAt"
+})
+```
+
+Auto-detect field from DMMF in `introspect.ts`. If detected, override the DELETE handler.
+
+**Tests needed:** soft delete updates field, hard delete still works when field absent.
+
+---
+
+### #3 — `?fields=` Alias for `?select=`
+
+**File:** `src/query-builder.ts`
+
+PostgREST uses `?select=`, REST users often expect `?fields=`. One-liner alias in `buildQuery`:
+
+```ts
+const selectParam = searchParams.get("select") ?? searchParams.get("fields");
+```
+
+**Tests needed:** both params produce identical output, precedence when both provided.
+
+---
+
+### #4 — Sort by Relation Count
+
+**File:** `src/query-builder.ts`
+
+Support `?sort=_count.posts:desc` — sort by how many related records exist.
+
+```
+?sort=_count.posts:desc
+→ orderBy: { posts: { _count: "desc" } }
+```
+
+Detect `_count.` prefix in sort parser, build nested orderBy object.
+
+**Tests needed:** `_count.relation:asc`, `_count.relation:desc`, mixed with regular sort fields.
+
+---
+
+### #5 — Response Envelope Option
+
+**File:** `src/router.ts`, `src/types.ts`
+
+Let users disable the `{ data, meta }` wrapper for list endpoints:
+
+```ts
+omniRest(prisma, { envelope: false })
+// Returns: [...records]   instead of   { data: [...], meta: {...} }
+```
+
+Add `envelope?: boolean` to `PrismaRestOptions`. Default `true` for backward compat.
+
+**Tests needed:** envelope on returns object with meta, envelope off returns plain array.
+
+---
+
+## 🟡 Intermediate Features
+
+Require understanding of at least two source files. Good for contributors who've done one PR already.
+
+---
+
+### #6 — Nested Relation Filtering
+
+**File:** `src/query-builder.ts`
+
+Support dot-notation filters to query through relations:
+
+```
+?posts.title_contains=hello
+→ where: { posts: { some: { title: { contains: "hello" } } } }
+
+?profile.age_gte=18
+→ where: { profile: { age: { gte: 18 } } }
+```
+
+**Implementation hint:**
+- Detect dots in filter keys before processing operators
+- Use `some` for list relations, direct nesting for singular
+- May need relation type info from DMMF (pass `FieldMeta` into query builder)
+
+**Tests needed:** list relation filter, singular relation filter, nested + operator combo.
+
+---
+
+### #7 — Bulk Operations
+
+**File:** `src/router.ts`, `src/adapters/*.ts`
+
+New endpoint pattern under `/bulk`:
+
+```
+POST   /api/department/bulk    → createMany
+PUT    /api/department/bulk    → updateMany (body: { where, data })
+DELETE /api/department/bulk    → deleteMany (body: { where })
+```
+
+Maps to Prisma's `createMany`, `updateMany`, `deleteMany`. Return `{ count: N }`.
+
+**Tests needed:** bulk create returns count, bulk update applies where, bulk delete guard test.
+
+---
+
+### #8 — Field-Level Permissions
+
+**File:** `src/router.ts`, `src/types.ts`
+
+Strip sensitive fields from responses and write bodies:
+
+```ts
+omniRest(prisma, {
+  fieldGuards: {
+    user: {
+      hidden: ["password", "salt"],        // never in GET response
+      readOnly: ["id", "createdAt"],       // stripped from POST/PUT body
+      writeOnly: ["password"],             // never in GET response
+    }
+  }
+})
+```
+
+Add `fieldGuards` to `PrismaRestOptions`. Apply in router before returning response and before passing body to Prisma.
+
+**Tests needed:** hidden field absent from GET, readOnly stripped from POST body, writeOnly absent from GET.
+
+---
+
+### #9 — Rate Limiting Hook
+
+**File:** `src/middleware.ts`, `src/types.ts`
+
+An optional `rateLimit` function in options, called before every request:
+
+```ts
+omniRest(prisma, {
+  rateLimit: async ({ model, method, req }) => {
+    const key = `${model}:${method}:${req.ip}`;
+    const count = await redis.incr(key);
+    if (count > 100) return "Rate limit exceeded";
+    return null; // allow
+  }
+})
+```
+
+Returns error string to block with 429, or null to allow. Wires into `runGuard` chain in `middleware.ts`.
+
+**Tests needed:** returns 429 when function returns string, passes when returns null, async guard test.
+
+---
+
+### #10 — Hono Adapter
+
+**File:** `src/adapters/hono.ts` (new)
+
+Hono works on Cloudflare Workers, Bun, Deno, and Node. Same pattern as existing adapters.
+
+```ts
+import { Hono } from "hono";
+import { honoAdapter } from "omni-rest/hono";
+
+const app = new Hono();
+honoAdapter(app, prisma, { allow: ["department"] });
+```
+
+**Implementation hint:** Hono's `c.req.param()`, `c.req.query()`, `c.req.json()`, `c.json()` replace Express equivalents. Route pattern: `app.all("/:model/:id?", handler)`.
+
+**Tests needed:** GET list, POST, GET by id, 404 for unknown model.
+
+---
+
+### #11 — Koa Adapter
+
+**File:** `src/adapters/koa.ts` (new)
+
+```ts
+import Koa from "koa";
+import Router from "@koa/router";
+import { koaAdapter } from "omni-rest/koa";
+
+const app = new Koa();
+koaAdapter(app, prisma, { allow: ["department"] });
+```
+
+Uses `ctx.params`, `ctx.query`, `ctx.request.body`, `ctx.body`, `ctx.status`. Add `koa` and `@koa/router` as optional peer deps.
+
+---
+
+### #12 — Global Error Handler Middleware (Express)
+
+**File:** `src/adapters/express.ts`, new export `omniRestErrorHandler`
+
+A drop-in Express error handler that maps Prisma error codes to clean JSON:
+
+```ts
+app.use("/api", expressAdapter(prisma));
+app.use(omniRestErrorHandler()); // catches P2002, P2025 etc.
+```
+
+Maps: `P2025 → 404`, `P2002 → 409`, `P2003 → 400`, everything else `→ 500`.
+
+---
+
+## 🔴 Advanced Features
+
+These require designing a new subsystem. Open a discussion issue first before implementing.
+
+---
+
+### #13 — Cursor-Based Pagination
+
+**File:** `src/query-builder.ts`, `src/router.ts`, `src/types.ts`
+
+Alongside offset pagination, add cursor mode — much faster on large tables:
+
+```
+GET /api/user?cursor=eyJpZCI6MTV9&limit=20
+→ Response includes nextCursor token for the next page
+```
+
+```ts
+// Response shape in cursor mode:
+{
+  data: [...],
+  nextCursor: "eyJpZCI6MzV9",  // base64 encoded { id: 35 }
+  hasMore: true
+}
+```
+
+Cursor is base64 JSON of `{ [idField]: lastId }`. Use `prisma.findMany({ cursor: ..., skip: 1 })`.
+
+**Design first** — open a discussion about response shape before implementing.
+
+---
+
+### #14 — Aggregation Endpoints
+
+**File:** `src/router.ts`, `src/types.ts`
+
+```
+GET /api/department/aggregate?_count=*&_sum=salary&_avg=salary&_min=salary&_max=salary
+GET /api/department/groupBy?by=city&_count=*
+```
+
+Maps to Prisma's `aggregate()` and `groupBy()`. These are new route patterns — add alongside existing collection/resource routes.
+
+**Design first** — URL schema needs discussion. See PostgREST's aggregation design for reference.
+
+---
+
+### #15 — Query Complexity Limiting
+
+**File:** `src/middleware.ts`, `src/query-builder.ts`
+
+Score each query before execution. Reject if above threshold:
+
+```ts
+omniRest(prisma, {
+  complexity: {
+    maxScore: 100,
+    rules: {
+      perInclude: 10,       // each ?include= relation adds 10
+      perFilter: 2,         // each filter adds 2
+      perLimit100: 5,       // every 100 records in limit adds 5
+    }
+  }
+})
+```
+
+Returns `429 Query too complex` with score breakdown if exceeded.
+
+---
+
+### #16 — Server-Sent Events Subscriptions
+
+**File:** `src/adapters/express.ts`, new `src/subscriptions.ts`
+
+```
+GET /api/department/subscribe   → SSE stream of changes
+```
+
+Streams `create`, `update`, `delete` events to connected clients. Use Prisma's `$on("query")` events + polling fallback.
+
+```ts
+// Client receives:
+data: {"event":"create","model":"Department","data":{"id":5,"name":"Engineering"}}
+data: {"event":"update","model":"Department","data":{"id":5,"name":"Eng Updated"}}
+```
+
+This is the most complex feature on the list — requires connection lifecycle, heartbeat, reconnect handling.
+
+---
+
+### #17 — Auto-generated TypeScript Client SDK
+
+**New sub-package:** `omni-rest-client`
+
+Reads the OpenAPI spec (or DMMF directly) and generates a fully-typed fetch client:
+
+```ts
+import { createClient } from "omni-rest-client";
+
+const api = createClient("http://localhost:3000/api");
+
+const { data, meta } = await api.department.findMany({ where: { isActive: true } });
+const dept = await api.department.findById(5);
+await api.department.create({ name: "Engineering" });
+await api.department.update(5, { name: "Eng" });
+await api.department.delete(5);
+```
+
+Fully typed from DMMF — `api.department.create()` knows which fields are required.
+
+---
+
+### #18 — Plugin Architecture
+
+**File:** `src/types.ts`, `src/router.ts`, `src/middleware.ts`
+
+A formal plugin system that lets third parties extend omni-rest without forking:
+
+```ts
+omniRest(prisma, {
+  plugins: [
+    auditLogPlugin({ storage: prisma }),
+    cachePlugin({ ttl: 60, store: redisClient }),
+    rateLimitPlugin({ max: 100, window: "1m" }),
+  ]
+})
+```
+
+Each plugin is an object with optional lifecycle methods:
+
+```ts
+interface OmniRestPlugin {
+  name: string;
+  beforeOperation?: HookFn;
+  afterOperation?: HookFn;
+  onError?: (error: any, ctx: HookContext) => HandlerResult | null;
+  transformResponse?: (data: any, ctx: HookContext) => any;
+  transformBody?: (body: any, ctx: HookContext) => any;
+}
+```
+
+**Design first** — this is the most architecturally significant feature. Needs RFC discussion.
+
+---
+
+## 📦 New Adapters
+
+Every new adapter follows the same contract — map the framework's request/response to `handle()`:
+
+```ts
+const { status, data } = await handle(method, modelName, id, body, searchParams);
+```
+
+| Adapter | Issue | Difficulty |
+|---|---|---|
+| Hono | #10 | Intermediate |
+| Koa | #11 | Intermediate |
+| NestJS | future | Advanced |
+| Elysia (Bun) | future | Intermediate |
+| SvelteKit | future | Intermediate |
+| SolidStart | future | Intermediate |
+
+---
+
+## 🧪 Testing & Quality
+
+- **Minimum 80% coverage** before any PR merges
+- Every new feature needs tests in `test/`
+- Use `mockPrisma` and `mockDMMF` from `test/fixtures/` — never spin up a real DB in unit tests
+- Integration tests (real DB) go in `test/integration/` and are opt-in
 
 ```bash
-# Build for distribution (ESM, CJS, DTS)
-npm run build
-
-# Build with source maps
-npm run build -- --sourcemap
-
-# Watch mode development
-npm run dev
+npm test -- --coverage     # check coverage
+npm test -- --reporter=verbose  # detailed output
 ```
 
-### Testing Your Changes
+---
 
-#### 1. With Express Example
+## 📄 Docs & DX
 
-```bash
-cd examples/express-app
-npm install
-npm start
-# Test at http://localhost:3000/docs
-```
+Documentation contributions are equally valuable:
 
-#### 2. With Next.js Example
+- Fix typos, unclear explanations → always welcome, no issue needed
+- Add a framework example → create issue first, link to example app
+- Add a recipe (auth, audit log, etc.) → `docs/recipes/` folder
+- Improve CLI help text → `src/cli.ts`
+- Add JSDoc to exported functions → always welcome
 
-```bash
-cd examples/nextjs-app
-npm install
-npm run dev
-# Test at http://localhost:3000/masters/departments
-```
-
-#### 3. With Unit Tests
-
-```bash
-npm test
-npm run test:watch
-```
-
-## Areas for Contribution
-
-### High Priority
-
-- [ ] **Additional Framework Support** - Hapi, Koa, Nest.js adapters
-- [ ] **Query Performance** - Optimize large dataset queries
-- [ ] **Validation Improvements** - Better error messages and Zod integration
-- [ ] **Test Coverage** - Increase test coverage above 80%
-
-### Medium Priority
-
-- [ ] **Caching Layer** - Add optional Redis caching
-- [ ] **Rate Limiting** - Built-in rate limiting middleware
-- [ ] **GraphQL Export** - Generate GraphQL schema from Prisma
-- [ ] **API Versioning** - Support model versioning in API
-
-### Low Priority
-
-- [ ] **CLI Enhancements** - Interactive setup wizard
-- [ ] **Documentation** - Add more examples and guides
-- [ ] **TypeScript Strict Mode** - Improve type definitions
+---
 
 ## Submitting Changes
 
-### Pull Request Process
+### Before Opening a PR
 
-1. **Update Documentation** - Docs changes in `docs/` and README.md
-2. **Add Tests** - New features must have tests
-3. **Update Changelog** - Add entry to CHANGELOG.md
-4. **Run Full Build** - `npm run build && npm test` must pass
-5. **Create PR** - Clear title and description
-
-#### PR Template
-
+```bash
+npm run build       # must pass
+npm test            # must pass
+npm run typecheck   # must pass
 ```
-## Description
-Brief description of changes
+
+### PR Template
+
+```markdown
+## What does this PR do?
+Brief description
 
 ## Type of Change
 - [ ] Bug fix
-- [ ] New feature
+- [ ] New feature (non-breaking)
 - [ ] Breaking change
-- [ ] Documentation update
+- [ ] Documentation
+- [ ] New adapter
 
-## Related Issues
-Closes #<issue_number>
+## Related Issue
+Closes #<number>
 
-## Testing
-Description of how this was tested
+## How was it tested?
+- Unit tests added in test/
+- Tested with example app (Express / Next.js)
+- Manual test steps: ...
 
 ## Checklist
-- [ ] Tests pass locally
-- [ ] Documentation updated
-- [ ] No console errors
+- [ ] Build passes (`npm run build`)
+- [ ] Tests pass (`npm test`)
+- [ ] Types check (`npm run typecheck`)
+- [ ] JSDoc added for new exports
+- [ ] README updated if user-facing change
+- [ ] CHANGELOG.md entry added
 ```
 
 ### Review Criteria
 
-Your PR will be reviewed for:
-
-- ✅ **Code Quality** - Follows style guide, no linting errors
-- ✅ **Testing** - Tests cover new functionality
-- ✅ **Documentation** - Changes documented
-- ✅ **Performance** - No performance regressions
-- ✅ **Compatibility** - Supports Node 18+, current Prisma versions
-
-## Reporting Bugs
-
-Use GitHub Issues with this template:
-
-```
-**Describe the bug**
-A clear description of what the bug is.
-
-**To Reproduce**
-Steps to reproduce:
-1. Create schema with...
-2. Configure adapter...
-3. API call produces...
-
-**Expected behavior**
-What should happen
-
-**Environment**
-- Node version: 
-- Prisma version: 
-- OS: 
-
-**Minimal reproduction**
-Code or repo demonstrating the issue
-```
-
-## Feature Requests
-
-Submit feature requests as GitHub Issues:
-
-```
-**Is your feature request related to a problem?**
-Description
-
-**Describe the solution**
-How should this work?
-
-**Alternative solutions**
-Other approaches considered
-
-**Additional context**
-Any other information
-```
-
-## Release Process
-
-Only maintainers can publish, but here's how releases work:
-
-1. Update version in `package.json`
-2. Update `CHANGELOG.md`
-3. Create git tag: `git tag v1.0.0`
-4. Push: `git push origin v1.0.0`
-5. GitHub Actions publishes to npm
-
-## Code of Conduct
-
-Please be respectful and constructive in all interactions.
-
-## Questions?
-
-- GitHub Discussions for questions
-- GitHub Issues for bugs/features
-- Email: support@example.com
-
-## License
-
-By contributing, you agree your code will be licensed under the MIT License.
+| | What we check |
+|---|---|
+| ✅ Code Quality | Follows style guide, strict TypeScript |
+| ✅ Tests | New functionality is tested |
+| ✅ Docs | README + JSDoc updated |
+| ✅ Performance | No regressions, no N+1 query patterns |
+| ✅ Compat | Works on Node 18+, Prisma 4+ and 5+ |
+| ✅ Size | Bundle size impact checked (`npm run build`) |
 
 ---
 
-Thank you for contributing to omni-rest! 🎉
+## Reporting Bugs
+
+```markdown
+**Describe the bug**
+Clear description of what went wrong.
+
+**To Reproduce**
+1. Schema: model Department { ... }
+2. Config: omniRest(prisma, { allow: ["department"] })
+3. Request: GET /api/department?name_contains=eng
+4. Result: ...
+
+**Expected behavior**
+What should have happened.
+
+**Environment**
+- Node: 20.x
+- Prisma: 5.x
+- omni-rest: 0.x
+- Framework: Express / Next.js / Fastify
+- OS: Ubuntu / macOS / Windows
+
+**Minimal reproduction**
+Link to repo or paste minimal code
+```
+
+---
+
+## Release Process
+
+Only maintainers publish, but here's the full flow:
+
+```bash
+# 1. Update version
+npm version patch   # or minor / major
+
+# 2. Update CHANGELOG.md
+
+# 3. Tag and push — GitHub Actions does the rest
+git tag v0.1.1
+git push origin v0.1.1
+```
+
+GitHub Actions runs: typecheck → test → build → npm publish
+
+---
+
+## Code of Conduct
+
+Be respectful and constructive. Disagreements on design are welcome — personal attacks are not.
+
+---
+
+## Questions?
+
+- **GitHub Discussions** — design questions, architecture ideas
+- **GitHub Issues** — bugs and feature requests
+- **PR comments** — implementation feedback
+
+---
+
+Thank you for contributing to omni-rest! 🚀

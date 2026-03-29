@@ -2,6 +2,8 @@
 
 Complete reference for omni-rest endpoints, parameters, and responses.
 
+> Looking for the frontend generator? See [CLI Tools](./QUICKSTART.md) or the [docs site](https://omni-rest.vercel.app/docs/generate-frontend).
+
 ## REST Endpoints
 
 ### List (Paginated)

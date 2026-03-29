@@ -1,14 +1,31 @@
 #!/usr/bin/env node
 'use strict';
 
-var fs = require('fs');
-var path = require('path');
-var client = require('@prisma/client');
+var fs3 = require('fs');
+var path3 = require('path');
+var readline = require('readline');
 
-function _interopDefault (e) { return e && e.__esModule ? e : { default: e }; }
+function _interopNamespace(e) {
+  if (e && e.__esModule) return e;
+  var n = Object.create(null);
+  if (e) {
+    Object.keys(e).forEach(function (k) {
+      if (k !== 'default') {
+        var d = Object.getOwnPropertyDescriptor(e, k);
+        Object.defineProperty(n, k, d.get ? d : {
+          enumerable: true,
+          get: function () { return e[k]; }
+        });
+      }
+    });
+  }
+  n.default = e;
+  return Object.freeze(n);
+}
 
-var fs__default = /*#__PURE__*/_interopDefault(fs);
-var path__default = /*#__PURE__*/_interopDefault(path);
+var fs3__namespace = /*#__PURE__*/_interopNamespace(fs3);
+var path3__namespace = /*#__PURE__*/_interopNamespace(path3);
+var readline__namespace = /*#__PURE__*/_interopNamespace(readline);
 
 var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
   get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
@@ -16,6 +33,8 @@ var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require
   if (typeof require !== "undefined") return require.apply(this, arguments);
   throw Error('Dynamic require of "' + x + '" is not supported');
 });
+
+// src/introspect.ts
 function getModels(prisma) {
   let raw;
   if (prisma?._runtimeDataModel?.models) {
@@ -30,9 +49,13 @@ function getModels(prisma) {
     }));
   }
   if (!raw) {
-    const dmmfModels = client.Prisma?.dmmf?.datamodel?.models || __require("@prisma/client")?.Prisma?.dmmf?.datamodel?.models;
-    if (dmmfModels) {
-      raw = dmmfModels;
+    try {
+      const prismaModule = __require("@prisma/client");
+      const dmmfModels = prismaModule?.Prisma?.dmmf?.datamodel?.models;
+      if (dmmfModels) {
+        raw = dmmfModels;
+      }
+    } catch {
     }
   }
   if (!raw) {
@@ -52,7 +75,9 @@ function getModels(prisma) {
       isId: f.isId,
       isRequired: f.isRequired,
       isList: f.isList,
-      isRelation: !!f.relationName
+      isRelation: !!f.relationName,
+      hasDefaultValue: !!f.hasDefaultValue || !!f.default,
+      isUpdatedAt: !!f.isUpdatedAt
     }));
     const idField = model.fields.find((f) => f.isId)?.name ?? "id";
     return {
@@ -92,19 +117,27 @@ function fieldToZod(field) {
 }
 function generateModelSchema(meta) {
   const name = meta.name;
-  const fields = meta.fields.filter((f) => !f.isRelation && !f.isId).map((f) => {
+  const createFields = meta.fields.filter((f) => !f.isRelation && !f.isId && !f.hasDefaultValue && !f.isUpdatedAt).map((f) => {
     const zodExpr = fieldToZod(f);
     if (!zodExpr) return null;
     return `  ${f.name}: ${zodExpr},`;
+  }).filter(Boolean).join("\n");
+  const updateFields = meta.fields.filter((f) => !f.isRelation && !f.isId && !f.isUpdatedAt).map((f) => {
+    const zodExpr = fieldToZod(f);
+    if (!zodExpr) return null;
+    const optionalZod = zodExpr.includes(".optional()") ? zodExpr : `${zodExpr}.optional()`;
+    return `  ${f.name}: ${optionalZod},`;
   }).filter(Boolean).join("\n");
   return `
 // \u2500\u2500\u2500 ${name} \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 export const ${name}CreateSchema = z.object({
-${fields}
+${createFields}
 });
 
-export const ${name}UpdateSchema = ${name}CreateSchema.partial();
+export const ${name}UpdateSchema = z.object({
+${updateFields}
+});
 
 export type ${name}Create = z.infer<typeof ${name}CreateSchema>;
 export type ${name}Update = z.infer<typeof ${name}UpdateSchema>;
@@ -444,27 +477,1299 @@ function buildListParameters() {
     { name: "select", in: "query", schema: { type: "string" }, description: "Comma-separated fields" }
   ];
 }
+var EXCLUDED_DIRS = /* @__PURE__ */ new Set(["node_modules", ".git", "dist", "build", ".next", "out"]);
+function readPackageJson(dir) {
+  const pkgPath = path3__namespace.join(dir, "package.json");
+  try {
+    const content = fs3__namespace.readFileSync(pkgPath, "utf-8");
+    return JSON.parse(content);
+  } catch {
+    return null;
+  }
+}
+function scoreDir(dir, cwd2) {
+  let score = 0;
+  const signals = [];
+  if (fs3__namespace.existsSync(path3__namespace.join(dir, "next.config.js")) || fs3__namespace.existsSync(path3__namespace.join(dir, "next.config.ts"))) {
+    score += 10;
+    const file = fs3__namespace.existsSync(path3__namespace.join(dir, "next.config.js")) ? "next.config.js" : "next.config.ts";
+    signals.push(`${file} found`);
+  }
+  if (fs3__namespace.existsSync(path3__namespace.join(dir, "vite.config.ts")) || fs3__namespace.existsSync(path3__namespace.join(dir, "vite.config.js"))) {
+    score += 10;
+    const file = fs3__namespace.existsSync(path3__namespace.join(dir, "vite.config.ts")) ? "vite.config.ts" : "vite.config.js";
+    signals.push(`${file} found`);
+  }
+  const pkg = readPackageJson(dir);
+  if (pkg) {
+    const deps = pkg.dependencies ?? {};
+    const devDeps = pkg.devDependencies ?? {};
+    if ("react" in deps) {
+      score += 5;
+      signals.push("react in dependencies");
+    } else if ("react" in devDeps) {
+      score += 3;
+      signals.push("react in devDependencies");
+    }
+  }
+  if (path3__namespace.resolve(dir) === path3__namespace.resolve(cwd2)) {
+    score += 2;
+    signals.push("current working directory");
+  }
+  if (score === 0) return null;
+  return {
+    dir: path3__namespace.resolve(dir),
+    score,
+    signals
+  };
+}
+function walk(dir, cwd2, currentDepth, maxDepth, results) {
+  const absDir = path3__namespace.resolve(dir);
+  const candidate = scoreDir(absDir, cwd2);
+  if (candidate && !results.has(absDir)) {
+    results.set(absDir, candidate);
+  }
+  if (currentDepth >= maxDepth) return;
+  let entries;
+  try {
+    entries = fs3__namespace.readdirSync(absDir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    if (EXCLUDED_DIRS.has(entry.name)) continue;
+    walk(path3__namespace.join(absDir, entry.name), cwd2, currentDepth + 1, maxDepth, results);
+  }
+}
+function scoreCandidates(dir) {
+  const cwd2 = process.cwd();
+  const results = /* @__PURE__ */ new Map();
+  walk(dir, cwd2, 0, 3, results);
+  return Array.from(results.values()).sort((a, b) => b.score - a.score);
+}
+async function scanForFrontendDir(dir) {
+  return scoreCandidates(dir);
+}
+async function findSchema(startDir, explicitPath) {
+  if (explicitPath !== void 0) {
+    const resolved = path3__namespace.resolve(explicitPath);
+    if (!fs3__namespace.existsSync(resolved)) {
+      throw new Error(
+        `[omni-rest] Schema file not found at the specified path: "${resolved}"
+Please check that the path is correct and the file is readable.`
+      );
+    }
+    return resolved;
+  }
+  let current = path3__namespace.resolve(startDir);
+  while (true) {
+    const candidates = [
+      path3__namespace.join(current, "prisma", "schema.prisma"),
+      path3__namespace.join(current, "schema.prisma")
+    ];
+    for (const candidate of candidates) {
+      if (fs3__namespace.existsSync(candidate)) {
+        return candidate;
+      }
+    }
+    const parent = path3__namespace.dirname(current);
+    if (parent === current) {
+      throw new Error(
+        `[omni-rest] Could not find "schema.prisma" by walking up from "${startDir}".
+Please run this command from within your Prisma project, or specify the path with --schema <path>.`
+      );
+    }
+    current = parent;
+  }
+}
+async function loadDMMF(frontendDir, schemaPath) {
+  let clientPath = null;
+  try {
+    const schemaContent = fs3__namespace.readFileSync(schemaPath, "utf-8");
+    const outputMatch = schemaContent.match(/output\s*=\s*["']([^"']+)["']/);
+    if (outputMatch) {
+      const schemaDir = path3__namespace.dirname(schemaPath);
+      const customOutput = path3__namespace.resolve(schemaDir, outputMatch[1]);
+      if (fs3__namespace.existsSync(customOutput)) {
+        clientPath = customOutput;
+      }
+    }
+  } catch {
+  }
+  if (!clientPath) {
+    clientPath = path3__namespace.join(frontendDir, "node_modules", "@prisma", "client");
+  }
+  let prismaClientModule;
+  try {
+    prismaClientModule = __require(clientPath);
+  } catch (err) {
+    throw new Error(
+      `[omni-rest] Could not load "@prisma/client" from "${clientPath}".
+Please run "npx prisma generate" to generate the Prisma client, then try again.`
+    );
+  }
+  const prismaNamespace = prismaClientModule?.Prisma ?? prismaClientModule?.default?.Prisma;
+  if (!prismaNamespace?.dmmf?.datamodel?.models) {
+    throw new Error(
+      `[omni-rest] Could not read DMMF from "@prisma/client" at "${clientPath}".
+Please run "npx prisma generate" to regenerate the Prisma client, then try again.`
+    );
+  }
+  const dmmfModels = prismaNamespace.dmmf.datamodel.models;
+  const syntheticPrisma = {
+    _runtimeDataModel: {
+      models: Object.fromEntries(
+        dmmfModels.map((m) => [
+          m.name,
+          {
+            fields: m.fields
+          }
+        ])
+      )
+    }
+  };
+  return getModels(syntheticPrisma);
+}
+function detectProjectStructure(frontendDir) {
+  const hasSrc = fs3__namespace.existsSync(path3__namespace.join(frontendDir, "src"));
+  const hasApp = fs3__namespace.existsSync(path3__namespace.join(frontendDir, "app"));
+  const hasSrcApp = fs3__namespace.existsSync(path3__namespace.join(frontendDir, "src", "app"));
+  const hasPages = fs3__namespace.existsSync(path3__namespace.join(frontendDir, "pages"));
+  const hasSrcPages = fs3__namespace.existsSync(path3__namespace.join(frontendDir, "src", "pages"));
+  const usesAppRouter = hasApp || hasSrcApp;
+  const usesPagesRouter = hasPages || hasSrcPages;
+  const basePath = hasSrc ? "src" : ".";
+  let appPath = null;
+  if (hasSrcApp) {
+    appPath = path3__namespace.join(frontendDir, "src", "app");
+  } else if (hasApp) {
+    appPath = path3__namespace.join(frontendDir, "app");
+  }
+  return {
+    usesSrc: hasSrc,
+    usesAppRouter,
+    usesPagesRouter,
+    basePath,
+    appPath
+  };
+}
+function detectFramework(frontendDir) {
+  const hasNextConfig = fs3__namespace.existsSync(path3__namespace.join(frontendDir, "next.config.js")) || fs3__namespace.existsSync(path3__namespace.join(frontendDir, "next.config.ts"));
+  if (hasNextConfig) return "nextjs";
+  const hasViteConfig = fs3__namespace.existsSync(path3__namespace.join(frontendDir, "vite.config.ts")) || fs3__namespace.existsSync(path3__namespace.join(frontendDir, "vite.config.js"));
+  if (hasViteConfig) return "vite-react";
+  const pkgPath = path3__namespace.join(frontendDir, "package.json");
+  if (fs3__namespace.existsSync(pkgPath)) {
+    try {
+      const pkg = JSON.parse(fs3__namespace.readFileSync(pkgPath, "utf-8"));
+      const deps = pkg.dependencies ?? {};
+      const devDeps = pkg.devDependencies ?? {};
+      if ("react" in deps || "react" in devDeps) {
+        return "react";
+      }
+    } catch {
+    }
+  }
+  console.warn(
+    `[omni-rest] Warning: Could not detect frontend framework in "${frontendDir}". Defaulting to "react".`
+  );
+  return "react";
+}
+function parseEnvFile(filePath) {
+  const result = /* @__PURE__ */ new Map();
+  let content;
+  try {
+    content = fs3__namespace.readFileSync(filePath, "utf-8");
+  } catch {
+    return result;
+  }
+  for (const line of content.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eqIdx = trimmed.indexOf("=");
+    if (eqIdx === -1) continue;
+    const key = trimmed.slice(0, eqIdx).trim();
+    let value = trimmed.slice(eqIdx + 1).trim();
+    if (value.startsWith('"') && value.endsWith('"') || value.startsWith("'") && value.endsWith("'")) {
+      value = value.slice(1, -1);
+    }
+    result.set(key, value);
+  }
+  return result;
+}
+function resolveBaseUrl(frontendDir) {
+  const envLocal = parseEnvFile(path3__namespace.join(frontendDir, ".env.local"));
+  if (envLocal.has("NEXT_PUBLIC_API_URL")) {
+    return envLocal.get("NEXT_PUBLIC_API_URL");
+  }
+  const env = parseEnvFile(path3__namespace.join(frontendDir, ".env"));
+  if (env.has("NEXT_PUBLIC_API_URL")) {
+    return env.get("NEXT_PUBLIC_API_URL");
+  }
+  if (env.has("VITE_API_URL")) {
+    return env.get("VITE_API_URL");
+  }
+  return "/api";
+}
+function resolveOutputDir(frontendDir, framework, outFlag) {
+  if (outFlag) {
+    return path3__namespace.resolve(frontendDir, outFlag);
+  }
+  const structure = detectProjectStructure(frontendDir);
+  if (structure.usesSrc) {
+    return path3__namespace.resolve(frontendDir, "src");
+  }
+  return frontendDir;
+}
+var BASE_PACKAGES = [
+  "@tanstack/react-query",
+  "@tanstack/react-table",
+  "react-hook-form",
+  "zod",
+  "@hookform/resolvers"
+];
+var FRAMEWORK_PACKAGES = {
+  nextjs: ["next"],
+  "vite-react": ["react-router-dom"]
+};
+function checkDependencies(frontendDir, framework) {
+  const required = [
+    ...BASE_PACKAGES,
+    ...FRAMEWORK_PACKAGES[framework] ?? []
+  ];
+  const pkgPath = path3__namespace.join(frontendDir, "package.json");
+  let installed;
+  try {
+    const pkg = JSON.parse(fs3__namespace.readFileSync(pkgPath, "utf-8"));
+    const deps = Object.keys(pkg.dependencies ?? {});
+    const devDeps = Object.keys(pkg.devDependencies ?? {});
+    installed = /* @__PURE__ */ new Set([...deps, ...devDeps]);
+  } catch {
+    return required;
+  }
+  return required.filter((pkg) => !installed.has(pkg));
+}
+function shouldUseMultiStep(fieldCount, stepsFlag) {
+  if (stepsFlag === "always") return true;
+  if (stepsFlag === "never") return false;
+  return fieldCount > 6;
+}
+function scalarFields(model) {
+  return model.fields.filter((f) => !f.isRelation);
+}
+function relationalFields(model) {
+  return model.fields.filter((f) => f.isRelation);
+}
+function formEditableFields(model) {
+  return model.fields.filter(
+    (f) => !f.isRelation && !f.isId && !f.hasDefaultValue && !f.isUpdatedAt
+  );
+}
+function buildAutopilotConfig(models, flags) {
+  return models.map((model) => {
+    const scalars = scalarFields(model).map((f) => f.name);
+    const editableFields = formEditableFields(model).map((f) => f.name);
+    const relations = relationalFields(model).map((f) => f.name);
+    const fieldCount = model.fields.length;
+    return {
+      model,
+      tableFields: scalars,
+      formFields: editableFields,
+      // Use editable fields for forms
+      relationalFields: relations,
+      bulkDelete: !flags.noBulk,
+      canExport: true,
+      multiStep: shouldUseMultiStep(fieldCount, flags.steps)
+    };
+  });
+}
+function ask(rl, question) {
+  return new Promise((resolve5) => rl.question(question, resolve5));
+}
+async function multiSelect(rl, prompt2, items) {
+  console.log(prompt2);
+  items.forEach((item, i) => console.log(`  ${i + 1}. ${item}`));
+  const answer = await ask(rl, "  Enter numbers (comma/space separated, or 'all'): ");
+  const trimmed = answer.trim().toLowerCase();
+  if (trimmed === "all" || trimmed === "") {
+    return items.map((_, i) => i);
+  }
+  return trimmed.split(/[\s,]+/).map((s) => parseInt(s, 10) - 1).filter((i) => i >= 0 && i < items.length);
+}
+async function yesNo(rl, prompt2, defaultYes = true) {
+  const hint = defaultYes ? "[Y/n]" : "[y/N]";
+  const answer = await ask(rl, `${prompt2} ${hint}: `);
+  const trimmed = answer.trim().toLowerCase();
+  if (trimmed === "") return defaultYes;
+  return trimmed === "y" || trimmed === "yes";
+}
+async function buildInteractiveConfig(models, flags) {
+  const rl = readline__namespace.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+  try {
+    const modelIndices = await multiSelect(
+      rl,
+      "\nWhich models do you want to generate? (default: all)",
+      models.map((m) => m.name)
+    );
+    const selectedModels = modelIndices.map((i) => models[i]);
+    const configs = [];
+    for (const model of selectedModels) {
+      console.log(`
+\u2500\u2500 Configuring ${model.name} \u2500\u2500`);
+      const scalars = scalarFields(model);
+      const editableFields = formEditableFields(model);
+      const relations = relationalFields(model);
+      let selectedRelations = relations.map((f) => f.name);
+      if (relations.length > 0) {
+        const relIndices = await multiSelect(
+          rl,
+          `  Relational fields for ${model.name} (searchable-select dropdowns):`,
+          relations.map((f) => f.name)
+        );
+        selectedRelations = relIndices.map((i) => relations[i].name);
+      }
+      const tableIndices = await multiSelect(
+        rl,
+        `  Scalar fields to show in the table for ${model.name}:`,
+        scalars.map((f) => f.name)
+      );
+      const tableFields = tableIndices.map((i) => scalars[i].name);
+      const formIndices = await multiSelect(
+        rl,
+        `  Fields to include in the form for ${model.name}:`,
+        editableFields.map((f) => f.name)
+      );
+      const formFields = formIndices.map((i) => editableFields[i].name);
+      const bulkDelete = flags.noBulk ? false : await yesNo(rl, `  Enable bulk delete for ${model.name}?`);
+      const canExport = await yesNo(rl, `  Enable CSV/JSON export for ${model.name}?`);
+      let multiStep;
+      if (flags.steps === "always") {
+        multiStep = true;
+      } else if (flags.steps === "never") {
+        multiStep = false;
+      } else {
+        const suggested = formFields.length > 6;
+        multiStep = await yesNo(
+          rl,
+          `  Enable multi-step form for ${model.name}?`,
+          suggested
+        );
+      }
+      configs.push({
+        model,
+        tableFields,
+        formFields,
+        relationalFields: selectedRelations,
+        bulkDelete,
+        canExport,
+        multiStep
+      });
+    }
+    return configs;
+  } finally {
+    rl.close();
+  }
+}
+async function buildConfig(models, flags) {
+  const filtered = flags.modelsFilter && flags.modelsFilter.length > 0 ? models.filter((m) => flags.modelsFilter.includes(m.name)) : models;
+  if (flags.autopilot) {
+    return buildAutopilotConfig(filtered, flags);
+  }
+  return buildInteractiveConfig(filtered, flags);
+}
+
+// src/frontend/codegen/hook.ts
+function generateHookFile(config, modelConfig) {
+  const { baseUrl, staleTime, gcTime, noOptimistic } = config;
+  const { model, bulkDelete } = modelConfig;
+  const { name, routeName } = model;
+  const Model = name;
+  const models = `${Model}s`;
+  const lines = [];
+  lines.push(`import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";`);
+  lines.push(`import type { ${Model}, Prisma } from "@prisma/client";`);
+  lines.push(``);
+  lines.push(`const BASE_URL = "${baseUrl}";`);
+  lines.push(``);
+  lines.push(`export function use${models}(params?: Record<string, any>) {`);
+  lines.push(`  return useQuery({`);
+  lines.push(`    queryKey: ["${routeName}", params],`);
+  lines.push(`    queryFn: () => {`);
+  lines.push(`      const url = new URL(\`\${BASE_URL}/${routeName}\`, window.location.origin);`);
+  lines.push(`      if (params) {`);
+  lines.push(`        Object.entries(params).forEach(([k, v]) => {`);
+  lines.push(`          if (v !== undefined && v !== null) url.searchParams.set(k, String(v));`);
+  lines.push(`        });`);
+  lines.push(`      }`);
+  lines.push(`      return fetch(url.toString()).then((r) => r.json());`);
+  lines.push(`    },`);
+  lines.push(`    staleTime: ${staleTime},`);
+  lines.push(`    gcTime: ${gcTime},`);
+  lines.push(`  });`);
+  lines.push(`}`);
+  lines.push(``);
+  lines.push(`export function use${Model}(id: string) {`);
+  lines.push(`  return useQuery({`);
+  lines.push(`    queryKey: ["${routeName}", id],`);
+  lines.push(`    queryFn: () =>`);
+  lines.push(`      fetch(\`\${BASE_URL}/${routeName}/\${id}\`).then((r) => r.json()),`);
+  lines.push(`    staleTime: ${staleTime},`);
+  lines.push(`    gcTime: ${gcTime},`);
+  lines.push(`  });`);
+  lines.push(`}`);
+  lines.push(``);
+  lines.push(`export function useCreate${Model}() {`);
+  lines.push(`  const queryClient = useQueryClient();`);
+  lines.push(`  return useMutation({`);
+  lines.push(`    mutationFn: (data: Prisma.${Model}CreateInput) =>`);
+  lines.push(`      fetch(\`\${BASE_URL}/${routeName}\`, {`);
+  lines.push(`        method: "POST",`);
+  lines.push(`        headers: { "Content-Type": "application/json" },`);
+  lines.push(`        body: JSON.stringify(data),`);
+  lines.push(`      }).then((r) => r.json()) as Promise<${Model}>,`);
+  if (!noOptimistic) {
+    lines.push(`    onMutate: async (newItem) => {`);
+    lines.push(`      await queryClient.cancelQueries({ queryKey: ["${routeName}"] });`);
+    lines.push(`      const previous = queryClient.getQueryData(["${routeName}"]);`);
+    lines.push(`      queryClient.setQueryData(["${routeName}"], (old: any) => ({`);
+    lines.push(`        ...old,`);
+    lines.push(`        data: [...(old?.data ?? []), { ...newItem, id: "__optimistic__" }],`);
+    lines.push(`      }));`);
+    lines.push(`      return { previous };`);
+    lines.push(`    },`);
+    lines.push(`    onError: (_err, _vars, ctx) => {`);
+    lines.push(`      queryClient.setQueryData(["${routeName}"], ctx?.previous);`);
+    lines.push(`    },`);
+    lines.push(`    onSettled: () => {`);
+    lines.push(`      queryClient.invalidateQueries({ queryKey: ["${routeName}"] });`);
+    lines.push(`    },`);
+  }
+  lines.push(`  });`);
+  lines.push(`}`);
+  lines.push(``);
+  lines.push(`export function useUpdate${Model}() {`);
+  lines.push(`  const queryClient = useQueryClient();`);
+  lines.push(`  return useMutation({`);
+  lines.push(`    mutationFn: ({ id, data }: { id: string; data: Prisma.${Model}UpdateInput }) =>`);
+  lines.push(`      fetch(\`\${BASE_URL}/${routeName}/\${id}\`, {`);
+  lines.push(`        method: "PATCH",`);
+  lines.push(`        headers: { "Content-Type": "application/json" },`);
+  lines.push(`        body: JSON.stringify(data),`);
+  lines.push(`      }).then((r) => r.json()) as Promise<${Model}>,`);
+  if (!noOptimistic) {
+    lines.push(`    onMutate: async ({ id, data }) => {`);
+    lines.push(`      await queryClient.cancelQueries({ queryKey: ["${routeName}"] });`);
+    lines.push(`      const previous = queryClient.getQueryData(["${routeName}"]);`);
+    lines.push(`      queryClient.setQueryData(["${routeName}"], (old: any) => ({`);
+    lines.push(`        ...old,`);
+    lines.push(`        data: (old?.data ?? []).map((item: any) =>`);
+    lines.push(`          item.id === id ? { ...item, ...data } : item`);
+    lines.push(`        ),`);
+    lines.push(`      }));`);
+    lines.push(`      return { previous };`);
+    lines.push(`    },`);
+    lines.push(`    onError: (_err, _vars, ctx) => {`);
+    lines.push(`      queryClient.setQueryData(["${routeName}"], ctx?.previous);`);
+    lines.push(`    },`);
+    lines.push(`    onSettled: () => {`);
+    lines.push(`      queryClient.invalidateQueries({ queryKey: ["${routeName}"] });`);
+    lines.push(`    },`);
+  }
+  lines.push(`  });`);
+  lines.push(`}`);
+  lines.push(``);
+  lines.push(`export function useDelete${Model}() {`);
+  lines.push(`  const queryClient = useQueryClient();`);
+  lines.push(`  return useMutation({`);
+  lines.push(`    mutationFn: (id: string) =>`);
+  lines.push(`      fetch(\`\${BASE_URL}/${routeName}/\${id}\`, { method: "DELETE" }).then((r) =>`);
+  lines.push(`        r.json()`);
+  lines.push(`      ),`);
+  if (!noOptimistic) {
+    lines.push(`    onMutate: async (id) => {`);
+    lines.push(`      await queryClient.cancelQueries({ queryKey: ["${routeName}"] });`);
+    lines.push(`      const previous = queryClient.getQueryData(["${routeName}"]);`);
+    lines.push(`      queryClient.setQueryData(["${routeName}"], (old: any) => ({`);
+    lines.push(`        ...old,`);
+    lines.push(`        data: (old?.data ?? []).filter((item: any) => item.id !== id),`);
+    lines.push(`      }));`);
+    lines.push(`      return { previous };`);
+    lines.push(`    },`);
+    lines.push(`    onError: (_err, _vars, ctx) => {`);
+    lines.push(`      queryClient.setQueryData(["${routeName}"], ctx?.previous);`);
+    lines.push(`    },`);
+    lines.push(`    onSettled: () => {`);
+    lines.push(`      queryClient.invalidateQueries({ queryKey: ["${routeName}"] });`);
+    lines.push(`    },`);
+  }
+  lines.push(`  });`);
+  lines.push(`}`);
+  lines.push(``);
+  if (bulkDelete !== false) {
+    lines.push(`export function useBulkDelete${models}() {`);
+    lines.push(`  const queryClient = useQueryClient();`);
+    lines.push(`  return useMutation({`);
+    lines.push(`    mutationFn: (ids: string[]) =>`);
+    lines.push(`      fetch(\`\${BASE_URL}/${routeName}\`, {`);
+    lines.push(`        method: "DELETE",`);
+    lines.push(`        headers: { "Content-Type": "application/json" },`);
+    lines.push(`        body: JSON.stringify({ ids }),`);
+    lines.push(`      }).then((r) => r.json()),`);
+    if (!noOptimistic) {
+      lines.push(`    onMutate: async (ids) => {`);
+      lines.push(`      await queryClient.cancelQueries({ queryKey: ["${routeName}"] });`);
+      lines.push(`      const previous = queryClient.getQueryData(["${routeName}"]);`);
+      lines.push(`      queryClient.setQueryData(["${routeName}"], (old: any) => ({`);
+      lines.push(`        ...old,`);
+      lines.push(`        data: (old?.data ?? []).filter((item: any) => !ids.includes(item.id)),`);
+      lines.push(`      }));`);
+      lines.push(`      return { previous };`);
+      lines.push(`    },`);
+      lines.push(`    onError: (_err, _vars, ctx) => {`);
+      lines.push(`      queryClient.setQueryData(["${routeName}"], ctx?.previous);`);
+      lines.push(`    },`);
+      lines.push(`    onSettled: () => {`);
+      lines.push(`      queryClient.invalidateQueries({ queryKey: ["${routeName}"] });`);
+      lines.push(`    },`);
+    }
+    lines.push(`  });`);
+    lines.push(`}`);
+    lines.push(``);
+  }
+  return lines.join("\n");
+}
+
+// src/frontend/codegen/utils.ts
+function camelToTitle(name) {
+  return name.replace(/([A-Z])/g, " $1").replace(/^./, (ch) => ch.toUpperCase()).trim();
+}
+function fieldTypeMap(field) {
+  if (field.isRelation) return "searchable-select";
+  switch (field.type) {
+    case "String":
+      return "text";
+    case "Int":
+    case "Float":
+    case "Decimal":
+      return "number";
+    case "Boolean":
+      return "switch";
+    case "DateTime":
+      return "date";
+    case "Json":
+      return "textarea";
+    default:
+      if (/^[A-Z]/.test(field.type)) return "select";
+      return "text";
+  }
+}
+function chunkFields(fields, maxPerStep = 4) {
+  const steps = [];
+  for (let i = 0; i < fields.length; i += maxPerStep) {
+    steps.push(fields.slice(i, i + maxPerStep));
+  }
+  return steps;
+}
+
+// src/frontend/codegen/columns.ts
+function generateColumnsFile(_config, modelConfig) {
+  const { model, tableFields } = modelConfig;
+  const { name } = model;
+  const varName = name.charAt(0).toLowerCase() + name.slice(1);
+  const lines = [];
+  lines.push(`import type { ColumnDef } from "@tanstack/react-table";`);
+  lines.push(`import type { ${name} } from "@prisma/client";`);
+  lines.push(``);
+  lines.push(`export const ${varName}Columns: ColumnDef<${name}>[] = [`);
+  for (const field of tableFields) {
+    lines.push(`  {`);
+    lines.push(`    accessorKey: "${field}",`);
+    lines.push(`    header: "${camelToTitle(field)}",`);
+    lines.push(`  },`);
+  }
+  lines.push(`  {`);
+  lines.push(`    id: "actions",`);
+  lines.push(`    header: "Actions",`);
+  lines.push(`    cell: ({ row }) => (`);
+  lines.push(`      <div className="flex gap-2">`);
+  lines.push(`        <button onClick={() => row.original && void 0}>Edit</button>`);
+  lines.push(`        <button onClick={() => row.original && void 0}>Delete</button>`);
+  lines.push(`      </div>`);
+  lines.push(`    ),`);
+  lines.push(`  },`);
+  lines.push(`];`);
+  lines.push(``);
+  return lines.join("\n");
+}
+
+// src/frontend/codegen/table.ts
+function generateTableFile(config, modelConfig) {
+  const { framework } = config;
+  const { model, bulkDelete, canExport } = modelConfig;
+  const { name } = model;
+  const Model = name;
+  const models = `${Model}s`;
+  const varName = name.charAt(0).toLowerCase() + name.slice(1);
+  const useListHook = `use${models}`;
+  const useDeleteHook = `useDelete${Model}`;
+  const useBulkDeleteHook = `useBulkDelete${models}`;
+  const columnsVar = `${varName}Columns`;
+  const lines = [];
+  if (framework === "nextjs") {
+    lines.push(`'use client'`);
+    lines.push(``);
+  }
+  const hookImports = [useListHook, useDeleteHook];
+  if (bulkDelete) {
+    hookImports.push(useBulkDeleteHook);
+  }
+  lines.push(`import { useState } from "react";`);
+  lines.push(`import DataTable from "../data-table";`);
+  lines.push(`import { ${columnsVar} } from "./${Model}Columns";`);
+  lines.push(`import { ${hookImports.join(", ")} } from "../../hooks/use${Model}";`);
+  lines.push(`import { ${Model}Form } from "./${Model}Form";`);
+  lines.push(`import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../ui/dialog";`);
+  lines.push(``);
+  lines.push(`export function ${Model}Table() {`);
+  lines.push(`  const [isCreateOpen, setIsCreateOpen] = useState(false);`);
+  lines.push(`  const { data } = ${useListHook}();`);
+  lines.push(`  const ${varName}Delete = ${useDeleteHook}();`);
+  if (bulkDelete) {
+    lines.push(`  const ${varName}BulkDelete = ${useBulkDeleteHook}();`);
+  }
+  lines.push(``);
+  lines.push(`  return (`);
+  lines.push(`    <>`);
+  const dtProps = [
+    `        title="${models}"`,
+    `        description="Manage ${models.toLowerCase()} in your system"`,
+    `        columns={${columnsVar}}`,
+    `        data={data?.data ?? []}`,
+    `        toggleAction={() => setIsCreateOpen(true)}`,
+    `        actionText="Create ${Model}"`,
+    `        onRowDelete={(row: any) => ${varName}Delete.mutate(row.id)}`
+  ];
+  if (bulkDelete) {
+    dtProps.push(`        onMultiDelete={(rows: any[]) => ${varName}BulkDelete.mutate(rows.map((r) => r.id))}`);
+  }
+  if (canExport) {
+    dtProps.push(`        canExport={true}`);
+  }
+  lines.push(`      <DataTable`);
+  for (const prop of dtProps) {
+    lines.push(prop);
+  }
+  lines.push(`      />`);
+  lines.push(``);
+  lines.push(`      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>`);
+  lines.push(`        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">`);
+  lines.push(`          <DialogHeader>`);
+  lines.push(`            <DialogTitle>Create New ${Model}</DialogTitle>`);
+  lines.push(`            <DialogDescription>`);
+  lines.push(`              Fill in the information below to create a new ${varName}.`);
+  lines.push(`            </DialogDescription>`);
+  lines.push(`          </DialogHeader>`);
+  lines.push(`          <${Model}Form onSuccess={() => setIsCreateOpen(false)} />`);
+  lines.push(`        </DialogContent>`);
+  lines.push(`      </Dialog>`);
+  lines.push(`    </>`);
+  lines.push(`  );`);
+  lines.push(`}`);
+  lines.push(``);
+  return lines.join("\n");
+}
+
+// src/frontend/codegen/form.ts
+function generateFormFile(config, modelConfig) {
+  const { framework } = config;
+  const { model, formFields, relationalFields: relationalFields2, multiStep } = modelConfig;
+  const { name, fields: allFields } = model;
+  const lines = [];
+  if (framework === "nextjs") {
+    lines.push(`'use client'`);
+    lines.push(``);
+  }
+  const relationalFieldMeta = [];
+  for (const relFieldName of relationalFields2) {
+    const fieldMeta = allFields.find((f) => f.name === relFieldName);
+    if (fieldMeta) {
+      relationalFieldMeta.push({
+        fieldName: relFieldName,
+        relatedModel: fieldMeta.type
+        // e.g. "User" for a userId relation
+      });
+    }
+  }
+  lines.push(`import { FormGenerator } from "../form-generator";`);
+  lines.push(`import { ${name}CreateSchema } from "../../src/schemas.generated";`);
+  lines.push(
+    `import { useCreate${name}, useUpdate${name} } from "../../hooks/use${name}";`
+  );
+  for (const { relatedModel } of relationalFieldMeta) {
+    lines.push(
+      `import { use${relatedModel}s } from "../../hooks/use${relatedModel}";`
+    );
+  }
+  lines.push(``);
+  lines.push(`export function ${name}Form({ id, onSuccess }: { id?: string; onSuccess?: () => void }) {`);
+  lines.push(`  const create${name} = useCreate${name}();`);
+  lines.push(`  const update${name} = useUpdate${name}();`);
+  for (const { fieldName, relatedModel } of relationalFieldMeta) {
+    const varName = fieldName.charAt(0).toLowerCase() + fieldName.slice(1) + "Options";
+    lines.push(
+      `  const { data: ${varName}Data } = use${relatedModel}s();`
+    );
+  }
+  lines.push(``);
+  lines.push(`  const fields = [`);
+  for (const fieldName of formFields) {
+    const fieldMeta = allFields.find((f) => f.name === fieldName);
+    const type = fieldMeta ? fieldTypeMap(fieldMeta) : "text";
+    lines.push(`    {`);
+    lines.push(`      name: "${fieldName}",`);
+    lines.push(`      label: "${camelToTitle(fieldName)}",`);
+    lines.push(`      type: "${type}",`);
+    lines.push(`    },`);
+  }
+  for (const { fieldName, relatedModel } of relationalFieldMeta) {
+    const varName = fieldName.charAt(0).toLowerCase() + fieldName.slice(1) + "Options";
+    lines.push(`    {`);
+    lines.push(`      name: "${fieldName}",`);
+    lines.push(`      label: "${camelToTitle(fieldName)}",`);
+    lines.push(`      type: "searchable-select",`);
+    lines.push(
+      `      options: (${varName}Data?.data ?? []).map((r: any) => ({ label: String(r.name ?? r.id), value: String(r.id) })),`
+    );
+    lines.push(`    },`);
+  }
+  lines.push(`  ];`);
+  lines.push(``);
+  if (multiStep) {
+    const allFieldNames = [
+      ...formFields,
+      ...relationalFieldMeta.map((r) => r.fieldName)
+    ];
+    const chunks = chunkFields(allFieldNames, 4);
+    lines.push(`  const steps = [`);
+    chunks.forEach((chunk, i) => {
+      lines.push(`    {`);
+      lines.push(`      title: "Step ${i + 1}",`);
+      lines.push(
+        `      fields: [${chunk.map((f) => `"${f}"`).join(", ")}],`
+      );
+      lines.push(`    },`);
+    });
+    lines.push(`  ];`);
+    lines.push(``);
+    lines.push(`  const handleSubmit = (data: any) => {`);
+    lines.push(`    const mutation = id ? update${name}.mutate({ id, data }) : create${name}.mutate(data);`);
+    lines.push(`    if (onSuccess) {`);
+    lines.push(`      // Call onSuccess after mutation completes`);
+    lines.push(`      Promise.resolve(mutation).then(() => onSuccess()).catch(() => {});`);
+    lines.push(`    }`);
+    lines.push(`  };`);
+    lines.push(``);
+    lines.push(`  return (`);
+    lines.push(`    <FormGenerator`);
+    lines.push(`      fields={fields}`);
+    lines.push(`      schema={${name}CreateSchema}`);
+    lines.push(`      onSubmit={handleSubmit}`);
+    lines.push(`      steps={steps}`);
+    lines.push(`    />`);
+    lines.push(`  );`);
+  } else {
+    lines.push(`  const handleSubmit = (data: any) => {`);
+    lines.push(`    const mutation = id ? update${name}.mutate({ id, data }) : create${name}.mutate(data);`);
+    lines.push(`    if (onSuccess) {`);
+    lines.push(`      // Call onSuccess after mutation completes`);
+    lines.push(`      Promise.resolve(mutation).then(() => onSuccess()).catch(() => {});`);
+    lines.push(`    }`);
+    lines.push(`  };`);
+    lines.push(``);
+    lines.push(`  return (`);
+    lines.push(`    <FormGenerator`);
+    lines.push(`      fields={fields}`);
+    lines.push(`      schema={${name}CreateSchema}`);
+    lines.push(`      onSubmit={handleSubmit}`);
+    lines.push(`    />`);
+    lines.push(`  );`);
+  }
+  lines.push(`}`);
+  lines.push(``);
+  return lines.join("\n");
+}
+
+// src/frontend/codegen/page.ts
+function generatePageFile(config, modelConfig) {
+  const { model } = modelConfig;
+  const { name } = model;
+  const modelLower = name.charAt(0).toLowerCase() + name.slice(1);
+  const pluralName = name + "s";
+  const lines = [];
+  lines.push(`'use client'`);
+  lines.push(``);
+  lines.push(`import { ${name}Table } from '@/components/${modelLower}/${name}Table'`);
+  lines.push(``);
+  lines.push(`export default function ${pluralName}Page() {`);
+  lines.push(`  return (`);
+  lines.push(`    <div className="container mx-auto py-10">`);
+  lines.push(`      <h1 className="text-3xl font-bold mb-6">${pluralName}</h1>`);
+  lines.push(`      <${name}Table />`);
+  lines.push(`    </div>`);
+  lines.push(`  )`);
+  lines.push(`}`);
+  lines.push(``);
+  return lines.join("\n");
+}
+
+// src/frontend/codegen/menu.ts
+function generateMenuData(config) {
+  const { models } = config;
+  const lines = [];
+  lines.push(`/**`);
+  lines.push(` * Auto-generated menu data for omni-rest CRUD pages`);
+  lines.push(` * Generated by omni-rest \u2014 do not edit manually.`);
+  lines.push(` * Re-run after schema changes.`);
+  lines.push(` */`);
+  lines.push(``);
+  lines.push(`export interface MenuItem {`);
+  lines.push(`  label: string;`);
+  lines.push(`  href: string;`);
+  lines.push(`  icon?: string;`);
+  lines.push(`}`);
+  lines.push(``);
+  lines.push(`export const omniRestMenuItems: MenuItem[] = [`);
+  for (const modelConfig of models) {
+    const { name } = modelConfig.model;
+    const pluralName = name + "s";
+    const route = `/${name.toLowerCase()}s`;
+    lines.push(`  {`);
+    lines.push(`    label: '${pluralName}',`);
+    lines.push(`    href: '${route}',`);
+    lines.push(`  },`);
+  }
+  lines.push(`];`);
+  lines.push(``);
+  lines.push(`/**`);
+  lines.push(` * Get a menu item by its label`);
+  lines.push(` */`);
+  lines.push(`export function getMenuItemByLabel(label: string): MenuItem | undefined {`);
+  lines.push(`  return omniRestMenuItems.find(item => item.label === label);`);
+  lines.push(`}`);
+  lines.push(``);
+  lines.push(`/**`);
+  lines.push(` * Get a menu item by its href`);
+  lines.push(` */`);
+  lines.push(`export function getMenuItemByHref(href: string): MenuItem | undefined {`);
+  lines.push(`  return omniRestMenuItems.find(item => item.href === href);`);
+  lines.push(`}`);
+  lines.push(``);
+  return lines.join("\n");
+}
+
+// src/frontend/codegen/providers.ts
+function generateProvidersFile(config) {
+  const { staleTime, gcTime } = config;
+  const lines = [];
+  lines.push(`'use client'`);
+  lines.push(``);
+  lines.push(`import { QueryClient, QueryClientProvider } from '@tanstack/react-query'`);
+  lines.push(`import { useState } from 'react'`);
+  lines.push(``);
+  lines.push(`export function Providers({ children }: { children: React.ReactNode }) {`);
+  lines.push(`  const [queryClient] = useState(() => new QueryClient({`);
+  lines.push(`    defaultOptions: {`);
+  lines.push(`      queries: {`);
+  lines.push(`        staleTime: ${staleTime},`);
+  lines.push(`        gcTime: ${gcTime},`);
+  lines.push(`      },`);
+  lines.push(`    },`);
+  lines.push(`  }))`);
+  lines.push(``);
+  lines.push(`  return (`);
+  lines.push(`    <QueryClientProvider client={queryClient}>`);
+  lines.push(`      {children}`);
+  lines.push(`    </QueryClientProvider>`);
+  lines.push(`  )`);
+  lines.push(`}`);
+  lines.push(``);
+  return lines.join("\n");
+}
+var GREEN = "\x1B[32m";
+var YELLOW = "\x1B[33m";
+var BLUE = "\x1B[34m";
+var RED = "\x1B[31m";
+var RESET = "\x1B[0m";
+async function writeFile(destPath, content) {
+  let existed = false;
+  try {
+    existed = fs3__namespace.existsSync(destPath);
+    fs3__namespace.mkdirSync(path3__namespace.dirname(destPath), { recursive: true });
+    fs3__namespace.writeFileSync(destPath, content, "utf8");
+    return { path: destPath, status: existed ? "overwritten" : "created" };
+  } catch (err) {
+    return { path: destPath, status: "error", error: err instanceof Error ? err : new Error(String(err)) };
+  }
+}
+var BASE_COMPONENTS = [
+  { src: "frontend-next/data-table.tsx", dest: "components/data-table.tsx" },
+  { src: "frontend-next/form-generator.tsx", dest: "components/form-generator.tsx" }
+];
+async function copyBaseComponents(outputDir, packageRoot) {
+  const results = [];
+  for (const { src, dest } of BASE_COMPONENTS) {
+    const srcPath = path3__namespace.join(packageRoot, src);
+    const destPath = path3__namespace.join(outputDir, dest);
+    if (fs3__namespace.existsSync(destPath)) {
+      results.push({ path: destPath, status: "skipped" });
+      continue;
+    }
+    try {
+      fs3__namespace.mkdirSync(path3__namespace.dirname(destPath), { recursive: true });
+      fs3__namespace.copyFileSync(srcPath, destPath);
+      results.push({ path: destPath, status: "created" });
+    } catch (err) {
+      results.push({
+        path: destPath,
+        status: "error",
+        error: err instanceof Error ? err : new Error(String(err))
+      });
+    }
+  }
+  return results;
+}
+function printSummary(results) {
+  for (const r of results) {
+    switch (r.status) {
+      case "created":
+        console.log(`${GREEN}\u2713${RESET} created     ${r.path}`);
+        break;
+      case "overwritten":
+        console.log(`${YELLOW}\u26A0${RESET} overwritten ${r.path}`);
+        break;
+      case "skipped":
+        console.log(`${BLUE}\u2139${RESET} skipped     ${r.path}`);
+        break;
+      case "error":
+        console.log(`${RED}\u2717${RESET} error       ${r.path}${r.error ? ` \u2014 ${r.error.message}` : ""}`);
+        break;
+    }
+  }
+  const created = results.filter((r) => r.status === "created").length;
+  const overwritten = results.filter((r) => r.status === "overwritten").length;
+  const skipped = results.filter((r) => r.status === "skipped").length;
+  const errors = results.filter((r) => r.status === "error").length;
+  console.log(
+    `
+Generated ${created} files (${overwritten} overwritten, ${skipped} skipped, ${errors} errors)`
+  );
+}
+
+// src/frontend-generator.ts
+var COLORS = {
+  green: (s) => `\x1B[32m${s}\x1B[0m`,
+  yellow: (s) => `\x1B[33m${s}\x1B[0m`,
+  cyan: (s) => `\x1B[36m${s}\x1B[0m`,
+  red: (s) => `\x1B[31m${s}\x1B[0m`,
+  bold: (s) => `\x1B[1m${s}\x1B[0m`
+};
+async function generateAll(config) {
+  const { outputDir, models, framework, frontendDir } = config;
+  const generatePages = config.generatePages ?? framework === "nextjs";
+  const generateMenu = config.generateMenu ?? true;
+  const routeGroup = config.routeGroup ?? "autogenerated-omni";
+  const packageRoot = path3__namespace.resolve(__dirname, "..");
+  const results = [];
+  const structure = detectProjectStructure(frontendDir);
+  for (const modelConfig of models) {
+    const { name } = modelConfig.model;
+    const modelLower = name.charAt(0).toLowerCase() + name.slice(1);
+    const hookContent = generateHookFile(config, modelConfig);
+    const hookPath = path3__namespace.join(outputDir, "hooks", `use${name}.ts`);
+    results.push(await writeFile(hookPath, hookContent));
+    const columnsContent = generateColumnsFile(config, modelConfig);
+    const columnsPath = path3__namespace.join(outputDir, "components", modelLower, `${name}Columns.tsx`);
+    results.push(await writeFile(columnsPath, columnsContent));
+    const tableContent = generateTableFile(config, modelConfig);
+    const tablePath = path3__namespace.join(outputDir, "components", modelLower, `${name}Table.tsx`);
+    results.push(await writeFile(tablePath, tableContent));
+    const formContent = generateFormFile(config, modelConfig);
+    const formPath = path3__namespace.join(outputDir, "components", modelLower, `${name}Form.tsx`);
+    results.push(await writeFile(formPath, formContent));
+    if (generatePages && framework === "nextjs" && structure.usesAppRouter && structure.appPath) {
+      const pageContent = generatePageFile(config, modelConfig);
+      const pluralLower = name.toLowerCase() + "s";
+      const pagePath = path3__namespace.join(structure.appPath, `(${routeGroup})`, pluralLower, "page.tsx");
+      results.push(await writeFile(pagePath, pageContent));
+    }
+  }
+  const baseResults = await copyBaseComponents(outputDir, packageRoot);
+  results.push(...baseResults);
+  if (framework === "nextjs" && structure.usesAppRouter) {
+    const providersContent = generateProvidersFile(config);
+    const providersPath = path3__namespace.join(outputDir, "components", "providers.tsx");
+    results.push(await writeFile(providersPath, providersContent));
+  }
+  if (generateMenu) {
+    const menuContent = generateMenuData(config);
+    const menuPath = path3__namespace.join(outputDir, "lib", "menu-data.ts");
+    results.push(await writeFile(menuPath, menuContent));
+  }
+  printSummary(results);
+  return results;
+}
+var HELP_TEXT = `
+  Usage: npx omni-rest generate:frontend [options]
+
+  Options:
+    --schema <path>         Path to schema.prisma (default: auto-discover)
+    --frontend-dir <path>   Frontend project root (default: auto-scan)
+    --out <dir>             Output directory relative to frontend-dir (default: src/)
+    --models <names>        Comma-separated model names to generate (default: all)
+    --autopilot             Skip all prompts, use defaults
+    --no-bulk               Disable bulk delete hooks and wiring
+    --no-optimistic         Disable optimistic update patterns
+    --no-pages              Disable Next.js page generation (default: enabled for Next.js)
+    --no-menu               Disable menu-data.ts generation (default: enabled)
+    --route-group <name>    Route group name for Next.js pages (default: autogenerated-omni)
+    --stale-time <ms>       useQuery staleTime (default: 30000)
+    --gc-time <ms>          useQuery gcTime (default: 300000)
+    --steps <mode>          Multi-step form mode: auto | always | never (default: auto)
+    --help                  Print this help
+`;
+function prompt(question) {
+  const rl = readline__namespace.createInterface({ input: process.stdin, output: process.stdout });
+  return new Promise((resolve5) => {
+    rl.question(question, (answer) => {
+      rl.close();
+      resolve5(answer.trim());
+    });
+  });
+}
+async function run(argv) {
+  let schemaPath;
+  let frontendDirFlag;
+  let outFlag;
+  let modelsFlag;
+  let autopilot = false;
+  let noBulk = false;
+  let noOptimistic = false;
+  let generatePages = true;
+  let generateMenu = true;
+  let routeGroup = "autogenerated-omni";
+  let staleTime = 3e4;
+  let gcTime = 3e5;
+  let stepsFlag = "auto";
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    switch (arg) {
+      case "--help":
+        console.log(HELP_TEXT);
+        return;
+      case "--schema":
+        schemaPath = argv[++i];
+        break;
+      case "--frontend-dir":
+        frontendDirFlag = argv[++i];
+        break;
+      case "--out":
+        outFlag = argv[++i];
+        break;
+      case "--models":
+        modelsFlag = argv[++i];
+        break;
+      case "--autopilot":
+        autopilot = true;
+        break;
+      case "--no-bulk":
+        noBulk = true;
+        break;
+      case "--no-optimistic":
+        noOptimistic = true;
+        break;
+      case "--no-pages":
+        generatePages = false;
+        break;
+      case "--no-menu":
+        generateMenu = false;
+        break;
+      case "--route-group":
+        routeGroup = argv[++i];
+        break;
+      case "--stale-time":
+        staleTime = parseInt(argv[++i], 10) || 3e4;
+        break;
+      case "--gc-time":
+        gcTime = parseInt(argv[++i], 10) || 3e5;
+        break;
+      case "--steps": {
+        const val = argv[++i];
+        if (val === "always" || val === "never" || val === "auto") {
+          stepsFlag = val;
+        }
+        break;
+      }
+    }
+  }
+  const cwd2 = process.cwd();
+  console.log(COLORS.bold("\n  omni-rest \xB7 generate:frontend\n"));
+  let frontendDir;
+  if (frontendDirFlag) {
+    const resolved = __require("path").resolve(cwd2, frontendDirFlag);
+    const fs7 = __require("fs");
+    if (!fs7.existsSync(resolved) || !fs7.statSync(resolved).isDirectory()) {
+      console.error(
+        COLORS.red(
+          `  \u2717 --frontend-dir path does not exist or is not a directory: "${resolved}"`
+        )
+      );
+      process.exit(1);
+    }
+    frontendDir = resolved;
+  } else {
+    const candidates = await scanForFrontendDir(cwd2);
+    if (candidates.length === 0) {
+      console.error(
+        COLORS.red(
+          `  \u2717 No frontend project found.
+    Scan criteria: next.config.*, vite.config.*, or package.json with react dependency.
+    Run from your frontend directory or use --frontend-dir <path>.`
+        )
+      );
+      process.exit(1);
+    }
+    if (autopilot) {
+      if (candidates.length > 1) {
+        console.error(COLORS.red(`  \u2717 Multiple frontend candidates found. Specify one with --frontend-dir:
+`));
+        candidates.forEach((c, i) => console.error(`    ${i + 1}. ${c.dir} (score: ${c.score})`));
+        process.exit(1);
+      }
+      frontendDir = candidates[0].dir;
+      console.log(COLORS.cyan(`  \u2192 Using frontend dir: ${frontendDir}`));
+    } else if (candidates.length === 1) {
+      const answer = await prompt(
+        `  Frontend dir detected: ${COLORS.bold(candidates[0].dir)}
+  Use this directory? [Y/n]: `
+      );
+      if (answer.toLowerCase() === "n" || answer.toLowerCase() === "no") {
+        console.log("  Aborted.");
+        return;
+      }
+      frontendDir = candidates[0].dir;
+    } else {
+      console.log("  Multiple frontend candidates found:\n");
+      candidates.forEach((c, i) => {
+        console.log(`    ${i + 1}. ${c.dir}  (score: ${c.score}, signals: ${c.signals.join(", ")})`);
+      });
+      const answer = await prompt(`
+  Select a number [1]: `);
+      const idx = (parseInt(answer, 10) || 1) - 1;
+      if (idx < 0 || idx >= candidates.length) {
+        console.error(COLORS.red("  \u2717 Invalid selection."));
+        process.exit(1);
+      }
+      frontendDir = candidates[idx].dir;
+    }
+  }
+  let resolvedSchemaPath;
+  try {
+    resolvedSchemaPath = await findSchema(cwd2, schemaPath);
+    console.log(COLORS.cyan(`  \u2192 Schema: ${resolvedSchemaPath}`));
+  } catch (err) {
+    console.error(COLORS.red(`  \u2717 ${err.message}`));
+    process.exit(1);
+  }
+  let allModels;
+  try {
+    allModels = await loadDMMF(frontendDir, resolvedSchemaPath);
+    console.log(COLORS.cyan(`  \u2192 Found ${allModels.length} model(s): ${allModels.map((m) => m.name).join(", ")}`));
+  } catch (err) {
+    console.error(COLORS.red(`  \u2717 ${err.message}`));
+    process.exit(1);
+  }
+  const framework = detectFramework(frontendDir);
+  console.log(COLORS.cyan(`  \u2192 Framework: ${framework}`));
+  const baseUrl = resolveBaseUrl(frontendDir);
+  console.log(COLORS.cyan(`  \u2192 Base URL: ${baseUrl}`));
+  const outputDir = resolveOutputDir(frontendDir, framework, outFlag);
+  console.log(COLORS.cyan(`  \u2192 Output dir: ${outputDir}`));
+  const missing = checkDependencies(frontendDir, framework);
+  if (missing.length > 0) {
+    console.warn(
+      COLORS.yellow(
+        `  \u26A0 Missing dependencies: ${missing.join(", ")}
+    Install with: npm install ${missing.join(" ")}`
+      )
+    );
+  }
+  const modelsFilter = modelsFlag ? modelsFlag.split(",").map((s) => s.trim()).filter(Boolean) : void 0;
+  if (modelsFilter) {
+    const knownNames = new Set(allModels.map((m) => m.name));
+    for (const name of modelsFilter) {
+      if (!knownNames.has(name)) {
+        console.warn(COLORS.yellow(`  \u26A0 Unknown model name in --models filter: "${name}"`));
+      }
+    }
+  }
+  const flags = {
+    autopilot,
+    noBulk,
+    steps: stepsFlag,
+    modelsFilter
+  };
+  const modelConfigs = await buildConfig(allModels, flags);
+  const generatorConfig = {
+    frontendDir,
+    framework,
+    baseUrl,
+    outputDir,
+    models: modelConfigs,
+    staleTime,
+    gcTime,
+    noOptimistic,
+    generatePages,
+    generateMenu,
+    routeGroup
+  };
+  await generateAll(generatorConfig);
+  console.log(COLORS.bold("\n  Done!\n"));
+}
 
 // src/cli.ts
 var args = process.argv.slice(2);
 var command = args[0] ?? "generate";
+var remainingArgs = args.slice(1);
 var cwd = process.cwd();
-var COLORS = {
+var COLORS2 = {
   green: (s) => `\x1B[32m${s}\x1B[0m`,
+  yellow: (s) => `\x1B[33m${s}\x1B[0m`,
   cyan: (s) => `\x1B[36m${s}\x1B[0m`,
   red: (s) => `\x1B[31m${s}\x1B[0m`,
   bold: (s) => `\x1B[1m${s}\x1B[0m`
 };
 function write(filePath, content) {
-  const abs = path__default.default.resolve(cwd, filePath);
-  fs__default.default.mkdirSync(path__default.default.dirname(abs), { recursive: true });
-  fs__default.default.writeFileSync(abs, content, "utf-8");
-  console.log(COLORS.green(`  \u2713 Written: ${filePath}`));
+  const abs = path3__namespace.default.resolve(cwd, filePath);
+  fs3__namespace.default.mkdirSync(path3__namespace.default.dirname(abs), { recursive: true });
+  fs3__namespace.default.writeFileSync(abs, content, "utf-8");
+  console.log(COLORS2.green(`  \u2713 Written: ${filePath}`));
 }
 function createPrismaClient() {
+  const customClient = tryLoadFromSchemaOutput();
+  if (customClient) return customClient;
+  const standardPrismaClient = tryLoadFromStandardOutput();
+  if (standardPrismaClient) return standardPrismaClient;
   try {
-    const PrismaClientPath = path__default.default.resolve(cwd, "node_modules/@prisma/client");
-    const { PrismaClient } = __require(PrismaClientPath);
+    const clientPath = __require.resolve("@prisma/client", { paths: [cwd] });
+    const textResult = extractRuntimeDataModelFromFile(clientPath);
+    if (textResult) return textResult;
+    const mod = __require(clientPath);
+    const PrismaClient = mod.PrismaClient ?? mod.default?.PrismaClient;
+    if (!PrismaClient) throw new Error("PrismaClient not found in @prisma/client");
     return new PrismaClient();
   } catch {
     throw new Error(
@@ -472,57 +1777,128 @@ function createPrismaClient() {
     );
   }
 }
-async function run() {
-  console.log(COLORS.bold("\n  omni-rest generator\n"));
-  if (![" generate", "generate:zod", "generate:openapi"].includes(command) && !["generate", "generate:zod", "generate:openapi"].includes(command)) {
-    console.log(`
+function tryLoadFromSchemaOutput() {
+  const schemaPaths = [
+    path3__namespace.default.resolve(cwd, "prisma/schema.prisma"),
+    path3__namespace.default.resolve(cwd, "schema.prisma")
+  ];
+  for (const schemaPath of schemaPaths) {
+    if (!fs3__namespace.default.existsSync(schemaPath)) continue;
+    try {
+      const schema = fs3__namespace.default.readFileSync(schemaPath, "utf-8");
+      const match = schema.match(/output\s*=\s*["']([^"']+)["']/);
+      if (!match) continue;
+      const outputDir = path3__namespace.default.resolve(path3__namespace.default.dirname(schemaPath), match[1]);
+      const indexPath = path3__namespace.default.join(outputDir, "index.js");
+      const result = extractRuntimeDataModelFromFile(indexPath);
+      if (result) return result;
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+function tryLoadFromStandardOutput() {
+  const candidates = [
+    path3__namespace.default.resolve(cwd, "node_modules/.prisma/client/index.js"),
+    path3__namespace.default.resolve(cwd, "node_modules/@prisma/client/index.js")
+  ];
+  for (const clientPath of candidates) {
+    const result = extractRuntimeDataModelFromFile(clientPath);
+    if (result) return result;
+  }
+  return null;
+}
+function extractRuntimeDataModelFromFile(filePath) {
+  if (!fs3__namespace.default.existsSync(filePath)) return null;
+  try {
+    const src = fs3__namespace.default.readFileSync(filePath, "utf-8");
+    const match = src.match(/config\.runtimeDataModel\s*=\s*JSON\.parse\("((?:[^"\\]|\\.)*)"\)/);
+    if (match) {
+      const json = match[1].replace(/\\"/g, '"').replace(/\\\\/g, "\\");
+      const runtimeDataModel = JSON.parse(json);
+      if (runtimeDataModel?.models) {
+        return { _runtimeDataModel: runtimeDataModel, $disconnect: async () => {
+        } };
+      }
+    }
+    const match2 = src.match(/runtimeDataModel\s*=\s*(\{[\s\S]*?"models"\s*:\s*\{[\s\S]*?\}\s*\})/);
+    if (match2) {
+      try {
+        const runtimeDataModel = JSON.parse(match2[1]);
+        if (runtimeDataModel?.models) {
+          return { _runtimeDataModel: runtimeDataModel, $disconnect: async () => {
+          } };
+        }
+      } catch {
+      }
+    }
+  } catch {
+  }
+  return null;
+}
+var USAGE = `
   Usage:
     npx omni-rest generate            Generate both Zod schemas and OpenAPI spec
     npx omni-rest generate:zod        Generate Zod schemas only
     npx omni-rest generate:openapi    Generate OpenAPI spec only
-    `);
-    console.log(COLORS.bold("\n  Done!\n"));
+    npx omni-rest generate:frontend   Scaffold frontend components from Prisma schema
+`;
+async function run2() {
+  console.log(COLORS2.bold("\n  omni-rest generator\n"));
+  if (command === "generate:frontend") {
+    try {
+      await run(remainingArgs);
+    } catch (e) {
+      console.error(COLORS2.red(`  \u2717 ${e.message}`));
+      process.exit(1);
+    }
+    return;
+  }
+  if (!["generate", "generate:zod", "generate:openapi"].includes(command)) {
+    console.log(USAGE);
+    console.log(COLORS2.bold("\n  Done!\n"));
     return;
   }
   let prisma;
   try {
     prisma = createPrismaClient();
   } catch (e) {
-    console.error(COLORS.red(`  \u2717 ${e.message}`));
-    console.log(COLORS.bold("\n  Done!\n"));
+    console.error(COLORS2.red(`  \u2717 ${e.message}`));
+    console.log(COLORS2.bold("\n  Done!\n"));
     return;
   }
   try {
     if (command === "generate:zod" || command === "generate") {
       try {
-        console.log(COLORS.cyan("  \u2192 Generating Zod schemas from Prisma DMMF..."));
+        console.log(COLORS2.cyan("  \u2192 Generating Zod schemas from Prisma DMMF..."));
         const code = generateZodSchemas(prisma);
         write("src/schemas.generated.ts", code);
       } catch (e) {
-        console.error(COLORS.red(`  \u2717 Zod generation failed: ${e.message}`));
+        console.error(COLORS2.red(`  \u2717 Zod generation failed: ${e.message}`));
       }
     }
     if (command === "generate:openapi" || command === "generate") {
       try {
-        console.log(COLORS.cyan("  \u2192 Generating OpenAPI spec from Prisma DMMF..."));
+        console.log(COLORS2.cyan("  \u2192 Generating OpenAPI spec from Prisma DMMF..."));
         const spec = generateOpenApiSpec(prisma, {
           title: getPackageName(),
           version: getPackageVersion()
         });
         write("openapi.json", JSON.stringify(spec, null, 2));
       } catch (e) {
-        console.error(COLORS.red(`  \u2717 OpenAPI generation failed: ${e.message}`));
+        console.error(COLORS2.red(`  \u2717 OpenAPI generation failed: ${e.message}`));
       }
     }
   } finally {
     await prisma.$disconnect();
   }
-  console.log(COLORS.bold("\n  Done!\n"));
+  console.log(COLORS2.bold("\n  Done!\n"));
 }
 function getPackageName() {
   try {
     const pkg = JSON.parse(
-      fs__default.default.readFileSync(path__default.default.resolve(cwd, "package.json"), "utf-8")
+      fs3__namespace.default.readFileSync(path3__namespace.default.resolve(cwd, "package.json"), "utf-8")
     );
     return pkg.name ?? "My API";
   } catch {
@@ -532,14 +1908,14 @@ function getPackageName() {
 function getPackageVersion() {
   try {
     const pkg = JSON.parse(
-      fs__default.default.readFileSync(path__default.default.resolve(cwd, "package.json"), "utf-8")
+      fs3__namespace.default.readFileSync(path3__namespace.default.resolve(cwd, "package.json"), "utf-8")
     );
     return pkg.version ?? "1.0.0";
   } catch {
     return "1.0.0";
   }
 }
-run().catch((e) => {
+run2().catch((e) => {
   console.error(e);
   process.exit(1);
 });

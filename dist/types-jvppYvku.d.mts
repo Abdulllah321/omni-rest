@@ -5,6 +5,8 @@ interface FieldMeta {
     isRequired: boolean;
     isList: boolean;
     isRelation: boolean;
+    hasDefaultValue: boolean;
+    isUpdatedAt: boolean;
 }
 interface ModelMeta {
     name: string;

@@ -4,7 +4,7 @@
   "description": "Documentation website for omni-rest",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node scripts/gen-timestamps.mjs && next dev",
     "build": "node scripts/gen-timestamps.mjs && next build",
     "start": "next start",
     "lint": "next lint"

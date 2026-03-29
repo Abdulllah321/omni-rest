@@ -1,7 +1,5 @@
 'use strict';
 
-var client = require('@prisma/client');
-
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
@@ -19,6 +17,8 @@ var __decorateClass = (decorators, target, key, kind) => {
   return result;
 };
 var __decorateParam = (index, decorator) => (target, key) => decorator(target, key, index);
+
+// src/introspect.ts
 function getModels(prisma) {
   let raw;
   if (prisma?._runtimeDataModel?.models) {
@@ -33,9 +33,13 @@ function getModels(prisma) {
     }));
   }
   if (!raw) {
-    const dmmfModels = client.Prisma?.dmmf?.datamodel?.models || __require("@prisma/client")?.Prisma?.dmmf?.datamodel?.models;
-    if (dmmfModels) {
-      raw = dmmfModels;
+    try {
+      const prismaModule = __require("@prisma/client");
+      const dmmfModels = prismaModule?.Prisma?.dmmf?.datamodel?.models;
+      if (dmmfModels) {
+        raw = dmmfModels;
+      }
+    } catch {
     }
   }
   if (!raw) {
@@ -55,7 +59,9 @@ function getModels(prisma) {
       isId: f.isId,
       isRequired: f.isRequired,
       isList: f.isList,
-      isRelation: !!f.relationName
+      isRelation: !!f.relationName,
+      hasDefaultValue: !!f.hasDefaultValue || !!f.default,
+      isUpdatedAt: !!f.isUpdatedAt
     }));
     const idField = model.fields.find((f) => f.isId)?.name ?? "id";
     return {
@@ -173,7 +179,7 @@ function buildQuery(searchParams, defaultLimit = 20, maxLimit = 100) {
   return { where, orderBy, skip, take, include, select };
 }
 
-// src/middleware.ts
+// src/middleware-helpers.ts
 async function runGuard(guards, model, method, ctx) {
   const modelGuards = guards[model];
   if (!modelGuards) return null;
@@ -412,19 +418,27 @@ function fieldToZod(field) {
 }
 function generateModelSchema(meta) {
   const name = meta.name;
-  const fields = meta.fields.filter((f) => !f.isRelation && !f.isId).map((f) => {
+  const createFields = meta.fields.filter((f) => !f.isRelation && !f.isId && !f.hasDefaultValue && !f.isUpdatedAt).map((f) => {
     const zodExpr = fieldToZod(f);
     if (!zodExpr) return null;
     return `  ${f.name}: ${zodExpr},`;
+  }).filter(Boolean).join("\n");
+  const updateFields = meta.fields.filter((f) => !f.isRelation && !f.isId && !f.isUpdatedAt).map((f) => {
+    const zodExpr = fieldToZod(f);
+    if (!zodExpr) return null;
+    const optionalZod = zodExpr.includes(".optional()") ? zodExpr : `${zodExpr}.optional()`;
+    return `  ${f.name}: ${optionalZod},`;
   }).filter(Boolean).join("\n");
   return `
 // \u2500\u2500\u2500 ${name} \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 export const ${name}CreateSchema = z.object({
-${fields}
+${createFields}
 });
 
-export const ${name}UpdateSchema = ${name}CreateSchema.partial();
+export const ${name}UpdateSchema = z.object({
+${updateFields}
+});
 
 export type ${name}Create = z.infer<typeof ${name}CreateSchema>;
 export type ${name}Update = z.infer<typeof ${name}UpdateSchema>;
@@ -466,19 +480,26 @@ function buildRuntimeSchemas(prisma) {
   const models = getModels(prisma);
   const result = {};
   for (const meta of models) {
-    const shape = {};
+    const createShape = {};
+    const updateShape = {};
     for (const field of meta.fields) {
-      if (field.isRelation || field.isId) continue;
+      if (field.isRelation) continue;
       const factory = ZOD_FACTORIES[field.type] ?? (() => z.any());
       let schema = factory();
       if (!field.isRequired) schema = schema.optional();
       if (field.isList) schema = z.array(schema);
-      shape[field.name] = schema;
+      if (!field.isId && !field.hasDefaultValue && !field.isUpdatedAt) {
+        createShape[field.name] = schema;
+      }
+      if (!field.isId && !field.isUpdatedAt) {
+        updateShape[field.name] = schema.optional();
+      }
     }
-    const createSchema = z.object(shape);
+    const createSchema = z.object(createShape);
+    const updateSchema = z.object(updateShape);
     result[meta.routeName] = {
       create: createSchema,
-      update: createSchema.partial()
+      update: updateSchema
     };
   }
   return result;

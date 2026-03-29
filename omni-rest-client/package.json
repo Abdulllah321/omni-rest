@@ -1,0 +1,76 @@
+{
+  "name": "omni-rest-client",
+  "version": "0.1.0",
+  "description": "Frontend code generator for omni-rest — no Prisma required",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "omni-rest-client": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "base-components",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run clean && npm run build && npm test"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "rimraf": "^5.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": { "optional": false },
+    "react-dom": { "optional": false }
+  },
+  "generatedDependencies": {
+    "note": "These packages are required by the generated components. Install them in your frontend project.",
+    "required": [
+      "@tanstack/react-query",
+      "@tanstack/react-table",
+      "react-hook-form",
+      "zod",
+      "@hookform/resolvers",
+      "class-variance-authority",
+      "clsx",
+      "tailwind-merge",
+      "lucide-react",
+      "@radix-ui/react-alert-dialog",
+      "@radix-ui/react-checkbox",
+      "@radix-ui/react-dialog",
+      "@radix-ui/react-dropdown-menu",
+      "@radix-ui/react-popover",
+      "@radix-ui/react-progress",
+      "@radix-ui/react-scroll-area",
+      "@radix-ui/react-select",
+      "@radix-ui/react-separator",
+      "@radix-ui/react-slot",
+      "@radix-ui/react-switch",
+      "@radix-ui/react-tooltip",
+      "cmdk",
+      "react-day-picker"
+    ]
+  },
+  "keywords": [
+    "omni-rest",
+    "prisma",
+    "rest",
+    "codegen",
+    "react",
+    "nextjs",
+    "tanstack-query",
+    "shadcn"
+  ],
+  "license": "MIT"
+}
