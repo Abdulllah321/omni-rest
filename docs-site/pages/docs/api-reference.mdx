@@ -26,7 +26,7 @@ Complete reference for all Omni Rest endpoints.
 
 Omni Rest supports powerful filtering, sorting, and pagination via standard query parameters.
 
-<Tabs items={['Pagination', 'Sorting', 'Filtering']}>
+<Tabs items={['Pagination', 'Sorting', 'Filtering', 'Search & Fields']}>
   <Tabs.Tab>
     ```javascript copy
     GET /api/product?limit=10&offset=20
@@ -66,6 +66,37 @@ Omni Rest supports powerful filtering, sorting, and pagination via standard quer
     | `contains` | Contains substring | `name[contains]=Mac` |
     | `startsWith` | Starts with | `name[startsWith]=Mac` |
     | `endsWith` | Ends with | `name[endsWith]=Book` |
+  </Tabs.Tab>
+  <Tabs.Tab>
+    #### Global Search
+
+    ```javascript copy
+    GET /api/department?search=engineering
+    ```
+
+    Performs a case-insensitive search across **all `String` fields** of the model simultaneously using an `OR` condition.
+
+    ```
+    → WHERE name LIKE '%engineering%'
+         OR code LIKE '%engineering%'
+         OR description LIKE '%engineering%'
+    ```
+
+    Combines with other filters:
+    ```javascript copy
+    GET /api/department?search=eng&isActive=true
+    ```
+
+    #### Field Selection
+
+    Both `?select=` and `?fields=` are supported and produce identical results:
+
+    ```javascript copy
+    GET /api/user?select=id,name,email
+    GET /api/user?fields=id,name,email
+    ```
+
+    When both are provided, `?select=` takes precedence.
   </Tabs.Tab>
 </Tabs>
 

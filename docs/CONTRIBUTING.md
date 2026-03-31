@@ -171,7 +171,7 @@ These are self-contained, well-scoped, and a great way to learn the codebase.
 
 ---
 
-### #1 — `?search=` Global Search
+### #1 — `?search=` Global Search ✅ Implemented
 
 **File:** `src/query-builder.ts`
 
@@ -182,12 +182,13 @@ GET /api/department?search=eng
 → WHERE name LIKE '%eng%' OR code LIKE '%eng%' OR description LIKE '%eng%'
 ```
 
-**Implementation hint:**
-1. In `buildQuery`, detect `search` as a reserved key
-2. Read the model's fields from options (pass `ModelMeta` into query builder)
-3. Build `where: { OR: stringFields.map(f => ({ [f.name]: { contains: value } })) }`
+**Implementation:**
+- `search` and `fields` added to `RESERVED_KEYS`
+- `buildQuery` accepts an optional `modelFields?: FieldMeta[]` parameter
+- Filters to non-relation `String` fields and builds `where: { OR: [...] }` with `mode: "insensitive"`
+- `router.ts` passes `meta.fields` into `buildQuery`
 
-**Tests needed:** exact match, partial match, no string fields edge case.
+**Tests:** exact match, partial match, multi-field OR, no string fields (no-op), combined with other filters, `search` not treated as a filter field.
 
 ---
 
@@ -210,7 +211,7 @@ Auto-detect field from DMMF in `introspect.ts`. If detected, override the DELETE
 
 ---
 
-### #3 — `?fields=` Alias for `?select=`
+### #3 — `?fields=` Alias for `?select=` ✅ Implemented
 
 **File:** `src/query-builder.ts`
 
@@ -220,7 +221,9 @@ PostgREST uses `?select=`, REST users often expect `?fields=`. One-liner alias i
 const selectParam = searchParams.get("select") ?? searchParams.get("fields");
 ```
 
-**Tests needed:** both params produce identical output, precedence when both provided.
+Both `select` and `fields` are now in `RESERVED_KEYS`.
+
+**Tests:** both params produce identical output, `?select=` takes precedence when both provided.
 
 ---
 

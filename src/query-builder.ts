@@ -1,4 +1,4 @@
-import type { ParsedQuery } from "./types";
+import type { ParsedQuery, FieldMeta } from "./types";
 
 /**
  * Supported filter suffixes and their Prisma equivalents.
@@ -32,6 +32,8 @@ const RESERVED_KEYS = new Set([
   "sort",
   "include",
   "select",
+  "fields",
+  "search",
 ]);
 
 /**
@@ -42,12 +44,14 @@ const RESERVED_KEYS = new Set([
  *   Sorting    → ?sort=createdAt:desc  or  ?sort=name:asc
  *   Pagination → ?page=2&limit=10
  *   Relations  → ?include=posts,profile
- *   Fields     → ?select=id,name,email
+ *   Fields     → ?select=id,name,email  or  ?fields=id,name,email
+ *   Search     → ?search=eng  (queries all String fields with OR)
  */
 export function buildQuery(
   searchParams: URLSearchParams,
   defaultLimit = 20,
-  maxLimit = 100
+  maxLimit = 100,
+  modelFields?: FieldMeta[]
 ): ParsedQuery {
   const where: Record<string, any> = {};
   const orderBy: Record<string, "asc" | "desc"> = {};
@@ -80,12 +84,27 @@ export function buildQuery(
     }
   }
 
-  // ─── Select (fields) ──────────────────────────────────────────────────────
-  const selectParam = searchParams.get("select");
+  // ─── Select (fields) — ?select= or ?fields= alias ────────────────────────
+  const selectParam = searchParams.get("select") ?? searchParams.get("fields");
   if (selectParam) {
     select = {};
     for (const field of selectParam.split(",")) {
       if (field.trim()) select[field.trim()] = true;
+    }
+  }
+
+  // ─── Global search (?search=) ─────────────────────────────────────────────
+  const searchValue = searchParams.get("search");
+  if (searchValue && modelFields) {
+    const stringFields = modelFields.filter(
+      (f) => f.type === "String" && !f.isRelation
+    );
+    if (stringFields.length > 0) {
+      const orClauses = stringFields.map((f) => ({
+        [f.name]: { contains: searchValue, mode: "insensitive" },
+      }));
+      // Merge with any existing where via AND so other filters still apply
+      where["OR"] = orClauses;
     }
   }
 

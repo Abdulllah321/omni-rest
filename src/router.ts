@@ -114,7 +114,8 @@ async function executeOperation(
   const { where, orderBy, skip, take, include, select } = buildQuery(
     searchParams,
     defaultLimit,
-    maxLimit
+    maxLimit,
+    meta.fields
   );
 
   // Build include/select args (mutually exclusive in Prisma)

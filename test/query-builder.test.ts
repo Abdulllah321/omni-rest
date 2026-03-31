@@ -1,5 +1,33 @@
 import { describe, it, expect } from "vitest";
 import { buildQuery } from "../src/query-builder";
+import type { FieldMeta } from "../src/types";
+
+// ─── Shared field fixtures ─────────────────────────────────────────────────
+const makeField = (name: string, type: string, isRelation = false): FieldMeta => ({
+  name,
+  type,
+  isId: false,
+  isRequired: true,
+  isList: false,
+  isRelation,
+  hasDefaultValue: false,
+  isUpdatedAt: false,
+});
+
+const departmentFields: FieldMeta[] = [
+  { ...makeField("id", "Int"), isId: true },
+  makeField("name", "String"),
+  makeField("code", "String"),
+  makeField("description", "String"),
+  makeField("headCount", "Int"),
+  makeField("isActive", "Boolean"),
+];
+
+const noStringFields: FieldMeta[] = [
+  { ...makeField("id", "Int"), isId: true },
+  makeField("count", "Int"),
+  makeField("isActive", "Boolean"),
+];
 
 describe("buildQuery", () => {
   // ─── Exact match ───────────────────────────────────────────────────────────
@@ -102,5 +130,80 @@ describe("buildQuery", () => {
   it("returns null select when not specified", () => {
     const { select } = buildQuery(new URLSearchParams(""));
     expect(select).toBeNull();
+  });
+
+  // ─── ?fields= alias for ?select= ──────────────────────────────────────────
+  it("?fields= produces same output as ?select=", () => {
+    const fromSelect = buildQuery(new URLSearchParams("select=id,name,email"));
+    const fromFields = buildQuery(new URLSearchParams("fields=id,name,email"));
+    expect(fromFields.select).toEqual(fromSelect.select);
+  });
+
+  it("?select= takes precedence when both ?select= and ?fields= are provided", () => {
+    const { select } = buildQuery(new URLSearchParams("select=id,name&fields=email"));
+    expect(select).toEqual({ id: true, name: true });
+  });
+
+  // ─── ?search= global search ────────────────────────────────────────────────
+  describe("?search=", () => {
+    it("builds OR across all String fields", () => {
+      const { where } = buildQuery(
+        new URLSearchParams("search=eng"),
+        20,
+        100,
+        departmentFields
+      );
+      expect(where.OR).toEqual([
+        { name: { contains: "eng", mode: "insensitive" } },
+        { code: { contains: "eng", mode: "insensitive" } },
+        { description: { contains: "eng", mode: "insensitive" } },
+      ]);
+    });
+
+    it("is case-insensitive by default", () => {
+      const { where } = buildQuery(
+        new URLSearchParams("search=ENG"),
+        20,
+        100,
+        departmentFields
+      );
+      expect(where.OR[0]).toMatchObject({ name: { mode: "insensitive" } });
+    });
+
+    it("is a no-op when model has no String fields", () => {
+      const { where } = buildQuery(
+        new URLSearchParams("search=anything"),
+        20,
+        100,
+        noStringFields
+      );
+      expect(where.OR).toBeUndefined();
+    });
+
+    it("is a no-op when no modelFields are provided", () => {
+      const { where } = buildQuery(new URLSearchParams("search=eng"));
+      expect(where.OR).toBeUndefined();
+    });
+
+    it("combines with other filters", () => {
+      const { where } = buildQuery(
+        new URLSearchParams("search=eng&isActive=true"),
+        20,
+        100,
+        departmentFields
+      );
+      expect(where.isActive).toBe(true);
+      expect(where.OR).toHaveLength(3);
+    });
+
+    it("does not treat 'search' as a filter field", () => {
+      const { where } = buildQuery(
+        new URLSearchParams("search=eng"),
+        20,
+        100,
+        departmentFields
+      );
+      expect(where.search).toBeUndefined();
+    });
   });
 });

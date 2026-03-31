@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-03-31
+
+### Added
+- **`?search=` global search** — new query parameter that performs a case-insensitive OR search across all `String` fields of a model
+  ```
+  GET /api/department?search=eng
+  → WHERE name LIKE '%eng%' OR code LIKE '%eng%' OR description LIKE '%eng%'
+  ```
+  - Graceful no-op when the model has no `String` fields
+  - Composes with all other filters (`?search=eng&isActive=true`)
+- **`?fields=` alias for `?select=`** — both params now produce identical field selection; `?select=` takes precedence when both are provided
+
+### Changed
+- `buildQuery` now accepts an optional `modelFields?: FieldMeta[]` parameter to enable search field introspection
+- `router.ts` passes `meta.fields` into `buildQuery` automatically
+
 ## [0.4.0] - 2026-03-29
 
 ### Added
