@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
-import { P as PrismaRestOptions, R as RouterInstance, M as ModelMeta, a as ParsedQuery, G as GuardMap, H as HookFn, b as HookContext } from './types-jvppYvku.mjs';
-export { F as FieldMeta, c as GuardFn, d as HandlerResult } from './types-jvppYvku.mjs';
+import { P as PrismaRestOptions, R as RouterInstance, M as ModelMeta, F as FieldMeta, a as ParsedQuery, G as GuardMap, H as HookFn, b as HookContext } from './types-jvppYvku.mjs';
+export { c as GuardFn, d as HandlerResult } from './types-jvppYvku.mjs';
 export { expressAdapter } from './adapters/express.mjs';
 export { nextjsAdapter } from './adapters/nextjs.mjs';
 export { fastifyAdapter } from './adapters/fastify.mjs';
@@ -43,9 +43,10 @@ declare function getDelegate(prisma: any, meta: ModelMeta): any;
  *   Sorting    → ?sort=createdAt:desc  or  ?sort=name:asc
  *   Pagination → ?page=2&limit=10
  *   Relations  → ?include=posts,profile
- *   Fields     → ?select=id,name,email
+ *   Fields     → ?select=id,name,email  or  ?fields=id,name,email
+ *   Search     → ?search=eng  (queries all String fields with OR)
  */
-declare function buildQuery(searchParams: URLSearchParams, defaultLimit?: number, maxLimit?: number): ParsedQuery;
+declare function buildQuery(searchParams: URLSearchParams, defaultLimit?: number, maxLimit?: number, modelFields?: FieldMeta[]): ParsedQuery;
 
 /**
  * Runs the guard for the given model+method combo.
@@ -128,6 +129,22 @@ declare function generateOpenApiSpec(prisma: any, options?: {
         description?: string;
     }[];
 }): object;
+
+/**
+ * The shared config format written by the backend CLI and consumed by omni-rest-client.
+ * No Prisma dependency on the consumer side — just plain JSON.
+ */
+interface OmniRestConfig {
+    version: string;
+    generatedAt: string;
+    models: ModelMeta[];
+    zodSchemas: string;
+}
+/**
+ * Generates the omni-rest.config.json content from a Prisma client instance.
+ * This is the bridge between the backend (Prisma) and the client CLI (no Prisma).
+ */
+declare function generateConfig(prisma: any): OmniRestConfig;
 
 /**
  * Koa adapter for omni-rest.
@@ -213,4 +230,4 @@ declare const hapiAdapter: {
  */
 declare function nestjsController(prisma: PrismaClient, options?: PrismaRestOptions, prefix?: string): any;
 
-export { GuardMap, HookContext, HookFn, ModelMeta, ParsedQuery, PrismaRestOptions, RouterInstance, buildModelMap, buildQuery, buildRuntimeSchemas, createRouter, generateOpenApiSpec, generateZodSchemas, getDelegate, getModels, hapiAdapter, koaAdapter, nestjsController, runGuard, runHook, toRouteName, validateBody, withValidation };
+export { FieldMeta, GuardMap, HookContext, HookFn, ModelMeta, type OmniRestConfig, ParsedQuery, PrismaRestOptions, RouterInstance, buildModelMap, buildQuery, buildRuntimeSchemas, createRouter, generateConfig, generateOpenApiSpec, generateZodSchemas, getDelegate, getModels, hapiAdapter, koaAdapter, nestjsController, runGuard, runHook, toRouteName, validateBody, withValidation };

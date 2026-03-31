@@ -34,7 +34,7 @@ export function generateFormFile(
 
   // Imports - use relative paths for all frameworks
   lines.push(`import { FormGenerator } from "../form-generator";`);
-  lines.push(`import { ${name}CreateSchema } from "../../src/schemas.generated";`);
+  lines.push(`import { ${name}CreateSchema } from "../../schemas.generated";`);
   lines.push(
     `import { useCreate${name}, useUpdate${name} } from "../../hooks/use${name}";`
   );

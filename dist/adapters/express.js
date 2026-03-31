@@ -99,9 +99,11 @@ var RESERVED_KEYS = /* @__PURE__ */ new Set([
   "limit",
   "sort",
   "include",
-  "select"
+  "select",
+  "fields",
+  "search"
 ]);
-function buildQuery(searchParams, defaultLimit = 20, maxLimit = 100) {
+function buildQuery(searchParams, defaultLimit = 20, maxLimit = 100, modelFields) {
   const where = {};
   const orderBy = {};
   let include = {};
@@ -125,11 +127,23 @@ function buildQuery(searchParams, defaultLimit = 20, maxLimit = 100) {
       if (rel.trim()) include[rel.trim()] = true;
     }
   }
-  const selectParam = searchParams.get("select");
+  const selectParam = searchParams.get("select") ?? searchParams.get("fields");
   if (selectParam) {
     select = {};
     for (const field of selectParam.split(",")) {
       if (field.trim()) select[field.trim()] = true;
+    }
+  }
+  const searchValue = searchParams.get("search");
+  if (searchValue && modelFields) {
+    const stringFields = modelFields.filter(
+      (f) => f.type === "String" && !f.isRelation
+    );
+    if (stringFields.length > 0) {
+      const orClauses = stringFields.map((f) => ({
+        [f.name]: { contains: searchValue, mode: "insensitive" }
+      }));
+      where["OR"] = orClauses;
     }
   }
   for (const [key, value] of searchParams.entries()) {
@@ -248,7 +262,8 @@ async function executeOperation(prisma, meta, method, id, body, searchParams, de
   const { where, orderBy, skip, take, include, select } = buildQuery(
     searchParams,
     defaultLimit,
-    maxLimit
+    maxLimit,
+    meta.fields
   );
   const includeArg = Object.keys(include).length > 0 ? include : void 0;
   const selectArg = select && Object.keys(select).length > 0 ? select : void 0;
