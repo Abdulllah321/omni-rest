@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { getModels, buildModelMap, getDelegate } from "./introspect";
+import { getModels, buildModelMap, getDelegate, detectSoftDeleteField } from "./introspect";
 import { buildQuery } from "./query-builder";
 import { runGuard, runHook } from "./middleware-helpers";
 import type {
@@ -25,6 +25,8 @@ export function createRouter(
     afterOperation,
     defaultLimit = 20,
     maxLimit = 100,
+    softDelete = false,
+    softDeleteField,
   } = options;
 
   // Introspect schema once at startup
@@ -76,7 +78,9 @@ export function createRouter(
         searchParams,
         defaultLimit,
         maxLimit,
-        operation
+        operation,
+        softDelete,
+        softDeleteField
       );
     } catch (e: any) {
       return handlePrismaError(e);
@@ -108,7 +112,9 @@ async function executeOperation(
   searchParams: URLSearchParams,
   defaultLimit: number,
   maxLimit: number,
-  operation?: string
+  operation?: string,
+  softDelete = false,
+  softDeleteField?: string
 ): Promise<HandlerResult> {
   const delegate = getDelegate(prisma, meta);
   const { where, orderBy, skip, take, include, select } = buildQuery(
@@ -199,9 +205,17 @@ async function executeOperation(
 
   // ── GET /model ─────────────────────────────────────────────────────────────
   if (method === "GET" && !id) {
+    // Exclude soft-deleted records from list when soft delete is active
+    const softDeleteInfo = softDelete
+      ? detectSoftDeleteField(meta.fields, softDeleteField)
+      : null;
+    const listWhere = softDeleteInfo
+      ? { ...where, [softDeleteInfo.field]: softDeleteInfo.field === "isActive" ? true : null }
+      : where;
+
     const [data, total] = await (prisma as any).$transaction([
-      delegate.findMany({ where, orderBy, skip, take, ...projection }),
-      delegate.count({ where }),
+      delegate.findMany({ where: listWhere, orderBy, skip, take, ...projection }),
+      delegate.count({ where: listWhere }),
     ]);
 
     return {
@@ -249,6 +263,18 @@ async function executeOperation(
 
   // ── DELETE /model/:id ──────────────────────────────────────────────────────
   if (method === "DELETE" && id) {
+    const softDeleteInfo = softDelete
+      ? detectSoftDeleteField(meta.fields, softDeleteField)
+      : null;
+
+    if (softDeleteInfo) {
+      const record = await delegate.update({
+        where: { [meta.idField]: coerceId(id) },
+        data: { [softDeleteInfo.field]: softDeleteInfo.value },
+      });
+      return { status: 200, data: record };
+    }
+
     await delegate.delete({
       where: { [meta.idField]: coerceId(id) },
     });

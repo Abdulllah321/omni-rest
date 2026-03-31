@@ -68,6 +68,19 @@ function buildModelMap(models, allowList) {
   const filtered = allowList ? models.filter((m) => allowList.includes(m.routeName)) : models;
   return Object.fromEntries(filtered.map((m) => [m.routeName, m]));
 }
+function detectSoftDeleteField(fields, explicitField) {
+  if (explicitField) {
+    const f = fields.find((f2) => f2.name === explicitField);
+    if (!f) return null;
+    const value = f.type === "Boolean" ? false : /* @__PURE__ */ new Date();
+    return { field: explicitField, value };
+  }
+  const deletedAt = fields.find((f) => f.name === "deletedAt" && f.type === "DateTime");
+  if (deletedAt) return { field: "deletedAt", value: /* @__PURE__ */ new Date() };
+  const isActive = fields.find((f) => f.name === "isActive" && f.type === "Boolean");
+  if (isActive) return { field: "isActive", value: false };
+  return null;
+}
 function getDelegate(prisma, meta) {
   const key = meta.name.charAt(0).toLowerCase() + meta.name.slice(1);
   const delegate = prisma[key];
@@ -207,7 +220,9 @@ function createRouter(prisma, options = {}) {
     beforeOperation,
     afterOperation,
     defaultLimit = 20,
-    maxLimit = 100
+    maxLimit = 100,
+    softDelete = false,
+    softDeleteField
   } = options;
   const models = getModels(prisma);
   const modelMap = buildModelMap(models, allow);
@@ -241,7 +256,9 @@ function createRouter(prisma, options = {}) {
         searchParams,
         defaultLimit,
         maxLimit,
-        operation
+        operation,
+        softDelete,
+        softDeleteField
       );
     } catch (e) {
       return handlePrismaError(e);
@@ -257,7 +274,7 @@ function createRouter(prisma, options = {}) {
   }
   return { handle, modelMap, models };
 }
-async function executeOperation(prisma, meta, method, id, body, searchParams, defaultLimit, maxLimit, operation) {
+async function executeOperation(prisma, meta, method, id, body, searchParams, defaultLimit, maxLimit, operation, softDelete = false, softDeleteField) {
   const delegate = getDelegate(prisma, meta);
   const { where, orderBy, skip, take, include, select } = buildQuery(
     searchParams,
@@ -326,9 +343,11 @@ async function executeOperation(prisma, meta, method, id, body, searchParams, de
     };
   }
   if (method === "GET" && !id) {
+    const softDeleteInfo = softDelete ? detectSoftDeleteField(meta.fields, softDeleteField) : null;
+    const listWhere = softDeleteInfo ? { ...where, [softDeleteInfo.field]: softDeleteInfo.field === "isActive" ? true : null } : where;
     const [data, total] = await prisma.$transaction([
-      delegate.findMany({ where, orderBy, skip, take, ...projection }),
-      delegate.count({ where })
+      delegate.findMany({ where: listWhere, orderBy, skip, take, ...projection }),
+      delegate.count({ where: listWhere })
     ]);
     return {
       status: 200,
@@ -365,6 +384,14 @@ async function executeOperation(prisma, meta, method, id, body, searchParams, de
     return { status: 200, data: record };
   }
   if (method === "DELETE" && id) {
+    const softDeleteInfo = softDelete ? detectSoftDeleteField(meta.fields, softDeleteField) : null;
+    if (softDeleteInfo) {
+      const record = await delegate.update({
+        where: { [meta.idField]: coerceId(id) },
+        data: { [softDeleteInfo.field]: softDeleteInfo.value }
+      });
+      return { status: 200, data: record };
+    }
     await delegate.delete({
       where: { [meta.idField]: coerceId(id) }
     });

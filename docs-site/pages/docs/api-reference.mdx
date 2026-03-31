@@ -260,24 +260,42 @@ Omni Rest supports powerful filtering, sorting, and pagination via standard quer
 
 ### DELETE - Delete Record
 
-<Tabs items={['Request', 'Response', 'Status Codes']}>
+<Tabs items={['Request', 'Response (hard delete)', 'Response (soft delete)', 'Status Codes']}>
   <Tabs.Tab>
     **DELETE** `/api/:model/:id`
 
-    Deletes a record by ID.
+    Deletes a record by ID. If `softDelete: true` is configured and the model has a `deletedAt` or `isActive` field, the record is soft-deleted instead of destroyed.
 
     **Path Parameters:**
     - `id` - Record ID
   </Tabs.Tab>
   <Tabs.Tab>
+    Hard delete — no response body, status `204`.
+  </Tabs.Tab>
+  <Tabs.Tab>
+    Soft delete — returns the updated record with status `200`:
+
     ```json copy
     {
-      "message": "Record deleted successfully"
+      "id": 1,
+      "name": "Laptop",
+      "deletedAt": "2026-03-31T17:00:00.000Z"
+    }
+    ```
+
+    Or for `isActive` models:
+
+    ```json copy
+    {
+      "id": 1,
+      "name": "Laptop",
+      "isActive": false
     }
     ```
   </Tabs.Tab>
   <Tabs.Tab>
-    - `200` - Success
+    - `204` - Deleted (hard delete)
+    - `200` - Updated (soft delete)
     - `404` - Not found
   </Tabs.Tab>
 </Tabs>

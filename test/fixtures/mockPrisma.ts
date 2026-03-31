@@ -21,6 +21,8 @@ export function createMockPrisma() {
     user: makeDelegate(),
     department: makeDelegate(),
     category: makeDelegate(),
+    post: makeDelegate(),      // has deletedAt — for soft delete tests
+    product: makeDelegate(),   // has isActive  — for soft delete tests
     $transaction: vi.fn((ops: Promise<any>[]) => Promise.all(ops)),
     // Provide _runtimeDataModel so getModels() resolves without @prisma/client
     _runtimeDataModel: {
@@ -42,6 +44,20 @@ export function createMockPrisma() {
           fields: [
             { name: "id", isId: true, type: "Int", isRequired: true, isList: false, kind: "scalar" },
             { name: "label", isId: false, type: "String", isRequired: true, isList: false, kind: "scalar" },
+          ],
+        },
+        Post: {
+          fields: [
+            { name: "id", isId: true, type: "Int", isRequired: true, isList: false, kind: "scalar" },
+            { name: "title", isId: false, type: "String", isRequired: true, isList: false, kind: "scalar" },
+            { name: "deletedAt", isId: false, type: "DateTime", isRequired: false, isList: false, kind: "scalar" },
+          ],
+        },
+        Product: {
+          fields: [
+            { name: "id", isId: true, type: "Int", isRequired: true, isList: false, kind: "scalar" },
+            { name: "name", isId: false, type: "String", isRequired: true, isList: false, kind: "scalar" },
+            { name: "isActive", isId: false, type: "Boolean", isRequired: true, isList: false, kind: "scalar" },
           ],
         },
       },

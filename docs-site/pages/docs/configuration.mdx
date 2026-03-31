@@ -172,6 +172,69 @@ expressAdapter(prisma, {
   `result`: Operation result (`afterOperation` only)
 </Callout>
 
+## Soft Delete
+
+When enabled, `DELETE` updates a designated field instead of destroying the record. The model's fields are auto-detected from your Prisma schema — no extra config needed in most cases.
+
+<Tabs items={['Auto-detect', 'Explicit field', 'isActive variant']}>
+  <Tabs.Tab>
+    omni-rest looks for `deletedAt` (DateTime) or `isActive` (Boolean) automatically:
+
+    ```typescript copy
+    expressAdapter(prisma, {
+      softDelete: true,
+    });
+    ```
+
+    ```
+    DELETE /api/post/5
+    → UPDATE Post SET deletedAt = NOW() WHERE id = 5
+    → 200 { id: 5, deletedAt: "2026-03-31T..." }
+    ```
+
+    GET list automatically excludes soft-deleted records:
+    ```
+    GET /api/post
+    → WHERE deletedAt IS NULL
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    Override the auto-detected field with an explicit name:
+
+    ```typescript copy
+    expressAdapter(prisma, {
+      softDelete: true,
+      softDeleteField: "archivedAt",  // any DateTime field
+    });
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    Works the same way for Boolean `isActive` fields:
+
+    ```typescript copy
+    expressAdapter(prisma, {
+      softDelete: true,
+    });
+    ```
+
+    ```
+    DELETE /api/product/5
+    → UPDATE Product SET isActive = false WHERE id = 5
+    → 200 { id: 5, isActive: false }
+    ```
+
+    GET list automatically filters to active records:
+    ```
+    GET /api/product
+    → WHERE isActive = true
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+<Callout type="info">
+  If the model has no matching soft-delete field, omni-rest falls back to a hard delete automatically — no error thrown.
+</Callout>
+
 ## OpenAPI Configuration
 
 Generate customized API documentation and serve it natively:

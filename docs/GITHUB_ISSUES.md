@@ -45,102 +45,23 @@ v1.0.0 — Production-ready (6 months in)
 
 ---
 
-## Issue #2
+## Issue #2 ✅ RESOLVED
 
 **Title:** `feat: soft delete support for models with deletedAt or isActive`
 
 **Labels:** `good first issue`, `enhancement`, `router`
 
-**Body:**
-```
-## Summary
-When a model has a `deletedAt: DateTime?` or `isActive: Boolean` field, 
-DELETE requests should perform a soft delete (update the field) rather 
-than permanently destroying the record.
-
-## Motivation
-Nearly every management system needs soft delete. Currently developers 
-have to write a custom DELETE guard to achieve this, which defeats the 
-purpose of omni-rest.
-
-## Desired Behavior
-// Option A — explicit config
-omniRest(prisma, {
-  softDelete: true,
-  softDeleteField: "deletedAt",  // default
-})
-
-// Option B — auto-detect from DMMF
-// If model has `deletedAt: DateTime?`, use it automatically
-
-DELETE /api/department/5
-→ UPDATE Department SET deletedAt = NOW() WHERE id = 5
-→ 200 { id: 5, deletedAt: "2025-01-01T..." }
-
-## Implementation Notes
-- Files to edit: `src/router.ts`, `src/introspect.ts`, `src/types.ts`
-- Add `softDelete?: boolean` and `softDeleteField?: string` to PrismaRestOptions
-- In introspect.ts, detect if model has `deletedAt` or `isActive` field
-- In router.ts DELETE handler: if softDelete enabled and field exists,
-  call delegate.update() instead of delegate.delete()
-- For isActive: set to false. For deletedAt: set to new Date().
-- Auto-exclude soft-deleted records from GET list (add to default where)
-
-## Tests Needed
-- DELETE with softDelete:true updates the field instead of deleting
-- GET list excludes soft-deleted records by default
-- Hard delete still works when softDelete option is false
-- Model without the field falls back to hard delete gracefully
-
-## Acceptance Criteria
-- [ ] `softDelete: true` option works
-- [ ] Auto-detection from DMMF field name works
-- [ ] GET list filters out soft-deleted records
-- [ ] Tests pass
-- [ ] Option documented in README
-```
+**Status:** Implemented across `src/introspect.ts`, `src/router.ts`, and `src/types.ts`. `detectSoftDeleteField()` auto-detects `deletedAt` (DateTime) or `isActive` (Boolean) from DMMF. DELETE performs an update when the field is found; falls back to hard delete otherwise. GET list automatically excludes soft-deleted records. Tests in `test/soft-delete.test.ts`.
 
 ---
 
-## Issue #3
+## Issue #3 ✅ RESOLVED
 
 **Title:** `feat: add ?fields= as alias for ?select=`
 
 **Labels:** `good first issue`, `enhancement`, `query-builder`
 
-**Body:**
-```
-## Summary
-Add `?fields=` as an alias for `?select=` in the query builder.
-
-## Motivation
-Different REST API conventions use different names for field selection:
-- PostgREST uses ?select=
-- Many popular APIs use ?fields=
-- Both should work in omni-rest
-
-## Desired Behavior
-Both of these should produce identical results:
-GET /api/user?select=id,name,email
-GET /api/user?fields=id,name,email
-
-## Implementation Notes
-- File to edit: `src/query-builder.ts`
-- One line change: 
-  const selectParam = searchParams.get("select") ?? searchParams.get("fields");
-- Add "fields" to RESERVED_KEYS set
-
-## Tests Needed
-- ?fields= produces same ParsedQuery as ?select=
-- ?select= still works (backward compat)
-- When both are provided, ?select= takes precedence
-
-## Acceptance Criteria
-- [ ] ?fields= and ?select= produce identical output
-- [ ] "fields" is a reserved key (not treated as a filter)
-- [ ] Tests pass
-- [ ] README updated with both options shown
-```
+**Status:** Implemented in `src/query-builder.ts` as part of the issue #1 batch. `fields` added to `RESERVED_KEYS`; select param resolution is `searchParams.get("select") ?? searchParams.get("fields")`. `?select=` takes precedence when both are provided. Tests in `test/query-builder.test.ts`.
 
 ---
 
@@ -253,45 +174,45 @@ GET /api/department
 
 **Body:**
 ```
-## Summary
-Export a dedicated Express error-handling middleware that maps Prisma error 
-codes to clean JSON responses — so users don't have to write their own 
-error handlers.
+    ## Summary
+    Export a dedicated Express error-handling middleware that maps Prisma error 
+    codes to clean JSON responses — so users don't have to write their own 
+    error handlers.
 
-## Motivation
-Users writing custom routes alongside omni-rest still get raw Prisma errors.
-A shared error handler makes the whole API consistent.
+    ## Motivation
+    Users writing custom routes alongside omni-rest still get raw Prisma errors.
+    A shared error handler makes the whole API consistent.
 
-## Desired Behavior
-import { expressAdapter, omniRestErrorHandler } from "omni-rest/express";
+    ## Desired Behavior
+    import { expressAdapter, omniRestErrorHandler } from "omni-rest/express";
 
-app.use("/api", expressAdapter(prisma));
-app.use("/custom", myCustomRoutes);
-app.use(omniRestErrorHandler());  // catches everything
+    app.use("/api", expressAdapter(prisma));
+    app.use("/custom", myCustomRoutes);
+    app.use(omniRestErrorHandler());  // catches everything
 
-// P2025 → 404 { error: "Record not found" }
-// P2002 → 409 { error: "Unique constraint failed on: email" }
-// P2003 → 400 { error: "Foreign key constraint failed" }
-// P2014 → 400 { error: "Relation violation" }
-// Other → 500 { error: message }
+    // P2025 → 404 { error: "Record not found" }
+    // P2002 → 409 { error: "Unique constraint failed on: email" }
+    // P2003 → 400 { error: "Foreign key constraint failed" }
+    // P2014 → 400 { error: "Relation violation" }
+    // Other → 500 { error: message }
 
-## Implementation Notes
-- File: `src/adapters/express.ts`
-- Standard Express error middleware: (err, req, res, next) => {}
-- Reuse the handlePrismaError() function already in router.ts
-- Export it from adapters/express.ts
+    ## Implementation Notes
+    - File: `src/adapters/express.ts`
+    - Standard Express error middleware: (err, req, res, next) => {}
+    - Reuse the handlePrismaError() function already in router.ts
+    - Export it from adapters/express.ts
 
-## Tests Needed
-- P2025 produces 404
-- P2002 produces 409 with field name
-- Unknown error produces 500
-- Non-Prisma error passes through to next()
+    ## Tests Needed
+    - P2025 produces 404
+    - P2002 produces 409 with field name
+    - Unknown error produces 500
+    - Non-Prisma error passes through to next()
 
-## Acceptance Criteria
-- [ ] Exported as omniRestErrorHandler from omni-rest/express
-- [ ] Maps all documented Prisma error codes
-- [ ] Tests pass
-- [ ] README shows usage example
+    ## Acceptance Criteria
+    - [ ] Exported as omniRestErrorHandler from omni-rest/express
+    - [ ] Maps all documented Prisma error codes
+    - [ ] Tests pass
+    - [ ] README shows usage example
 ```
 
 ---

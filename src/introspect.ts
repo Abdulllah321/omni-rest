@@ -99,6 +99,36 @@ export function buildModelMap(
 }
 
 /**
+ * Auto-detects the soft-delete field for a model.
+ * Returns the field name and the value to set, or null if not found.
+ *
+ * Priority:
+ *   1. Explicit `softDeleteField` option
+ *   2. A field named "deletedAt" with type DateTime
+ *   3. A field named "isActive" with type Boolean
+ */
+export function detectSoftDeleteField(
+  fields: FieldMeta[],
+  explicitField?: string
+): { field: string; value: Date | boolean } | null {
+  if (explicitField) {
+    const f = fields.find((f) => f.name === explicitField);
+    if (!f) return null;
+    // Infer value from type
+    const value = f.type === "Boolean" ? false : new Date();
+    return { field: explicitField, value };
+  }
+
+  const deletedAt = fields.find((f) => f.name === "deletedAt" && f.type === "DateTime");
+  if (deletedAt) return { field: "deletedAt", value: new Date() };
+
+  const isActive = fields.find((f) => f.name === "isActive" && f.type === "Boolean");
+  if (isActive) return { field: "isActive", value: false };
+
+  return null;
+}
+
+/**
  * Gets the Prisma client delegate for a model.
  * prisma["userProfile"] or prisma["user"] — handles camelCase.
  */

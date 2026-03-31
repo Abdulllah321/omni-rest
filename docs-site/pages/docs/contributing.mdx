@@ -80,14 +80,17 @@ We follow these conventions:
 ## Areas for Contribution
 
 <Cards>
-  <Card icon={<AlertTriangle color="#ef4444" />} title="High Priority" href="#high-priority">
-    Additional Framework Support (Hapi, Koa, Nest.js), Query Performance Optimization, Validation Improvements (Zod integration), Test Coverage
+  <Card icon={<CheckCircle2 color="#22c55e" />} title="Recently Shipped" href="#recently-shipped">
+    ?search= global search, soft delete (deletedAt / isActive), ?fields= alias for ?select=
   </Card>
-  <Card icon={<Lightbulb color="#eab308" />} title="Medium Priority" href="#medium-priority">
-    Caching Layer (Redis), Rate Limiting Middleware, GraphQL Export, API Versioning
+  <Card icon={<AlertTriangle color="#ef4444" />} title="Good First Issues" href="#good-first-issues">
+    Sort by relation count (?sort=_count.posts:desc), response envelope option, Express error handler middleware
   </Card>
-  <Card icon={<CheckCircle2 color="#3b82f6" />} title="Low Priority" href="#low-priority">
-    CLI Enhancements, Documentation additions, TypeScript Strict Mode completion
+  <Card icon={<Lightbulb color="#eab308" />} title="Intermediate" href="#intermediate">
+    Nested relation filtering, bulk create/update/delete, field-level permissions, rate limit hook
+  </Card>
+  <Card icon={<GitPullRequest color="#a855f7" />} title="Advanced" href="#advanced">
+    Cursor pagination, aggregation endpoints, SSE subscriptions, plugin architecture
   </Card>
 </Cards>
 

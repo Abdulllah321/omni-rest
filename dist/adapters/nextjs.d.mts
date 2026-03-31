@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { P as PrismaRestOptions } from '../types-jvppYvku.mjs';
+import { P as PrismaRestOptions } from '../types-Dhk8VaWX.mjs';
 
 /**
  * Next.js App Router adapter for omni-rest.

@@ -192,22 +192,27 @@ GET /api/department?search=eng
 
 ---
 
-### #2 — Soft Delete Support
+### #2 — Soft Delete Support ✅ Implemented
 
-**File:** `src/router.ts`, `src/types.ts`
+**Files:** `src/router.ts`, `src/introspect.ts`, `src/types.ts`
 
 If a model has `deletedAt: DateTime?` or `isActive: Boolean`, `DELETE` should update that field instead of destroying the record.
 
 ```ts
 omniRest(prisma, {
   softDelete: true,               // global
-  softDeleteField: "deletedAt",  // default: "deletedAt"
+  softDeleteField: "deletedAt",  // optional — auto-detected if omitted
 })
 ```
 
-Auto-detect field from DMMF in `introspect.ts`. If detected, override the DELETE handler.
+**Auto-detection priority (when `softDeleteField` is omitted):**
+1. Field named `deletedAt` with type `DateTime` → set to `new Date()`
+2. Field named `isActive` with type `Boolean` → set to `false`
+3. No matching field → falls back to hard delete
 
-**Tests needed:** soft delete updates field, hard delete still works when field absent.
+**GET list** automatically excludes soft-deleted records (`deletedAt: null` / `isActive: true`) when `softDelete: true`.
+
+**Tests:** soft delete updates field, isActive variant, GET list exclusion, fallback to hard delete when field absent, hard delete when option is false.
 
 ---
 

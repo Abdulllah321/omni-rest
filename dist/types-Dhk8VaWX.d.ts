@@ -51,6 +51,18 @@ interface PrismaRestOptions {
     maxLimit?: number;
     /** Prefix path (used by some adapters). e.g. "/api/master" */
     prefix?: string;
+    /**
+     * Enable soft delete. When true, DELETE sets the soft-delete field instead
+     * of destroying the record. Auto-detected from DMMF if the model has a
+     * `deletedAt` (DateTime) or `isActive` (Boolean) field.
+     */
+    softDelete?: boolean;
+    /**
+     * Field name to use for soft delete. Defaults to auto-detection:
+     * "deletedAt" (set to new Date()) or "isActive" (set to false).
+     * Explicit value overrides auto-detection.
+     */
+    softDeleteField?: string;
 }
 interface ParsedQuery {
     where: Record<string, any>;
