@@ -8,6 +8,7 @@ import type {
   RouterInstance,
   ModelMeta,
   FieldGuardConfig,
+  RateLimitFn,
 } from "./types";
 
 /**
@@ -30,6 +31,7 @@ export function createRouter(
     softDeleteField,
     envelope = true,
     fieldGuards = {},
+    rateLimit,
   } = options;
 
   // Introspect schema once at startup
@@ -56,7 +58,15 @@ export function createRouter(
       };
     }
 
-    // ── 2. Guard check ─────────────────────────────────────────────────────
+    // ── 2. Rate limit check ────────────────────────────────────────────────
+    if (rateLimit) {
+      const rateLimitError = await rateLimit({ model: meta.name, method, id });
+      if (rateLimitError) {
+        return { status: 429, data: { error: rateLimitError } };
+      }
+    }
+
+    // ── 3. Guard check ─────────────────────────────────────────────────────
     const guardError = await runGuard(guards, meta.routeName, method, {
       id,
       body,
@@ -65,10 +75,10 @@ export function createRouter(
       return { status: 403, data: { error: guardError } };
     }
 
-    // ── 3. Before hook ─────────────────────────────────────────────────────
+    // ── 4. Before hook ─────────────────────────────────────────────────────
     await runHook(beforeOperation, { model: meta.name, method, id, body });
 
-    // ── 4. Execute operation ───────────────────────────────────────────────
+    // ── 5. Execute operation ───────────────────────────────────────────────
     let result: HandlerResult;
 
     try {
@@ -91,7 +101,7 @@ export function createRouter(
       return handlePrismaError(e);
     }
 
-    // ── 5. After hook ──────────────────────────────────────────────────────
+    // ── 6. After hook ──────────────────────────────────────────────────────
     await runHook(afterOperation, {
       model: meta.name,
       method,

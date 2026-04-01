@@ -187,62 +187,13 @@ Response: { count: 3 }
 
 ---
 
-## Issue #9
+## Issue #9 ✅ RESOLVED
 
 **Title:** `feat: rateLimit hook in PrismaRestOptions`
 
 **Labels:** `intermediate`, `enhancement`, `middleware`, `security`
 
-**Body:**
-```
-## Summary
-Add an optional `rateLimit` function to PrismaRestOptions that can 
-block requests and return 429 responses.
-
-## Motivation
-Production APIs need rate limiting. Today developers must add rate 
-limiting middleware before the omni-rest adapter, which works but 
-is disconnected from the model/method context.
-
-## Desired Behavior
-import { rateLimit } from "express-rate-limit"; // or any lib
-
-omniRest(prisma, {
-  rateLimit: async ({ model, method, ip }) => {
-    // return error string to block with 429
-    // return null to allow
-    const key = `${ip}:${model}:${method}`;
-    const count = await cache.incr(key);
-    if (count > 100) return "Too many requests. Slow down.";
-    return null;
-  }
-})
-
-Response when blocked:
-429 { error: "Too many requests. Slow down." }
-
-## Implementation Notes
-- Files: `src/types.ts`, `src/middleware.ts`, `src/router.ts`
-- Add `rateLimit?: RateLimitFn` to PrismaRestOptions
-- Type: (ctx: { model: string; method: string; id?: string | null }) => string | null | Promise<string | null>
-- Run in router.ts before guards, after model resolution
-- Return 429 if function returns a string
-- IP must come from adapter layer — add to HookContext
-
-## Tests Needed
-- Returns 429 when rateLimit fn returns a string
-- Request passes when rateLimit fn returns null
-- Async rateLimit function works
-- rateLimit runs before guard
-- rateLimit not called for 404 model routes
-
-## Acceptance Criteria
-- [ ] rateLimit option works
-- [ ] Returns 429 with the error message
-- [ ] Async support
-- [ ] Tests pass
-- [ ] README shows Redis example
-```
+**Status:** Implemented in `src/router.ts` and `src/types.ts`. `rateLimit?: RateLimitFn` added to `PrismaRestOptions`. Runs after model resolution but before guards — returns 429 with the error string when blocked, null to allow. Async support included. Not called for 404 model routes. Tests in `test/rate-limit.test.ts`.
 
 ---
 

@@ -338,26 +338,25 @@ omniRest(prisma, {
 
 ---
 
-### #9 — Rate Limiting Hook
+### #9 — Rate Limiting Hook ✅ Implemented
 
-**File:** `src/middleware.ts`, `src/types.ts`
+**Files:** `src/router.ts`, `src/types.ts`
 
-An optional `rateLimit` function in options, called before every request:
+An optional `rateLimit` function in options, called before every request (after model resolution, before guards):
 
 ```ts
 omniRest(prisma, {
-  rateLimit: async ({ model, method, req }) => {
-    const key = `${model}:${method}:${req.ip}`;
-    const count = await redis.incr(key);
+  rateLimit: async ({ model, method, id }) => {
+    const count = await redis.incr(`${model}:${method}`);
     if (count > 100) return "Rate limit exceeded";
     return null; // allow
   }
 })
 ```
 
-Returns error string to block with 429, or null to allow. Wires into `runGuard` chain in `middleware.ts`.
+Returns error string → 429 response. Returns null → request proceeds. Async supported. Not called for 404 model routes. `RateLimitFn` type exported from `omni-rest`.
 
-**Tests needed:** returns 429 when function returns string, passes when returns null, async guard test.
+**Tests:** 429 on string return, pass on null, async support, runs before guard, not called for unknown model, context contains model/method/id, guard still runs when rate limit allows.
 
 ---
 

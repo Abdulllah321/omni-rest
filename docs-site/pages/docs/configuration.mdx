@@ -383,6 +383,34 @@ app.use("/docs", swaggerUi.serve, swaggerUi.setup(spec, {
   </Tabs.Tab>
 </Tabs>
 
+## Rate Limiting
+
+Add a `rateLimit` function to block requests before they reach guards or Prisma. Return an error string to respond with `429`, or `null` to allow.
+
+```typescript copy
+expressAdapter(prisma, {
+  rateLimit: async ({ model, method, id }) => {
+    const key = `${model}:${method}`;
+    const count = await redis.incr(key);
+    await redis.expire(key, 60); // 1-minute window
+    if (count > 100) return "Too many requests. Try again later.";
+    return null;
+  },
+});
+```
+
+The context object contains:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `model` | `string` | Prisma model name (e.g. `"User"`) |
+| `method` | `string` | HTTP method (`GET`, `POST`, etc.) |
+| `id` | `string \| null` | Record ID for single-record operations |
+
+<Callout type="info">
+  Rate limiting runs after model resolution but before guards. It is not called for unknown model routes (those return 404 immediately).
+</Callout>
+
 ## Field-Level Permissions
 
 Control which fields are readable and writable per model without writing custom Prisma queries.

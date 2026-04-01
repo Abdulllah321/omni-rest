@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.8] - 2026-04-01
+
+### Added
+- **`rateLimit` option** — per-request rate limiting hook in `PrismaRestOptions`
+  ```ts
+  expressAdapter(prisma, {
+    rateLimit: async ({ model, method, id }) => {
+      const count = await redis.incr(`${model}:${method}`);
+      if (count > 100) return "Too many requests.";
+      return null;
+    },
+  });
+  ```
+  - Returns error string → `429 { error: "..." }`
+  - Returns `null` → request proceeds normally
+  - Runs after model resolution, before guards
+  - Not called for unknown model routes (404 short-circuits first)
+  - Async supported
+- `RateLimitFn` type exported from `omni-rest`
+
 ## [0.4.7] - 2026-04-01
 
 ### Added

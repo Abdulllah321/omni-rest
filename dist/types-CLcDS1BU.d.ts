@@ -75,7 +75,28 @@ interface PrismaRestOptions {
      * - writeOnly: stripped from GET responses (write-only fields like raw passwords)
      */
     fieldGuards?: FieldGuardMap;
+    /**
+     * Optional rate-limiting function called before every request (after model
+     * resolution). Return an error string to block with 429, or null to allow.
+     *
+     * @example
+     * ```ts
+     * omniRest(prisma, {
+     *   rateLimit: async ({ model, method, id }) => {
+     *     const count = await redis.incr(`${model}:${method}`);
+     *     if (count > 100) return "Too many requests. Slow down.";
+     *     return null;
+     *   }
+     * })
+     * ```
+     */
+    rateLimit?: RateLimitFn;
 }
+type RateLimitFn = (ctx: {
+    model: string;
+    method: string;
+    id?: string | null;
+}) => string | null | Promise<string | null>;
 interface FieldGuardConfig {
     /** Fields never included in any response. */
     hidden?: string[];

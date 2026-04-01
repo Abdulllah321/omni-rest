@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { P as PrismaRestOptions } from '../types-_OVcoAZ9.js';
+import { P as PrismaRestOptions } from '../types-CLcDS1BU.js';
 
 /**
  * Fastify adapter for omni-rest.

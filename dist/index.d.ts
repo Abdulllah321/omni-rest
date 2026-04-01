@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
-import { P as PrismaRestOptions, R as RouterInstance, M as ModelMeta, F as FieldMeta, a as ParsedQuery, G as GuardMap, H as HookFn, b as HookContext } from './types-_OVcoAZ9.js';
-export { c as GuardFn, d as HandlerResult } from './types-_OVcoAZ9.js';
+import { P as PrismaRestOptions, R as RouterInstance, M as ModelMeta, F as FieldMeta, a as ParsedQuery, G as GuardMap, H as HookFn, b as HookContext } from './types-CLcDS1BU.js';
+export { c as GuardFn, d as HandlerResult } from './types-CLcDS1BU.js';
 export { expressAdapter } from './adapters/express.js';
 export { nextjsAdapter } from './adapters/nextjs.js';
 export { fastifyAdapter } from './adapters/fastify.js';

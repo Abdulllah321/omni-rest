@@ -284,7 +284,8 @@ function createRouter(prisma, options = {}) {
     softDelete = false,
     softDeleteField,
     envelope = true,
-    fieldGuards = {}
+    fieldGuards = {},
+    rateLimit
   } = options;
   const models = getModels(prisma);
   const modelMap = buildModelMap(models, allow);
@@ -298,6 +299,12 @@ function createRouter(prisma, options = {}) {
           available: Object.keys(modelMap)
         }
       };
+    }
+    if (rateLimit) {
+      const rateLimitError = await rateLimit({ model: meta.name, method, id });
+      if (rateLimitError) {
+        return { status: 429, data: { error: rateLimitError } };
+      }
     }
     const guardError = await runGuard(guards, meta.routeName, method, {
       id,
