@@ -116,6 +116,32 @@ describe("buildQuery", () => {
     expect(orderBy).toEqual({ name: "asc", createdAt: "desc" });
   });
 
+  // ─── _count sort ──────────────────────────────────────────────────────────
+  it("builds _count.relation:desc orderBy", () => {
+    const { orderBy } = buildQuery(new URLSearchParams("sort=_count.posts:desc"));
+    expect(orderBy).toEqual({ posts: { _count: "desc" } });
+  });
+
+  it("builds _count.relation:asc orderBy", () => {
+    const { orderBy } = buildQuery(new URLSearchParams("sort=_count.employees:asc"));
+    expect(orderBy).toEqual({ employees: { _count: "asc" } });
+  });
+
+  it("defaults _count direction to asc when omitted", () => {
+    const { orderBy } = buildQuery(new URLSearchParams("sort=_count.posts"));
+    expect(orderBy).toEqual({ posts: { _count: "asc" } });
+  });
+
+  it("mixes _count sort with regular sort fields", () => {
+    const { orderBy } = buildQuery(new URLSearchParams("sort=_count.posts:desc,name:asc"));
+    expect(orderBy).toEqual({ posts: { _count: "desc" }, name: "asc" });
+  });
+
+  it("treats bare _count (no dot) as a regular field", () => {
+    const { orderBy } = buildQuery(new URLSearchParams("sort=_count:desc"));
+    expect(orderBy).toEqual({ _count: "desc" });
+  });
+
   // ─── Include / Select ──────────────────────────────────────────────────────
   it("parses include param", () => {
     const { include } = buildQuery(new URLSearchParams("include=posts,profile"));

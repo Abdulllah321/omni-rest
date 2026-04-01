@@ -71,48 +71,13 @@ v1.0.0 — Production-ready (6 months in)
 
 ---
 
-## Issue #4
+## Issue #4 ✅ RESOLVED
 
 **Title:** `feat: sort by relation count with ?sort=_count.relation:desc`
 
 **Labels:** `good first issue`, `enhancement`, `query-builder`
 
-**Body:**
-```
-## Summary
-Support sorting by related record count using the `_count.` prefix 
-in the sort parameter.
-
-## Motivation
-A very common requirement — "show departments sorted by number of employees" 
-or "show categories sorted by number of products". Prisma supports this 
-natively but there is no way to express it via URL params currently.
-
-## Desired Behavior
-GET /api/department?sort=_count.employees:desc
-→ orderBy: { employees: { _count: "desc" } }
-
-GET /api/category?sort=_count.products:asc,name:asc
-→ orderBy: [{ products: { _count: "asc" } }, { name: "asc" }]
-
-## Implementation Notes
-- File to edit: `src/query-builder.ts`
-- In the sort parser, detect if a field starts with `_count.`
-- If so: extract the relation name after the dot
-- Build: orderBy[relationName] = { _count: direction }
-- Should compose with regular sort fields
-
-## Tests Needed
-- _count.relation:desc produces nested orderBy
-- _count.relation:asc produces nested orderBy
-- Mixed: _count.posts:desc,name:asc produces array orderBy
-- Invalid _count. prefix (no dot) is treated as regular field
-
-## Acceptance Criteria
-- [ ] _count.relation:dir syntax works
-- [ ] Composes with regular sort fields
-- [ ] Tests pass
-```
+**Status:** Implemented in `src/query-builder.ts`. The sort parser detects the `_count.` prefix and builds `orderBy: { relation: { _count: dir } }`. Composes with regular sort fields. `ParsedQuery.orderBy` widened to `Record<string, any>` in `src/types.ts` to support nested objects. Tests in `test/query-builder.test.ts`.
 
 ---
 

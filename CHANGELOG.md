@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.3] - 2026-04-01
+
+### Added
+- **Sort by relation count** — `?sort=_count.relation:desc` syntax now supported
+  ```
+  GET /api/category?sort=_count.products:desc,name:asc
+  → orderBy: { products: { _count: "desc" }, name: "asc" }
+  ```
+  Composes freely with regular sort fields. Bare `_count` (no dot) is treated as a regular field name.
+
+### Changed
+- `ParsedQuery.orderBy` widened from `Record<string, "asc" | "desc">` to `Record<string, any>` to support nested Prisma orderBy objects
+
 ## [0.4.2] - 2026-03-31
 
 ### Added

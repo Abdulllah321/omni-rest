@@ -232,7 +232,7 @@ Both `select` and `fields` are now in `RESERVED_KEYS`.
 
 ---
 
-### #4 — Sort by Relation Count
+### #4 — Sort by Relation Count ✅ Implemented
 
 **File:** `src/query-builder.ts`
 
@@ -243,9 +243,9 @@ Support `?sort=_count.posts:desc` — sort by how many related records exist.
 → orderBy: { posts: { _count: "desc" } }
 ```
 
-Detect `_count.` prefix in sort parser, build nested orderBy object.
+The sort parser detects the `_count.` prefix, extracts the relation name, and builds the nested `orderBy` object. Composes with regular sort fields. `ParsedQuery.orderBy` widened to `Record<string, any>` in `src/types.ts`.
 
-**Tests needed:** `_count.relation:asc`, `_count.relation:desc`, mixed with regular sort fields.
+**Tests:** `_count.relation:asc`, `_count.relation:desc`, mixed with regular fields, bare `_count` (no dot) treated as regular field, direction defaults to `asc`.
 
 ---
 

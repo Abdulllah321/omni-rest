@@ -66,7 +66,7 @@ interface PrismaRestOptions {
 }
 interface ParsedQuery {
     where: Record<string, any>;
-    orderBy: Record<string, "asc" | "desc">;
+    orderBy: Record<string, any>;
     skip: number;
     take: number;
     include: Record<string, boolean>;

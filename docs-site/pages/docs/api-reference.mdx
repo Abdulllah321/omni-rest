@@ -38,13 +38,40 @@ Omni Rest supports powerful filtering, sorting, and pagination via standard quer
     | `offset` | number | 0 | Number of records to skip |
   </Tabs.Tab>
   <Tabs.Tab>
+    #### Regular Sort
+
     ```javascript copy
-    GET /api/product?orderBy=price:desc&orderBy=name:asc
+    GET /api/product?sort=price:desc
+    GET /api/product?sort=name:asc,createdAt:desc
     ```
 
-    - Use `field:asc` for ascending order
-    - Use `field:desc` for descending order
-    - Multiple `orderBy` parameters are supported
+    - Use `field:asc` for ascending (default when direction omitted)
+    - Use `field:desc` for descending
+    - Comma-separate multiple fields: `?sort=field1:asc,field2:desc`
+
+    #### Sort by Relation Count
+
+    Sort records by how many related records they have using the `_count.` prefix:
+
+    ```javascript copy
+    GET /api/department?sort=_count.employees:desc
+    GET /api/category?sort=_count.products:asc
+    ```
+
+    Maps directly to Prisma's `orderBy: { relation: { _count: "desc" } }`.
+
+    Compose with regular sort fields:
+
+    ```javascript copy
+    GET /api/category?sort=_count.products:desc,name:asc
+    ```
+
+    | Syntax | Description | Prisma equivalent |
+    |--------|-------------|-------------------|
+    | `?sort=name:asc` | Sort by field ascending | `orderBy: { name: "asc" }` |
+    | `?sort=price:desc` | Sort by field descending | `orderBy: { price: "desc" }` |
+    | `?sort=_count.posts:desc` | Sort by relation count descending | `orderBy: { posts: { _count: "desc" } }` |
+    | `?sort=_count.tags:asc,name:asc` | Mixed count + field sort | `orderBy: { tags: { _count: "asc" }, name: "asc" }` |
   </Tabs.Tab>
   <Tabs.Tab>
     ```javascript copy

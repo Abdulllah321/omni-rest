@@ -140,8 +140,15 @@ function buildQuery(searchParams, defaultLimit = 20, maxLimit = 100, modelFields
   if (sortParam) {
     for (const part of sortParam.split(",")) {
       const [field, dir] = part.trim().split(":");
-      if (field) {
-        orderBy[field] = dir === "desc" ? "desc" : "asc";
+      if (!field) continue;
+      const direction = dir === "desc" ? "desc" : "asc";
+      if (field.startsWith("_count.")) {
+        const relation = field.slice("_count.".length);
+        if (relation) {
+          orderBy[relation] = { _count: direction };
+        }
+      } else {
+        orderBy[field] = direction;
       }
     }
   }

@@ -54,7 +54,7 @@ export function buildQuery(
   modelFields?: FieldMeta[]
 ): ParsedQuery {
   const where: Record<string, any> = {};
-  const orderBy: Record<string, "asc" | "desc"> = {};
+  const orderBy: Record<string, any> = {};
   let include: Record<string, boolean> = {};
   let select: Record<string, boolean> | null = null;
 
@@ -67,11 +67,20 @@ export function buildQuery(
   // ─── Sort ──────────────────────────────────────────────────────────────────
   const sortParam = searchParams.get("sort");
   if (sortParam) {
-    // Supports multiple sorts: ?sort=name:asc,createdAt:desc
+    // Supports multiple sorts: ?sort=name:asc,createdAt:desc,_count.posts:desc
     for (const part of sortParam.split(",")) {
       const [field, dir] = part.trim().split(":");
-      if (field) {
-        orderBy[field] = (dir === "desc" ? "desc" : "asc");
+      if (!field) continue;
+      const direction = dir === "desc" ? "desc" : "asc";
+
+      // _count.relation:dir → { relation: { _count: dir } }
+      if (field.startsWith("_count.")) {
+        const relation = field.slice("_count.".length);
+        if (relation) {
+          orderBy[relation] = { _count: direction };
+        }
+      } else {
+        orderBy[field] = direction;
       }
     }
   }
