@@ -229,7 +229,8 @@ function createRouter(prisma, options = {}) {
     defaultLimit = 20,
     maxLimit = 100,
     softDelete = false,
-    softDeleteField
+    softDeleteField,
+    envelope = true
   } = options;
   const models = getModels(prisma);
   const modelMap = buildModelMap(models, allow);
@@ -265,7 +266,8 @@ function createRouter(prisma, options = {}) {
         maxLimit,
         operation,
         softDelete,
-        softDeleteField
+        softDeleteField,
+        envelope
       );
     } catch (e) {
       return handlePrismaError(e);
@@ -281,7 +283,7 @@ function createRouter(prisma, options = {}) {
   }
   return { handle, modelMap, models };
 }
-async function executeOperation(prisma, meta, method, id, body, searchParams, defaultLimit, maxLimit, operation, softDelete = false, softDeleteField) {
+async function executeOperation(prisma, meta, method, id, body, searchParams, defaultLimit, maxLimit, operation, softDelete = false, softDeleteField, envelope = true) {
   const delegate = getDelegate(prisma, meta);
   const { where, orderBy, skip, take, include, select } = buildQuery(
     searchParams,
@@ -356,6 +358,13 @@ async function executeOperation(prisma, meta, method, id, body, searchParams, de
       delegate.findMany({ where: listWhere, orderBy, skip, take, ...projection }),
       delegate.count({ where: listWhere })
     ]);
+    if (!envelope) {
+      return {
+        status: 200,
+        data,
+        headers: { "X-Total-Count": String(total) }
+      };
+    }
     return {
       status: 200,
       data: {

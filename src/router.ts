@@ -27,6 +27,7 @@ export function createRouter(
     maxLimit = 100,
     softDelete = false,
     softDeleteField,
+    envelope = true,
   } = options;
 
   // Introspect schema once at startup
@@ -80,7 +81,8 @@ export function createRouter(
         maxLimit,
         operation,
         softDelete,
-        softDeleteField
+        softDeleteField,
+        envelope
       );
     } catch (e: any) {
       return handlePrismaError(e);
@@ -114,7 +116,8 @@ async function executeOperation(
   maxLimit: number,
   operation?: string,
   softDelete = false,
-  softDeleteField?: string
+  softDeleteField?: string,
+  envelope = true
 ): Promise<HandlerResult> {
   const delegate = getDelegate(prisma, meta);
   const { where, orderBy, skip, take, include, select } = buildQuery(
@@ -217,6 +220,14 @@ async function executeOperation(
       delegate.findMany({ where: listWhere, orderBy, skip, take, ...projection }),
       delegate.count({ where: listWhere }),
     ]);
+
+    if (!envelope) {
+      return {
+        status: 200,
+        data,
+        headers: { "X-Total-Count": String(total) },
+      };
+    }
 
     return {
       status: 200,

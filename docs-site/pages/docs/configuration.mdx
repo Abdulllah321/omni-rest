@@ -172,6 +172,41 @@ expressAdapter(prisma, {
   `result`: Operation result (`afterOperation` only)
 </Callout>
 
+## Response Envelope
+
+By default, list endpoints return `{ data, meta }`. Set `envelope: false` to get a plain array instead — useful for frontend libraries that expect a flat response.
+
+<Tabs items={['Default (envelope: true)', 'envelope: false']}>
+  <Tabs.Tab>
+    ```typescript copy
+    expressAdapter(prisma); // envelope defaults to true
+    ```
+
+    ```json
+    GET /api/department
+    → {
+        "data": [...],
+        "meta": { "total": 42, "page": 1, "limit": 20, "totalPages": 3 }
+      }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```typescript copy
+    expressAdapter(prisma, { envelope: false });
+    ```
+
+    ```json
+    GET /api/department
+    → [...]
+    // Response header: X-Total-Count: 42
+    ```
+
+    <Callout type="info">
+      The total count moves to the `X-Total-Count` response header. Make sure your adapter forwards `HandlerResult.headers` to the HTTP response.
+    </Callout>
+  </Tabs.Tab>
+</Tabs>
+
 ## Soft Delete
 
 When enabled, `DELETE` updates a designated field instead of destroying the record. The model's fields are auto-detected from your Prisma schema — no extra config needed in most cases.

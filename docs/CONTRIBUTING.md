@@ -249,20 +249,21 @@ The sort parser detects the `_count.` prefix, extracts the relation name, and bu
 
 ---
 
-### #5 — Response Envelope Option
+### #5 — Response Envelope Option ✅ Implemented
 
-**File:** `src/router.ts`, `src/types.ts`
+**Files:** `src/router.ts`, `src/types.ts`
 
 Let users disable the `{ data, meta }` wrapper for list endpoints:
 
 ```ts
 omniRest(prisma, { envelope: false })
 // Returns: [...records]   instead of   { data: [...], meta: {...} }
+// Sets X-Total-Count header with the total record count
 ```
 
-Add `envelope?: boolean` to `PrismaRestOptions`. Default `true` for backward compat.
+`envelope?: boolean` added to `PrismaRestOptions` (default `true`). `HandlerResult` extended with optional `headers?: Record<string, string>` so adapters can forward the `X-Total-Count` header. Single-record GET is unaffected.
 
-**Tests needed:** envelope on returns object with meta, envelope off returns plain array.
+**Tests:** envelope on returns `{ data, meta }`, envelope off returns plain array, `X-Total-Count` header set, GET by id unaffected.
 
 ---
 

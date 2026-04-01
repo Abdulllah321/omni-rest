@@ -131,7 +131,7 @@ Omni Rest supports powerful filtering, sorting, and pagination via standard quer
 
 ### LIST - Get All Records
 
-<Tabs items={['Request', 'Response', 'Status Codes']}>
+<Tabs items={['Request', 'Response (default)', 'Response (envelope: false)', 'Status Codes']}>
   <Tabs.Tab>
     **GET** `/api/:model`
 
@@ -140,7 +140,9 @@ Omni Rest supports powerful filtering, sorting, and pagination via standard quer
     **Query Parameters:**
     - `limit` (optional): Number of records per page
     - `offset` (optional): Number of records to skip
-    - `orderBy` (optional): Sort field and direction
+    - `sort` (optional): Sort field and direction, e.g. `name:asc` or `_count.posts:desc`
+    - `search` (optional): Case-insensitive search across all String fields
+    - `select` / `fields` (optional): Comma-separated field names to return
     - Filter parameters (optional): See filtering section
   </Tabs.Tab>
   <Tabs.Tab>
@@ -154,11 +156,29 @@ Omni Rest supports powerful filtering, sorting, and pagination via standard quer
           "createdAt": "2024-01-01T00:00:00.000Z"
         }
       ],
-      "total": 1,
-      "limit": 10,
-      "offset": 0
+      "meta": {
+        "total": 42,
+        "page": 1,
+        "limit": 20,
+        "totalPages": 3
+      }
     }
     ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    When `envelope: false` is set in options, returns a plain array:
+
+    ```json copy
+    [
+      {
+        "id": 1,
+        "name": "Laptop",
+        "price": 999.99
+      }
+    ]
+    ```
+
+    Total count is in the `X-Total-Count` response header.
   </Tabs.Tab>
   <Tabs.Tab>
     - `200` - Success

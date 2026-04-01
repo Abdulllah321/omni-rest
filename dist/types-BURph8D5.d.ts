@@ -63,6 +63,11 @@ interface PrismaRestOptions {
      * Explicit value overrides auto-detection.
      */
     softDeleteField?: string;
+    /**
+     * Wrap list responses in `{ data, meta }`. Defaults to true.
+     * When false, returns a plain array and sets X-Total-Count header instead.
+     */
+    envelope?: boolean;
 }
 interface ParsedQuery {
     where: Record<string, any>;
@@ -75,6 +80,7 @@ interface ParsedQuery {
 interface HandlerResult {
     status: number;
     data: any;
+    headers?: Record<string, string>;
 }
 interface RouterInstance {
     handle: (method: string, modelName: string, id: string | null, body: any, searchParams: URLSearchParams, operation?: string) => Promise<HandlerResult>;

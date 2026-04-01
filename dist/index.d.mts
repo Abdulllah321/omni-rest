@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
-import { P as PrismaRestOptions, R as RouterInstance, M as ModelMeta, F as FieldMeta, a as ParsedQuery, G as GuardMap, H as HookFn, b as HookContext } from './types-CShjjCHN.mjs';
-export { c as GuardFn, d as HandlerResult } from './types-CShjjCHN.mjs';
+import { P as PrismaRestOptions, R as RouterInstance, M as ModelMeta, F as FieldMeta, a as ParsedQuery, G as GuardMap, H as HookFn, b as HookContext } from './types-BURph8D5.mjs';
+export { c as GuardFn, d as HandlerResult } from './types-BURph8D5.mjs';
 export { expressAdapter } from './adapters/express.mjs';
 export { nextjsAdapter } from './adapters/nextjs.mjs';
 export { fastifyAdapter } from './adapters/fastify.mjs';

@@ -81,53 +81,13 @@ v1.0.0 — Production-ready (6 months in)
 
 ---
 
-## Issue #5
+## Issue #5 ✅ RESOLVED
 
 **Title:** `feat: add envelope option to disable { data, meta } wrapper`
 
 **Labels:** `good first issue`, `enhancement`, `router`
 
-**Body:**
-```
-## Summary
-Allow disabling the `{ data, meta }` response envelope on list endpoints 
-for users who prefer a flat array response.
-
-## Motivation
-Some frontend libraries and API consumers expect a plain array from list 
-endpoints. The current wrapper cannot be disabled.
-
-## Desired Behavior
-// Default (envelope: true)
-GET /api/department
-→ { data: [...], meta: { total, page, limit, totalPages } }
-
-// With envelope: false
-omniRest(prisma, { envelope: false })
-GET /api/department
-→ [...]
-// X-Total-Count: 42 header added instead
-
-## Implementation Notes
-- Files to edit: `src/router.ts`, `src/types.ts`
-- Add `envelope?: boolean` to PrismaRestOptions (default: true)
-- In router.ts GET list handler: branch on option
-- When envelope false: return plain array, add X-Total-Count header
-- Note: headers require adapter cooperation — document limitation
-
-## Tests Needed
-- envelope: true (default) returns { data, meta }
-- envelope: false returns plain array
-- X-Total-Count header is set when envelope: false
-- Single record GET is not affected
-
-## Acceptance Criteria
-- [ ] `envelope: false` returns plain array
-- [ ] X-Total-Count header is set
-- [ ] Default behavior unchanged (backward compat)
-- [ ] Tests pass
-- [ ] README updated
-```
+**Status:** Implemented in `src/router.ts` and `src/types.ts`. `envelope?: boolean` added to `PrismaRestOptions` (default `true`). When `false`, GET list returns a plain array and sets `X-Total-Count` header. `HandlerResult` extended with optional `headers` field so adapters can forward them. Tests in `test/router.test.ts`.
 
 ---
 

@@ -142,4 +142,35 @@ describe("createRouter", () => {
       expect.objectContaining({ model: "User", method: "GET", result: expect.anything() })
     );
   });
+
+  // ─── Envelope ─────────────────────────────────────────────────────────────
+  it("GET list returns { data, meta } by default (envelope: true)", async () => {
+    const res = await handle("GET", "user", null, {}, new URLSearchParams());
+    expect(res.status).toBe(200);
+    expect(res.data).toHaveProperty("data");
+    expect(res.data).toHaveProperty("meta");
+    expect(res.headers).toBeUndefined();
+  });
+
+  it("GET list returns plain array when envelope: false", async () => {
+    const { handle: flatHandle } = createRouter(prisma as any, { envelope: false });
+    const res = await flatHandle("GET", "user", null, {}, new URLSearchParams());
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.data)).toBe(true);
+    expect(res.data).not.toHaveProperty("meta");
+  });
+
+  it("sets X-Total-Count header when envelope: false", async () => {
+    const { handle: flatHandle } = createRouter(prisma as any, { envelope: false });
+    const res = await flatHandle("GET", "user", null, {}, new URLSearchParams());
+    expect(res.headers?.["X-Total-Count"]).toBeDefined();
+    expect(Number(res.headers?.["X-Total-Count"])).toBeGreaterThanOrEqual(0);
+  });
+
+  it("GET by id is not affected by envelope: false", async () => {
+    const { handle: flatHandle } = createRouter(prisma as any, { envelope: false });
+    const res = await flatHandle("GET", "user", "1", {}, new URLSearchParams());
+    expect(res.status).toBe(200);
+    expect(res.data).toHaveProperty("id");
+  });
 });
