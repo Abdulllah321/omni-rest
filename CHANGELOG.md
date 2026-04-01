@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.5] - 2026-04-01
+
+### Added
+- **`omniRestErrorHandler()`** — new export from `omni-rest/express`
+  - Drop-in Express error middleware that maps Prisma error codes to clean JSON
+  - `P2025 → 404`, `P2002 → 409`, `P2003 → 400`, `P2014 → 400`, unknown Prisma → `500`
+  - Non-Prisma errors pass through to `next(err)` unchanged
+  ```ts
+  import { expressAdapter, omniRestErrorHandler } from "omni-rest/express";
+  app.use("/api", expressAdapter(prisma));
+  app.use(omniRestErrorHandler());
+  ```
+
+### Fixed
+- `expressAdapter` now forwards `HandlerResult.headers` (e.g. `X-Total-Count`) to the HTTP response across all route handlers
+
 ## [0.4.4] - 2026-04-01
 
 ### Added

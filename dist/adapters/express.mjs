@@ -445,7 +445,7 @@ function expressAdapter(prisma, options = {}) {
   const { handle } = createRouter(prisma, options);
   router.patch("/:model/bulk/update", async (req, res) => {
     try {
-      const { status, data } = await handle(
+      const { status, data, headers } = await handle(
         "PATCH",
         req.params.model,
         null,
@@ -455,9 +455,8 @@ function expressAdapter(prisma, options = {}) {
         ),
         "bulk-update"
       );
-      if (status === 204) {
-        return res.sendStatus(204);
-      }
+      if (headers) Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
+      if (status === 204) return res.sendStatus(204);
       return res.status(status).json(data);
     } catch (e) {
       return res.status(500).json({ error: e.message });
@@ -465,7 +464,7 @@ function expressAdapter(prisma, options = {}) {
   });
   router.delete("/:model/bulk/delete", async (req, res) => {
     try {
-      const { status, data } = await handle(
+      const { status, data, headers } = await handle(
         "DELETE",
         req.params.model,
         null,
@@ -475,9 +474,8 @@ function expressAdapter(prisma, options = {}) {
         ),
         "bulk-delete"
       );
-      if (status === 204) {
-        return res.sendStatus(204);
-      }
+      if (headers) Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
+      if (status === 204) return res.sendStatus(204);
       return res.status(status).json(data);
     } catch (e) {
       return res.status(500).json({ error: e.message });
@@ -487,7 +485,7 @@ function expressAdapter(prisma, options = {}) {
   router.route("/:model/:id").get(handler).put(handler).patch(handler).delete(handler);
   async function handler(req, res) {
     try {
-      const { status, data } = await handle(
+      const { status, data, headers } = await handle(
         req.method,
         req.params.model,
         req.params.id ?? null,
@@ -496,9 +494,8 @@ function expressAdapter(prisma, options = {}) {
           Object.entries(req.query).map(([k, v]) => `${k}=${v}`).join("&")
         )
       );
-      if (status === 204) {
-        return res.sendStatus(204);
-      }
+      if (headers) Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
+      if (status === 204) return res.sendStatus(204);
       return res.status(status).json(data);
     } catch (e) {
       return res.status(500).json({ error: e.message });
@@ -506,7 +503,29 @@ function expressAdapter(prisma, options = {}) {
   }
   return router;
 }
+function omniRestErrorHandler() {
+  return function(err, _req, res, next) {
+    const code = err?.code;
+    if (code === "P2025") {
+      return res.status(404).json({ error: "Record not found." });
+    }
+    if (code === "P2002") {
+      const fields = err?.meta?.target ?? "unknown fields";
+      return res.status(409).json({ error: `Unique constraint failed on: ${fields}` });
+    }
+    if (code === "P2003") {
+      return res.status(400).json({ error: "Foreign key constraint failed." });
+    }
+    if (code === "P2014") {
+      return res.status(400).json({ error: "Relation violation." });
+    }
+    if (!code) {
+      return next(err);
+    }
+    return res.status(500).json({ error: err?.message ?? "Internal server error." });
+  };
+}
 
-export { expressAdapter };
+export { expressAdapter, omniRestErrorHandler };
 //# sourceMappingURL=express.mjs.map
 //# sourceMappingURL=express.mjs.map

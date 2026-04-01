@@ -30,5 +30,20 @@ import { P as PrismaRestOptions } from '../types-BURph8D5.js';
  * ```
  */
 declare function expressAdapter(prisma: PrismaClient, options?: PrismaRestOptions): any;
+/**
+ * Express error-handling middleware that maps Prisma error codes to clean
+ * JSON responses. Mount it after all routes to catch Prisma errors from
+ * both omni-rest and your own custom routes.
+ *
+ * @example
+ * ```ts
+ * import { expressAdapter, omniRestErrorHandler } from "omni-rest/express";
+ *
+ * app.use("/api", expressAdapter(prisma));
+ * app.use("/custom", myCustomRoutes);
+ * app.use(omniRestErrorHandler());
+ * ```
+ */
+declare function omniRestErrorHandler(): (err: any, _req: any, res: any, next: any) => any;
 
-export { expressAdapter };
+export { expressAdapter, omniRestErrorHandler };

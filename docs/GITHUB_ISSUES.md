@@ -91,54 +91,13 @@ v1.0.0 — Production-ready (6 months in)
 
 ---
 
-## Issue #12
+## Issue #12 ✅ RESOLVED
 
 **Title:** `feat: omniRestErrorHandler() Express middleware for global Prisma error mapping`
 
 **Labels:** `good first issue`, `enhancement`, `adapters`
 
-**Body:**
-```
-    ## Summary
-    Export a dedicated Express error-handling middleware that maps Prisma error 
-    codes to clean JSON responses — so users don't have to write their own 
-    error handlers.
-
-    ## Motivation
-    Users writing custom routes alongside omni-rest still get raw Prisma errors.
-    A shared error handler makes the whole API consistent.
-
-    ## Desired Behavior
-    import { expressAdapter, omniRestErrorHandler } from "omni-rest/express";
-
-    app.use("/api", expressAdapter(prisma));
-    app.use("/custom", myCustomRoutes);
-    app.use(omniRestErrorHandler());  // catches everything
-
-    // P2025 → 404 { error: "Record not found" }
-    // P2002 → 409 { error: "Unique constraint failed on: email" }
-    // P2003 → 400 { error: "Foreign key constraint failed" }
-    // P2014 → 400 { error: "Relation violation" }
-    // Other → 500 { error: message }
-
-    ## Implementation Notes
-    - File: `src/adapters/express.ts`
-    - Standard Express error middleware: (err, req, res, next) => {}
-    - Reuse the handlePrismaError() function already in router.ts
-    - Export it from adapters/express.ts
-
-    ## Tests Needed
-    - P2025 produces 404
-    - P2002 produces 409 with field name
-    - Unknown error produces 500
-    - Non-Prisma error passes through to next()
-
-    ## Acceptance Criteria
-    - [ ] Exported as omniRestErrorHandler from omni-rest/express
-    - [ ] Maps all documented Prisma error codes
-    - [ ] Tests pass
-    - [ ] README shows usage example
-```
+**Status:** Implemented in `src/adapters/express.ts`. `omniRestErrorHandler()` is a standard 4-argument Express error middleware factory. Maps P2025 → 404, P2002 → 409, P2003 → 400, P2014 → 400, unknown Prisma codes → 500, non-Prisma errors pass through to `next()`. Also updated `expressAdapter` to forward `HandlerResult.headers` (e.g. `X-Total-Count`). Tests in `test/express-error-handler.test.ts`.
 
 ---
 

@@ -383,6 +383,34 @@ app.use("/docs", swaggerUi.serve, swaggerUi.setup(spec, {
   </Tabs.Tab>
 </Tabs>
 
+## Global Error Handler (Express)
+
+`omniRestErrorHandler()` is a drop-in Express error middleware that maps Prisma error codes to clean JSON responses — covering both omni-rest routes and your own custom routes.
+
+```typescript copy
+import { expressAdapter, omniRestErrorHandler } from "omni-rest/express";
+
+app.use(express.json());
+app.use("/api", expressAdapter(prisma));
+app.use("/custom", myCustomRoutes);
+
+// Mount last — catches Prisma errors from all routes above
+app.use(omniRestErrorHandler());
+```
+
+| Prisma code | HTTP status | Response |
+|-------------|-------------|----------|
+| `P2025` | `404` | `{ error: "Record not found." }` |
+| `P2002` | `409` | `{ error: "Unique constraint failed on: <field>" }` |
+| `P2003` | `400` | `{ error: "Foreign key constraint failed." }` |
+| `P2014` | `400` | `{ error: "Relation violation." }` |
+| Other Prisma | `500` | `{ error: "<message>" }` |
+| Non-Prisma | — | Passed to `next(err)` |
+
+<Callout type="warning">
+  Mount `omniRestErrorHandler()` after all your routes, not before. Express error middleware must have exactly 4 arguments `(err, req, res, next)` to be recognized as an error handler.
+</Callout>
+
 ## Best Practices
 
 <Steps>

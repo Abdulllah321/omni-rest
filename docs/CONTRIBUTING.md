@@ -398,18 +398,21 @@ Uses `ctx.params`, `ctx.query`, `ctx.request.body`, `ctx.body`, `ctx.status`. Ad
 
 ---
 
-### #12 — Global Error Handler Middleware (Express)
+### #12 — Global Error Handler Middleware (Express) ✅ Implemented
 
-**File:** `src/adapters/express.ts`, new export `omniRestErrorHandler`
+**File:** `src/adapters/express.ts`
 
 A drop-in Express error handler that maps Prisma error codes to clean JSON:
 
 ```ts
 app.use("/api", expressAdapter(prisma));
+app.use("/custom", myCustomRoutes);
 app.use(omniRestErrorHandler()); // catches P2002, P2025 etc.
 ```
 
-Maps: `P2025 → 404`, `P2002 → 409`, `P2003 → 400`, everything else `→ 500`.
+Maps: `P2025 → 404`, `P2002 → 409 (with field name)`, `P2003 → 400`, `P2014 → 400`, unknown Prisma codes `→ 500`, non-Prisma errors pass through to `next()`. Also updated `expressAdapter` to forward `HandlerResult.headers` to the response.
+
+**Tests:** all Prisma code mappings, non-Prisma passthrough, middleware arity check.
 
 ---
 
