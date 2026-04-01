@@ -26,7 +26,7 @@ Complete reference for all Omni Rest endpoints.
 
 Omni Rest supports powerful filtering, sorting, and pagination via standard query parameters.
 
-<Tabs items={['Pagination', 'Sorting', 'Filtering', 'Search & Fields']}>
+<Tabs items={['Pagination', 'Sorting', 'Filtering', 'Relation Filters', 'Search & Fields']}>
   <Tabs.Tab>
     ```javascript copy
     GET /api/product?limit=10&offset=20
@@ -93,6 +93,34 @@ Omni Rest supports powerful filtering, sorting, and pagination via standard quer
     | `contains` | Contains substring | `name[contains]=Mac` |
     | `startsWith` | Starts with | `name[startsWith]=Mac` |
     | `endsWith` | Ends with | `name[endsWith]=Book` |
+  </Tabs.Tab>
+  <Tabs.Tab>
+    #### Dot-Notation Relation Filtering
+
+    Filter parent records by their related records' fields using `relation.field` syntax:
+
+    ```javascript copy
+    GET /api/department?employees.isActive=true
+    GET /api/order?customer.city=Karachi
+    GET /api/post?author.name_contains=john
+    ```
+
+    | Relation type | Syntax | Prisma equivalent |
+    |---------------|--------|-------------------|
+    | List (`isList: true`) | `?employees.isActive=true` | `{ employees: { some: { isActive: true } } }` |
+    | Singular | `?customer.city=Karachi` | `{ customer: { city: "Karachi" } }` |
+    | With operator | `?author.name_contains=john` | `{ author: { name: { contains: "john" } } }` |
+
+    All filter operators (`_contains`, `_gte`, `_in`, etc.) work inside dot notation.
+
+    Combines freely with regular filters:
+    ```javascript copy
+    GET /api/department?employees.isActive=true&name=Engineering
+    ```
+
+    <Callout type="info">
+      Only one level of nesting is supported (`relation.field`). Deeply nested paths like `posts.comments.text` fall through to a regular filter.
+    </Callout>
   </Tabs.Tab>
   <Tabs.Tab>
     #### Global Search

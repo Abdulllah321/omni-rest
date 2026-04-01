@@ -273,26 +273,26 @@ Require understanding of at least two source files. Good for contributors who've
 
 ---
 
-### #6 — Nested Relation Filtering
+### #6 — Nested Relation Filtering ✅ Implemented
 
 **File:** `src/query-builder.ts`
 
 Support dot-notation filters to query through relations:
 
 ```
-?posts.title_contains=hello
-→ where: { posts: { some: { title: { contains: "hello" } } } }
+?employees.isActive=true
+→ where: { employees: { some: { isActive: true } } }   (isList relation)
 
-?profile.age_gte=18
-→ where: { profile: { age: { gte: 18 } } }
+?customer.city=Karachi
+→ where: { customer: { city: "Karachi" } }              (singular relation)
+
+?author.name_contains=john
+→ where: { author: { name: { contains: "john" } } }
 ```
 
-**Implementation hint:**
-- Detect dots in filter keys before processing operators
-- Use `some` for list relations, direct nesting for singular
-- May need relation type info from DMMF (pass `FieldMeta` into query builder)
+Dot keys are detected before regular operator matching. `modelFields` determines `isList` → `some: {}` vs direct nesting. Unknown relations and deeply nested keys (two dots) fall through to regular filter handling (documented in code comment).
 
-**Tests needed:** list relation filter, singular relation filter, nested + operator combo.
+**Tests:** list relation `some`, singular direct nesting, operator suffix inside dot notation, combined with regular filters, unknown relation graceful fallthrough, no modelFields fallthrough, two-dot deep nesting fallthrough.
 
 ---
 
@@ -314,9 +314,9 @@ Maps to Prisma's `createMany`, `updateMany`, `deleteMany`. Return `{ count: N }`
 
 ---
 
-### #8 — Field-Level Permissions
+### #8 — Field-Level Permissions ✅ Implemented
 
-**File:** `src/router.ts`, `src/types.ts`
+**Files:** `src/router.ts`, `src/types.ts`
 
 Strip sensitive fields from responses and write bodies:
 
@@ -324,17 +324,17 @@ Strip sensitive fields from responses and write bodies:
 omniRest(prisma, {
   fieldGuards: {
     user: {
-      hidden: ["password", "salt"],        // never in GET response
-      readOnly: ["id", "createdAt"],       // stripped from POST/PUT body
-      writeOnly: ["password"],             // never in GET response
+      hidden:    ["salt"],              // never in any response
+      readOnly:  ["id", "createdAt"],  // stripped from POST/PUT body before Prisma
+      writeOnly: ["password"],         // never in GET responses
     }
   }
 })
 ```
 
-Add `fieldGuards` to `PrismaRestOptions`. Apply in router before returning response and before passing body to Prisma.
+`FieldGuardConfig` and `FieldGuardMap` types added to `src/types.ts`. `stripResponse()` removes `hidden` + `writeOnly` fields from all responses. `sanitizeBody()` removes `readOnly` fields from write bodies. Works on single records, list responses, and `envelope: false` mode.
 
-**Tests needed:** hidden field absent from GET, readOnly stripped from POST body, writeOnly absent from GET.
+**Tests:** hidden absent from GET single/list/POST response, writeOnly absent from GET/PUT response, readOnly stripped from POST/PUT body, unguarded fields unaffected, no fieldGuards = no change, envelope:false still strips.
 
 ---
 

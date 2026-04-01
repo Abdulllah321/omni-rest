@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
-import { P as PrismaRestOptions, R as RouterInstance, M as ModelMeta, F as FieldMeta, a as ParsedQuery, G as GuardMap, H as HookFn, b as HookContext } from './types-BURph8D5.mjs';
-export { c as GuardFn, d as HandlerResult } from './types-BURph8D5.mjs';
+import { P as PrismaRestOptions, R as RouterInstance, M as ModelMeta, F as FieldMeta, a as ParsedQuery, G as GuardMap, H as HookFn, b as HookContext } from './types-_OVcoAZ9.mjs';
+export { c as GuardFn, d as HandlerResult } from './types-_OVcoAZ9.mjs';
 export { expressAdapter } from './adapters/express.mjs';
 export { nextjsAdapter } from './adapters/nextjs.mjs';
 export { fastifyAdapter } from './adapters/fastify.mjs';
@@ -39,12 +39,23 @@ declare function getDelegate(prisma: any, meta: ModelMeta): any;
  * Parses URLSearchParams into a full Prisma query object.
  *
  * Supports:
- *   Filtering  → ?name=John  ?age_gte=18  ?status_in=a,b
- *   Sorting    → ?sort=createdAt:desc  or  ?sort=name:asc
- *   Pagination → ?page=2&limit=10
- *   Relations  → ?include=posts,profile
- *   Fields     → ?select=id,name,email  or  ?fields=id,name,email
- *   Search     → ?search=eng  (queries all String fields with OR)
+ *   Filtering       → ?name=John  ?age_gte=18  ?status_in=a,b
+ *   Relation filter → ?employees.isActive=true  ?author.name_contains=john
+ *   Sorting         → ?sort=createdAt:desc  or  ?sort=name:asc
+ *   Pagination      → ?page=2&limit=10
+ *   Relations       → ?include=posts,profile
+ *   Fields          → ?select=id,name,email  or  ?fields=id,name,email
+ *   Search          → ?search=eng  (queries all String fields with OR)
+ *
+ * Dot-notation relation filtering:
+ *   ?relation.field=value   → isList  → { relation: { some: { field: value } } }
+ *                           → singular → { relation: { field: value } }
+ *   Operator suffixes work inside dot notation:
+ *   ?author.name_contains=john → { author: { name: { contains: "john" } } }
+ *
+ * NOTE: Only one level of nesting is supported (relation.field).
+ * Deeply nested filters (relation.nested.field) are not supported and will
+ * be treated as a regular (non-relation) filter key.
  */
 declare function buildQuery(searchParams: URLSearchParams, defaultLimit?: number, maxLimit?: number, modelFields?: FieldMeta[]): ParsedQuery;
 

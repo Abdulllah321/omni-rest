@@ -40,12 +40,23 @@ const RESERVED_KEYS = new Set([
  * Parses URLSearchParams into a full Prisma query object.
  *
  * Supports:
- *   Filtering  → ?name=John  ?age_gte=18  ?status_in=a,b
- *   Sorting    → ?sort=createdAt:desc  or  ?sort=name:asc
- *   Pagination → ?page=2&limit=10
- *   Relations  → ?include=posts,profile
- *   Fields     → ?select=id,name,email  or  ?fields=id,name,email
- *   Search     → ?search=eng  (queries all String fields with OR)
+ *   Filtering       → ?name=John  ?age_gte=18  ?status_in=a,b
+ *   Relation filter → ?employees.isActive=true  ?author.name_contains=john
+ *   Sorting         → ?sort=createdAt:desc  or  ?sort=name:asc
+ *   Pagination      → ?page=2&limit=10
+ *   Relations       → ?include=posts,profile
+ *   Fields          → ?select=id,name,email  or  ?fields=id,name,email
+ *   Search          → ?search=eng  (queries all String fields with OR)
+ *
+ * Dot-notation relation filtering:
+ *   ?relation.field=value   → isList  → { relation: { some: { field: value } } }
+ *                           → singular → { relation: { field: value } }
+ *   Operator suffixes work inside dot notation:
+ *   ?author.name_contains=john → { author: { name: { contains: "john" } } }
+ *
+ * NOTE: Only one level of nesting is supported (relation.field).
+ * Deeply nested filters (relation.nested.field) are not supported and will
+ * be treated as a regular (non-relation) filter key.
  */
 export function buildQuery(
   searchParams: URLSearchParams,
@@ -121,6 +132,66 @@ export function buildQuery(
   for (const [key, value] of searchParams.entries()) {
     if (RESERVED_KEYS.has(key)) continue;
 
+    // ── Dot-notation relation filter (?relation.field[_op]=value) ──────────
+    // Only handle a single dot (one level deep). Deeper nesting falls through.
+    const dotIndex = key.indexOf(".");
+    if (dotIndex > 0 && key.indexOf(".", dotIndex + 1) === -1 && modelFields) {
+      const relationName = key.slice(0, dotIndex);
+      const fieldPart = key.slice(dotIndex + 1); // e.g. "isActive" or "name_contains"
+
+      const relationMeta = modelFields.find(
+        (f) => f.name === relationName && f.isRelation
+      );
+
+      if (relationMeta) {
+        // Parse the field part for operator suffix
+        const sortedOps = Object.keys(FILTER_OPERATORS).sort(
+          (a, b) => b.length - a.length
+        );
+        let fieldName = fieldPart;
+        let fieldFilter: any;
+
+        let opMatched = false;
+        for (const suffix of sortedOps) {
+          if (fieldPart.endsWith(suffix)) {
+            fieldName = fieldPart.slice(0, -suffix.length);
+            const prismaOp = FILTER_OPERATORS[suffix];
+            let parsedValue: any = value;
+
+            if (prismaOp === "in" || prismaOp === "notIn") {
+              parsedValue = value.split(",").map((v) => v.trim());
+            } else if (!isNaN(Number(parsedValue)) && typeof parsedValue === "string") {
+              parsedValue = Number(parsedValue);
+            }
+
+            const extra = suffix === "_icontains" ? { mode: "insensitive" } : {};
+            fieldFilter = { [prismaOp]: parsedValue, ...extra };
+            opMatched = true;
+            break;
+          }
+        }
+
+        if (!opMatched) {
+          // Exact match — coerce value
+          let parsedValue: any = value;
+          if (value === "true") parsedValue = true;
+          else if (value === "false") parsedValue = false;
+          else if (!isNaN(Number(value)) && value !== "") parsedValue = Number(value);
+          fieldFilter = parsedValue;
+        }
+
+        // isList relation → some: { field: filter }
+        // singular relation → direct: { field: filter }
+        const nested = { [fieldName]: fieldFilter };
+        where[relationName] = relationMeta.isList
+          ? { some: nested }
+          : nested;
+
+        continue; // skip regular filter processing for this key
+      }
+    }
+
+    // ── Regular filters ────────────────────────────────────────────────────
     // Check operator suffixes (longest match first)
     let matched = false;
     const sortedOps = Object.keys(FILTER_OPERATORS).sort(

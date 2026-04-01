@@ -107,60 +107,13 @@ v1.0.0 — Production-ready (6 months in)
 
 ---
 
-## Issue #6
+## Issue #6 ✅ RESOLVED
 
 **Title:** `feat: nested relation filtering with dot-notation params`
 
 **Labels:** `intermediate`, `enhancement`, `query-builder`
 
-**Body:**
-```
-## Summary
-Support filtering parent records by child relation fields using 
-dot-notation in query params.
-
-## Motivation
-"Show me all departments that have at least one active employee" 
-is impossible today without a custom route. Dot-notation filtering 
-maps directly to Prisma's nested where syntax.
-
-## Desired Behavior
-GET /api/department?employees.isActive=true
-→ where: { employees: { some: { isActive: true } } }
-
-GET /api/order?customer.city=Karachi
-→ where: { customer: { city: "Karachi" } }
-
-GET /api/post?author.name_contains=john
-→ where: { author: { name: { contains: "john" } } }
-
-## Implementation Notes
-- File: `src/query-builder.ts`
-- Detect dots in key before operator suffix matching
-- Split on first dot: left = relation, right = field (+ optional op)
-- Need relation type from DMMF to decide some vs direct nesting
-  - isList relation → some: { ... }
-  - singular relation → direct: { ... }
-- ModelMeta with FieldMeta must be passed into buildQuery
-
-## Design Questions (discuss before implementing)
-- How to handle deeply nested? (posts.comments.text_contains)
-- How to handle none: / every: variants?
-
-## Tests Needed
-- List relation with some (isList: true)
-- Singular relation with direct nesting
-- Relation + operator combo (relation.field_contains)
-- Dot param combined with regular filter
-- Invalid relation name is ignored gracefully
-
-## Acceptance Criteria
-- [ ] dot.notation filters work for list and singular relations
-- [ ] Operator suffixes work inside dot notation
-- [ ] ModelMeta passed into buildQuery cleanly
-- [ ] Tests pass
-- [ ] Discussion on deep nesting documented in code comment
-```
+**Status:** Implemented in `src/query-builder.ts`. Dot-notation keys (`relation.field[_op]`) are detected before regular filter processing. Uses `modelFields` to determine `isList` → `some: {}` wrapper vs direct nesting for singular relations. Operator suffixes work inside dot notation. Unknown relations and deeply nested keys (two dots) fall through to regular filter handling. Tests in `test/query-builder.test.ts`.
 
 ---
 
@@ -224,62 +177,13 @@ Response: { count: 3 }
 
 ---
 
-## Issue #8
+## Issue #8 ✅ RESOLVED
 
 **Title:** `feat: field-level permissions (hidden, readOnly, writeOnly)`
 
 **Labels:** `intermediate`, `enhancement`, `router`, `security`
 
-**Body:**
-```
-## Summary
-Allow developers to control which fields are readable and writable 
-per model, without writing custom Prisma queries.
-
-## Motivation
-Every real app has sensitive fields: passwords, internal notes, 
-audit timestamps. Currently there is no way to prevent them from 
-appearing in responses or being written via the API.
-
-## Desired Behavior
-omniRest(prisma, {
-  fieldGuards: {
-    user: {
-      hidden:    ["password", "salt", "internalNote"],  // stripped from all responses
-      readOnly:  ["id", "createdAt", "updatedAt"],       // stripped from write bodies
-      writeOnly: ["password"],                           // in write bodies only, never in GET
-    }
-  }
-})
-
-// GET /api/user/1 → never includes password, salt, internalNote
-// POST /api/user with { name, password } → id/createdAt stripped from body before Prisma
-// GET /api/user/1 → password absent even if in DB
-
-## Implementation Notes
-- Files: `src/router.ts`, `src/types.ts`
-- Add `fieldGuards` to PrismaRestOptions
-- In router.ts before returning response: strip `hidden` and `writeOnly` fields
-- Before passing body to Prisma: strip `readOnly` fields
-- Works on both single records and arrays (list response)
-- Should apply recursively to included relations? (discuss)
-
-## Tests Needed
-- hidden field absent from GET single
-- hidden field absent from GET list
-- readOnly field stripped from POST body before Prisma call
-- writeOnly absent from GET response
-- Fields not in fieldGuards are unaffected
-- Included relation fields are also filtered
-
-## Acceptance Criteria
-- [ ] hidden fields never appear in any response
-- [ ] readOnly fields stripped from write operations
-- [ ] writeOnly fields never appear in GET responses
-- [ ] Works on list and single responses
-- [ ] Tests pass
-- [ ] Security implications documented
-```
+**Status:** Implemented in `src/router.ts` and `src/types.ts`. `fieldGuards` option added to `PrismaRestOptions`. `stripResponse()` removes `hidden` + `writeOnly` fields from all GET/POST/PUT responses. `sanitizeBody()` removes `readOnly` fields from write bodies before Prisma. Works on single records, list responses, and `envelope: false` mode. Tests in `test/field-guards.test.ts`.
 
 ---
 

@@ -383,6 +383,32 @@ app.use("/docs", swaggerUi.serve, swaggerUi.setup(spec, {
   </Tabs.Tab>
 </Tabs>
 
+## Field-Level Permissions
+
+Control which fields are readable and writable per model without writing custom Prisma queries.
+
+```typescript copy
+expressAdapter(prisma, {
+  fieldGuards: {
+    user: {
+      hidden:    ["salt", "internalNote"],  // never in any response
+      readOnly:  ["id", "createdAt"],       // stripped from POST/PUT/PATCH bodies
+      writeOnly: ["password"],              // accepted in writes, never returned in GET
+    },
+  },
+});
+```
+
+| Option | Effect |
+|--------|--------|
+| `hidden` | Removed from all responses (GET single, GET list, POST/PUT response) |
+| `readOnly` | Stripped from write bodies before reaching Prisma |
+| `writeOnly` | Removed from all GET responses; accepted in write bodies |
+
+<Callout type="warning">
+  `hidden` and `writeOnly` both suppress fields from responses. Use `hidden` for fields that should never be exposed at all (e.g. `salt`). Use `writeOnly` for fields that are accepted on write but should not be echoed back (e.g. `password`).
+</Callout>
+
 ## Global Error Handler (Express)
 
 `omniRestErrorHandler()` is a drop-in Express error middleware that maps Prisma error codes to clean JSON responses — covering both omni-rest routes and your own custom routes.

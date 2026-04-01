@@ -168,6 +168,48 @@ function buildQuery(searchParams, defaultLimit = 20, maxLimit = 100, modelFields
   }
   for (const [key, value] of searchParams.entries()) {
     if (RESERVED_KEYS.has(key)) continue;
+    const dotIndex = key.indexOf(".");
+    if (dotIndex > 0 && key.indexOf(".", dotIndex + 1) === -1 && modelFields) {
+      const relationName = key.slice(0, dotIndex);
+      const fieldPart = key.slice(dotIndex + 1);
+      const relationMeta = modelFields.find(
+        (f) => f.name === relationName && f.isRelation
+      );
+      if (relationMeta) {
+        const sortedOps2 = Object.keys(FILTER_OPERATORS).sort(
+          (a, b) => b.length - a.length
+        );
+        let fieldName = fieldPart;
+        let fieldFilter;
+        let opMatched = false;
+        for (const suffix of sortedOps2) {
+          if (fieldPart.endsWith(suffix)) {
+            fieldName = fieldPart.slice(0, -suffix.length);
+            const prismaOp = FILTER_OPERATORS[suffix];
+            let parsedValue = value;
+            if (prismaOp === "in" || prismaOp === "notIn") {
+              parsedValue = value.split(",").map((v) => v.trim());
+            } else if (!isNaN(Number(parsedValue)) && typeof parsedValue === "string") {
+              parsedValue = Number(parsedValue);
+            }
+            const extra = suffix === "_icontains" ? { mode: "insensitive" } : {};
+            fieldFilter = { [prismaOp]: parsedValue, ...extra };
+            opMatched = true;
+            break;
+          }
+        }
+        if (!opMatched) {
+          let parsedValue = value;
+          if (value === "true") parsedValue = true;
+          else if (value === "false") parsedValue = false;
+          else if (!isNaN(Number(value)) && value !== "") parsedValue = Number(value);
+          fieldFilter = parsedValue;
+        }
+        const nested = { [fieldName]: fieldFilter };
+        where[relationName] = relationMeta.isList ? { some: nested } : nested;
+        continue;
+      }
+    }
     let matched = false;
     const sortedOps = Object.keys(FILTER_OPERATORS).sort(
       (a, b) => b.length - a.length
@@ -230,7 +272,8 @@ function createRouter(prisma, options = {}) {
     maxLimit = 100,
     softDelete = false,
     softDeleteField,
-    envelope = true
+    envelope = true,
+    fieldGuards = {}
   } = options;
   const models = getModels(prisma);
   const modelMap = buildModelMap(models, allow);
@@ -267,7 +310,8 @@ function createRouter(prisma, options = {}) {
         operation,
         softDelete,
         softDeleteField,
-        envelope
+        envelope,
+        fieldGuards[meta.routeName]
       );
     } catch (e) {
       return handlePrismaError(e);
@@ -283,7 +327,7 @@ function createRouter(prisma, options = {}) {
   }
   return { handle, modelMap, models };
 }
-async function executeOperation(prisma, meta, method, id, body, searchParams, defaultLimit, maxLimit, operation, softDelete = false, softDeleteField, envelope = true) {
+async function executeOperation(prisma, meta, method, id, body, searchParams, defaultLimit, maxLimit, operation, softDelete = false, softDeleteField, envelope = true, fg) {
   const delegate = getDelegate(prisma, meta);
   const { where, orderBy, skip, take, include, select } = buildQuery(
     searchParams,
@@ -294,6 +338,7 @@ async function executeOperation(prisma, meta, method, id, body, searchParams, de
   const includeArg = Object.keys(include).length > 0 ? include : void 0;
   const selectArg = select && Object.keys(select).length > 0 ? select : void 0;
   const projection = selectArg ? { select: selectArg } : includeArg ? { include: includeArg } : {};
+  const safeBody = sanitizeBody(body, fg);
   if (method === "PATCH" && operation === "bulk-update") {
     if (!Array.isArray(body) || body.length === 0) {
       return {
@@ -358,17 +403,18 @@ async function executeOperation(prisma, meta, method, id, body, searchParams, de
       delegate.findMany({ where: listWhere, orderBy, skip, take, ...projection }),
       delegate.count({ where: listWhere })
     ]);
+    const safeData = data.map((r) => stripResponse(r, fg));
     if (!envelope) {
       return {
         status: 200,
-        data,
+        data: safeData,
         headers: { "X-Total-Count": String(total) }
       };
     }
     return {
       status: 200,
       data: {
-        data,
+        data: safeData,
         meta: {
           total,
           page: Math.floor(skip / take) + 1,
@@ -386,18 +432,18 @@ async function executeOperation(prisma, meta, method, id, body, searchParams, de
     if (!record) {
       return { status: 404, data: { error: `${meta.name} with id "${id}" not found.` } };
     }
-    return { status: 200, data: record };
+    return { status: 200, data: stripResponse(record, fg) };
   }
   if (method === "POST" && !id) {
-    const record = await delegate.create({ data: body });
-    return { status: 201, data: record };
+    const record = await delegate.create({ data: safeBody });
+    return { status: 201, data: stripResponse(record, fg) };
   }
   if ((method === "PUT" || method === "PATCH") && id) {
     const record = await delegate.update({
       where: { [meta.idField]: coerceId(id) },
-      data: body
+      data: safeBody
     });
-    return { status: 200, data: record };
+    return { status: 200, data: stripResponse(record, fg) };
   }
   if (method === "DELETE" && id) {
     const softDeleteInfo = softDelete ? detectSoftDeleteField(meta.fields, softDeleteField) : null;
@@ -414,6 +460,26 @@ async function executeOperation(prisma, meta, method, id, body, searchParams, de
     return { status: 204, data: null };
   }
   return { status: 405, data: { error: `Method ${method} not allowed.` } };
+}
+function stripResponse(record, fg) {
+  if (!fg || !record || typeof record !== "object") return record;
+  const blocked = /* @__PURE__ */ new Set([...fg.hidden ?? [], ...fg.writeOnly ?? []]);
+  if (blocked.size === 0) return record;
+  const out = {};
+  for (const [k, v] of Object.entries(record)) {
+    if (!blocked.has(k)) out[k] = v;
+  }
+  return out;
+}
+function sanitizeBody(body, fg) {
+  if (!fg || !body || typeof body !== "object" || Array.isArray(body)) return body;
+  const readOnly = new Set(fg.readOnly ?? []);
+  if (readOnly.size === 0) return body;
+  const out = {};
+  for (const [k, v] of Object.entries(body)) {
+    if (!readOnly.has(k)) out[k] = v;
+  }
+  return out;
 }
 function coerceId(id) {
   const n = Number(id);
