@@ -21,6 +21,16 @@ const departmentFields: FieldMeta[] = [
   makeField("description", "String"),
   makeField("headCount", "Int"),
   makeField("isActive", "Boolean"),
+  // list relation
+  { ...makeField("employees", "User", true), isList: true },
+];
+
+// Fields for a model with a singular relation
+const orderFields: FieldMeta[] = [
+  { ...makeField("id", "Int"), isId: true },
+  makeField("total", "Int"),
+  // singular relation
+  { ...makeField("customer", "Customer", true), isList: false },
 ];
 
 const noStringFields: FieldMeta[] = [
@@ -231,5 +241,79 @@ describe("buildQuery", () => {
       );
       expect(where.search).toBeUndefined();
     });
+  });
+});
+
+// ─── Dot-notation relation filters ────────────────────────────────────────────
+
+describe("dot-notation relation filtering", () => {
+  it("list relation uses some: {} wrapper", () => {
+    const { where } = buildQuery(
+      new URLSearchParams("employees.isActive=true"),
+      20, 100, departmentFields
+    );
+    expect(where.employees).toEqual({ some: { isActive: true } });
+  });
+
+  it("singular relation uses direct nesting", () => {
+    const { where } = buildQuery(
+      new URLSearchParams("customer.city=Karachi"),
+      20, 100, orderFields
+    );
+    expect(where.customer).toEqual({ city: "Karachi" });
+  });
+
+  it("relation + _contains operator on singular relation", () => {
+    const fields: FieldMeta[] = [
+      { ...makeField("id", "Int"), isId: true },
+      { ...makeField("author", "User", true), isList: false },
+    ];
+    const { where } = buildQuery(
+      new URLSearchParams("author.name_contains=john"),
+      20, 100, fields
+    );
+    expect(where.author).toEqual({ name: { contains: "john" } });
+  });
+
+  it("relation + _gte operator on list relation", () => {
+    const fields: FieldMeta[] = [
+      { ...makeField("id", "Int"), isId: true },
+      { ...makeField("posts", "Post", true), isList: true },
+    ];
+    const { where } = buildQuery(
+      new URLSearchParams("posts.views_gte=100"),
+      20, 100, fields
+    );
+    expect(where.posts).toEqual({ some: { views: { gte: 100 } } });
+  });
+
+  it("combines with regular filters", () => {
+    const { where } = buildQuery(
+      new URLSearchParams("employees.isActive=true&name=Engineering"),
+      20, 100, departmentFields
+    );
+    expect(where.employees).toEqual({ some: { isActive: true } });
+    expect(where.name).toBe("Engineering");
+  });
+
+  it("ignores dot-notation when relation name not found in modelFields", () => {
+    const { where } = buildQuery(
+      new URLSearchParams("unknown.field=value"),
+      20, 100, departmentFields
+    );
+    expect(where["unknown.field"]).toBe("value");
+  });
+
+  it("ignores dot-notation when no modelFields provided", () => {
+    const { where } = buildQuery(new URLSearchParams("employees.isActive=true"));
+    expect(where["employees.isActive"]).toBe(true);
+  });
+
+  it("does not process deeply nested keys (two dots)", () => {
+    const { where } = buildQuery(
+      new URLSearchParams("posts.comments.text=hello"),
+      20, 100, departmentFields
+    );
+    expect(where["posts.comments.text"]).toBe("hello");
   });
 });

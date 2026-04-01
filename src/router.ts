@@ -7,6 +7,7 @@ import type {
   HandlerResult,
   RouterInstance,
   ModelMeta,
+  FieldGuardConfig,
 } from "./types";
 
 /**
@@ -28,6 +29,7 @@ export function createRouter(
     softDelete = false,
     softDeleteField,
     envelope = true,
+    fieldGuards = {},
   } = options;
 
   // Introspect schema once at startup
@@ -82,7 +84,8 @@ export function createRouter(
         operation,
         softDelete,
         softDeleteField,
-        envelope
+        envelope,
+        fieldGuards[meta.routeName]
       );
     } catch (e: any) {
       return handlePrismaError(e);
@@ -117,7 +120,8 @@ async function executeOperation(
   operation?: string,
   softDelete = false,
   softDeleteField?: string,
-  envelope = true
+  envelope = true,
+  fg?: FieldGuardConfig
 ): Promise<HandlerResult> {
   const delegate = getDelegate(prisma, meta);
   const { where, orderBy, skip, take, include, select } = buildQuery(
@@ -133,6 +137,9 @@ async function executeOperation(
   const selectArg =
     select && Object.keys(select).length > 0 ? select : undefined;
   const projection = selectArg ? { select: selectArg } : includeArg ? { include: includeArg } : {};
+
+  // Sanitize write body — strip readOnly fields before passing to Prisma
+  const safeBody = sanitizeBody(body, fg);
 
   // ── PATCH /model/bulk/update ────────────────────────────────────────────────
   if (method === "PATCH" && operation === "bulk-update") {
@@ -208,7 +215,6 @@ async function executeOperation(
 
   // ── GET /model ─────────────────────────────────────────────────────────────
   if (method === "GET" && !id) {
-    // Exclude soft-deleted records from list when soft delete is active
     const softDeleteInfo = softDelete
       ? detectSoftDeleteField(meta.fields, softDeleteField)
       : null;
@@ -221,10 +227,12 @@ async function executeOperation(
       delegate.count({ where: listWhere }),
     ]);
 
+    const safeData = (data as any[]).map((r: any) => stripResponse(r, fg));
+
     if (!envelope) {
       return {
         status: 200,
-        data,
+        data: safeData,
         headers: { "X-Total-Count": String(total) },
       };
     }
@@ -232,7 +240,7 @@ async function executeOperation(
     return {
       status: 200,
       data: {
-        data,
+        data: safeData,
         meta: {
           total,
           page: Math.floor(skip / take) + 1,
@@ -254,22 +262,22 @@ async function executeOperation(
       return { status: 404, data: { error: `${meta.name} with id "${id}" not found.` } };
     }
 
-    return { status: 200, data: record };
+    return { status: 200, data: stripResponse(record, fg) };
   }
 
   // ── POST /model ────────────────────────────────────────────────────────────
   if (method === "POST" && !id) {
-    const record = await delegate.create({ data: body });
-    return { status: 201, data: record };
+    const record = await delegate.create({ data: safeBody });
+    return { status: 201, data: stripResponse(record, fg) };
   }
 
   // ── PUT /model/:id ─────────────────────────────────────────────────────────
   if ((method === "PUT" || method === "PATCH") && id) {
     const record = await delegate.update({
       where: { [meta.idField]: coerceId(id) },
-      data: body,
+      data: safeBody,
     });
-    return { status: 200, data: record };
+    return { status: 200, data: stripResponse(record, fg) };
   }
 
   // ── DELETE /model/:id ──────────────────────────────────────────────────────
@@ -296,6 +304,35 @@ async function executeOperation(
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Strips hidden and writeOnly fields from a response record.
+ * Works on plain objects; passes through null/non-objects unchanged.
+ */
+function stripResponse(record: any, fg?: FieldGuardConfig): any {
+  if (!fg || !record || typeof record !== "object") return record;
+  const blocked = new Set([...(fg.hidden ?? []), ...(fg.writeOnly ?? [])]);
+  if (blocked.size === 0) return record;
+  const out: Record<string, any> = {};
+  for (const [k, v] of Object.entries(record)) {
+    if (!blocked.has(k)) out[k] = v;
+  }
+  return out;
+}
+
+/**
+ * Strips readOnly fields from a write body before passing to Prisma.
+ */
+function sanitizeBody(body: any, fg?: FieldGuardConfig): any {
+  if (!fg || !body || typeof body !== "object" || Array.isArray(body)) return body;
+  const readOnly = new Set(fg.readOnly ?? []);
+  if (readOnly.size === 0) return body;
+  const out: Record<string, any> = {};
+  for (const [k, v] of Object.entries(body)) {
+    if (!readOnly.has(k)) out[k] = v;
+  }
+  return out;
+}
 
 /**
  * Coerces an ID string to number when possible (common with Int PKs).

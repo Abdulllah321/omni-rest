@@ -32,18 +32,21 @@ export function createMockPrisma() {
             { name: "id", isId: true, type: "Int", isRequired: true, isList: false, kind: "scalar" },
             { name: "name", isId: false, type: "String", isRequired: true, isList: false, kind: "scalar" },
             { name: "email", isId: false, type: "String", isRequired: true, isList: false, kind: "scalar" },
+            { name: "profile", isId: false, type: "Profile", isRequired: false, isList: false, kind: "object", relationName: "profile" },
           ],
         },
         Department: {
           fields: [
             { name: "id", isId: true, type: "Int", isRequired: true, isList: false, kind: "scalar" },
             { name: "name", isId: false, type: "String", isRequired: true, isList: false, kind: "scalar" },
+            { name: "employees", isId: false, type: "User", isRequired: false, isList: true, kind: "object", relationName: "employees" },
           ],
         },
         Category: {
           fields: [
             { name: "id", isId: true, type: "Int", isRequired: true, isList: false, kind: "scalar" },
             { name: "label", isId: false, type: "String", isRequired: true, isList: false, kind: "scalar" },
+            { name: "products", isId: false, type: "Product", isRequired: false, isList: true, kind: "object", relationName: "products" },
           ],
         },
         Post: {

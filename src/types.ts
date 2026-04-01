@@ -89,7 +89,30 @@ export interface PrismaRestOptions {
    * When false, returns a plain array and sets X-Total-Count header instead.
    */
   envelope?: boolean;
+
+  /**
+   * Field-level access control per model.
+   * - hidden:    never returned in any response (passwords, secrets)
+   * - readOnly:  stripped from write bodies before Prisma (id, createdAt)
+   * - writeOnly: stripped from GET responses (write-only fields like raw passwords)
+   */
+  fieldGuards?: FieldGuardMap;
 }
+
+// ─── Field Guards ─────────────────────────────────────────────────────────────
+
+export interface FieldGuardConfig {
+  /** Fields never included in any response. */
+  hidden?: string[];
+  /** Fields stripped from POST/PUT/PATCH bodies before reaching Prisma. */
+  readOnly?: string[];
+  /** Fields included in write bodies but never returned in GET responses. */
+  writeOnly?: string[];
+}
+
+export type FieldGuardMap = {
+  [modelRouteName: string]: FieldGuardConfig;
+};
 
 // ─── Query ───────────────────────────────────────────────────────────────────
 

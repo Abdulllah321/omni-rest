@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.7] - 2026-04-01
+
+### Added
+- **`fieldGuards` option** — field-level access control per model
+  ```ts
+  expressAdapter(prisma, {
+    fieldGuards: {
+      user: {
+        hidden:    ["salt"],           // never in any response
+        readOnly:  ["id", "createdAt"], // stripped from write bodies
+        writeOnly: ["password"],        // never in GET responses
+      },
+    },
+  });
+  ```
+  - `hidden`: removed from all responses
+  - `readOnly`: stripped from POST/PUT/PATCH bodies before Prisma
+  - `writeOnly`: removed from all GET responses
+  - Works on single records, list responses, and `envelope: false` mode
+- `FieldGuardConfig` and `FieldGuardMap` types exported from `omni-rest`
+
+## [0.4.6] - 2026-04-01
+
+### Added
+- **Dot-notation relation filtering** — filter parent records by child relation fields
+  ```
+  GET /api/department?employees.isActive=true
+  → where: { employees: { some: { isActive: true } } }
+
+  GET /api/order?customer.city=Karachi
+  → where: { customer: { city: "Karachi" } }
+
+  GET /api/post?author.name_contains=john
+  → where: { author: { name: { contains: "john" } } }
+  ```
+  - `isList` relations use `some: {}` wrapper; singular relations use direct nesting
+  - All operator suffixes (`_contains`, `_gte`, `_in`, etc.) work inside dot notation
+  - Unknown relations and deeply nested paths (two dots) fall through to regular filter handling
+
 ## [0.4.5] - 2026-04-01
 
 ### Added
