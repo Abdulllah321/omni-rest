@@ -133,8 +133,73 @@ async function executeOperation(
   const selectArg =
     select && Object.keys(select).length > 0 ? select : undefined;
   const projection = selectArg ? { select: selectArg } : includeArg ? { include: includeArg } : {};
+// ── DELETE /model/bulk → deleteMany ───────────────────────────
+if (method === "DELETE" && id === "bulk") {
+  const { where } = body || {};
 
-  // ── PATCH /model/bulk/update ────────────────────────────────────────────────
+  if (!where) {
+    return {
+      status: 400,
+      data: { error: "Body must contain { where }" },
+    };
+  }
+
+  const result = await delegate.deleteMany({
+    where,
+  });
+
+  return {
+    status: 200,
+    data: {
+      count: result.count,
+    },
+  };
+}
+  // ── POST /model/bulk → createMany ─────────────────────────────
+if (method === "POST" && id === "bulk") {
+  if (!Array.isArray(body) || body.length === 0) {
+    return {
+      status: 400,
+      data: { error: "Request body must be a non-empty array" },
+    };
+  }
+
+  const result = await delegate.createMany({
+    data: body,
+  });
+
+  return {
+    status: 201,
+    data: {
+      count: result.count,
+    },
+  };
+}
+
+// ── PUT /model/bulk → updateMany ─────────────────────────────
+if (method === "PUT" && id === "bulk") {
+  const { where, data } = body || {};
+
+  if (!where || !data) {
+    return {
+      status: 400,
+      data: { error: "Body must contain { where, data }" },
+    };
+  }
+
+  const result = await delegate.updateMany({
+    where,
+    data,
+  });
+
+  return {
+    status: 200,
+    data: {
+      count: result.count,
+    },
+  };
+}
+ // ── PATCH /model/bulk/update ────────────────────────────────────────────────
   if (method === "PATCH" && operation === "bulk-update") {
     if (!Array.isArray(body) || body.length === 0) {
       return {
@@ -176,7 +241,6 @@ async function executeOperation(
       },
     };
   }
-
   // ── DELETE /model/bulk/delete ──────────────────────────────────────────────
   if (method === "DELETE" && operation === "bulk-delete") {
     if (!Array.isArray(body) || body.length === 0) {
@@ -205,7 +269,6 @@ async function executeOperation(
       },
     };
   }
-
   // ── GET /model ─────────────────────────────────────────────────────────────
   if (method === "GET" && !id) {
     // Exclude soft-deleted records from list when soft delete is active
