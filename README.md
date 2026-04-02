@@ -526,5 +526,5 @@ MIT © [Omni Rest Contributors](LICENSE)
 Inspired by PostgREST and built for the modern JavaScript/TypeScript ecosystem.
 
 ---
-
+@all-contributors please add @mahek395 for code
 **Made with ❤️ by the Omni Rest community**
