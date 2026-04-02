@@ -1,6 +1,6 @@
 {
   "name": "omni-rest",
-  "version": "0.4.8",
+  "version": "0.4.9",
   "description": "Auto-generate REST APIs from your Prisma schema — zero config CRUD",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -43,6 +43,11 @@
       "types": "./dist/adapters/nestjs.d.ts",
       "import": "./dist/adapters/nestjs.mjs",
       "require": "./dist/adapters/nestjs.js"
+    },
+    "./hono": {
+      "types": "./dist/adapters/hono.d.ts",
+      "import": "./dist/adapters/hono.mjs",
+      "require": "./dist/adapters/hono.js"
     }
   },
   "files": [
@@ -68,7 +73,8 @@
     "@hapi/hapi": "*",
     "@koa/router": "*",
     "@nestjs/common": "*",
-    "koa": "*"
+    "koa": "*",
+    "hono": "*"
   },
   "peerDependenciesMeta": {
     "@hapi/hapi": {
@@ -81,6 +87,9 @@
       "optional": true
     },
     "koa": {
+      "optional": true
+    },
+    "hono": {
       "optional": true
     }
   },

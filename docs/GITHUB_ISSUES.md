@@ -117,7 +117,7 @@ v1.0.0 — Production-ready (6 months in)
 
 ---
 
-## Issue #7
+## Issue #7 ✅ RESOLVED
 
 **Title:** `feat: bulk create, update, delete endpoints`
 
@@ -203,61 +203,13 @@ Response: { count: 3 }
 
 ---
 
-## Issue #10
+## Issue #10 ✅ RESOLVED
 
 **Title:** `feat: Hono adapter for Cloudflare Workers, Bun, Deno`
 
 **Labels:** `intermediate`, `new adapter`, `enhancement`
 
-**Body:**
-```
-## Summary
-Add a Hono adapter so omni-rest works on Cloudflare Workers, Bun, 
-Deno, and any other Hono-compatible runtime.
-
-## Motivation
-Hono is one of the fastest growing frameworks in the JS ecosystem.
-It runs on edge runtimes where Prisma Accelerate / D1 are popular.
-omni-rest should work there too.
-
-## Desired Behavior
-import { Hono } from "hono";
-import { PrismaClient } from "@prisma/client";
-import { honoAdapter } from "omni-rest/hono";
-
-const app = new Hono();
-const prisma = new PrismaClient();
-
-honoAdapter(app, prisma, {
-  prefix: "/api",
-  allow: ["department", "category"],
-});
-
-export default app;
-
-## Implementation Notes
-- New file: `src/adapters/hono.ts`
-- Hono route: app.all("/:model/:id?", handler)
-- Map: c.req.param("model"), c.req.param("id"), c.req.query()
-- Body: await c.req.json()
-- Response: c.json(data, status)
-- Add "hono" to peerDependencies as optional
-- Add "hono" to exports in package.json
-
-## Tests Needed
-- GET list returns 200
-- POST returns 201
-- GET by id returns 200
-- Unknown model returns 404
-- Guard blocks with 403
-
-## Acceptance Criteria
-- [ ] honoAdapter exported from omni-rest/hono
-- [ ] All CRUD operations work
-- [ ] Works on Cloudflare Workers (test with wrangler dev)
-- [ ] Tests pass
-- [ ] README shows Cloudflare Workers example
-```
+**Status:** Implemented in `src/adapters/hono.ts`. `honoAdapter(app, prisma, options)` registers all CRUD routes plus `POST/PUT/DELETE /model/bulk` on a Hono app instance. `hono` added to `package.json` exports and optional peer deps. Tests in `test/hono-adapter.test.ts`.
 
 ---
 

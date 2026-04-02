@@ -360,23 +360,25 @@ Returns error string → 429 response. Returns null → request proceeds. Async 
 
 ---
 
-### #10 — Hono Adapter
+### #10 — Hono Adapter ✅ Implemented
 
-**File:** `src/adapters/hono.ts` (new)
+**File:** `src/adapters/hono.ts`
 
-Hono works on Cloudflare Workers, Bun, Deno, and Node. Same pattern as existing adapters.
+Hono works on Cloudflare Workers, Bun, Deno, and Node.
 
 ```ts
 import { Hono } from "hono";
 import { honoAdapter } from "omni-rest/hono";
 
 const app = new Hono();
-honoAdapter(app, prisma, { allow: ["department"] });
+honoAdapter(app, prisma, { prefix: "/api", allow: ["department"] });
+
+export default app;
 ```
 
-**Implementation hint:** Hono's `c.req.param()`, `c.req.query()`, `c.req.json()`, `c.json()` replace Express equivalents. Route pattern: `app.all("/:model/:id?", handler)`.
+Uses `c.req.param()`, `c.req.query()`, `c.req.json()`, `c.json()`. Registers `app.all("/:model/:id?")` plus `POST/PUT/DELETE /:model/bulk` routes. `hono` added as optional peer dep and export in `package.json`.
 
-**Tests needed:** GET list, POST, GET by id, 404 for unknown model.
+**Tests:** GET list, GET by id, POST, PUT, DELETE 204, unknown model 404, guard 403, prefix option, query params forwarded.
 
 ---
 

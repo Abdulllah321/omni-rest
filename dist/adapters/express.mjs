@@ -344,62 +344,63 @@ async function executeOperation(prisma, meta, method, id, body, searchParams, de
   const selectArg = select && Object.keys(select).length > 0 ? select : void 0;
   const projection = selectArg ? { select: selectArg } : includeArg ? { include: includeArg } : {};
   const safeBody = sanitizeBody(body, fg);
+  if (method === "POST" && id === "bulk") {
+    if (!Array.isArray(body) || body.length === 0) {
+      return { status: 400, data: { error: "Request body must be a non-empty array" } };
+    }
+    const result = await delegate.createMany({ data: body });
+    return { status: 201, data: { count: result.count } };
+  }
+  if (method === "PUT" && id === "bulk") {
+    const { where: bulkWhere, data: bulkData } = body || {};
+    if (!bulkWhere || !bulkData) {
+      return { status: 400, data: { error: "Body must contain { where, data }" } };
+    }
+    const result = await delegate.updateMany({ where: bulkWhere, data: bulkData });
+    return { status: 200, data: { count: result.count } };
+  }
+  if (method === "DELETE" && id === "bulk") {
+    const { where: bulkWhere } = body || {};
+    if (!bulkWhere) {
+      return { status: 400, data: { error: "Body must contain { where }" } };
+    }
+    const result = await delegate.deleteMany({ where: bulkWhere });
+    return { status: 200, data: { count: result.count } };
+  }
   if (method === "PATCH" && operation === "bulk-update") {
     if (!Array.isArray(body) || body.length === 0) {
-      return {
-        status: 400,
-        data: { error: "Request body must be a non-empty array of update records" }
-      };
+      return { status: 400, data: { error: "Request body must be a non-empty array of update records" } };
     }
     for (const item of body) {
       if (!item[meta.idField]) {
-        return {
-          status: 400,
-          data: { error: `Each record must have an ${meta.idField} field` }
-        };
+        return { status: 400, data: { error: `Each record must have an ${meta.idField} field` } };
       }
     }
     const results = await Promise.all(
       body.map((item) => {
-        const id2 = item[meta.idField];
+        const itemId = item[meta.idField];
         const updateData = { ...item };
         delete updateData[meta.idField];
         return delegate.update({
-          where: { [meta.idField]: coerceId(id2) },
+          where: { [meta.idField]: coerceId(itemId) },
           data: updateData,
           ...projection
         });
       })
     );
-    return {
-      status: 200,
-      data: {
-        updated: results.length,
-        records: results
-      }
-    };
+    return { status: 200, data: { updated: results.length, records: results } };
   }
   if (method === "DELETE" && operation === "bulk-delete") {
     if (!Array.isArray(body) || body.length === 0) {
-      return {
-        status: 400,
-        data: { error: "Request body must be a non-empty array of IDs" }
-      };
+      return { status: 400, data: { error: "Request body must be a non-empty array of IDs" } };
     }
     const ids = body.map(
       (item) => typeof item === "object" ? item[meta.idField] : item
     );
     const result = await delegate.deleteMany({
-      where: {
-        [meta.idField]: { in: ids.map(coerceId) }
-      }
+      where: { [meta.idField]: { in: ids.map(coerceId) } }
     });
-    return {
-      status: 200,
-      data: {
-        deleted: result.count
-      }
-    };
+    return { status: 200, data: { deleted: result.count } };
   }
   if (method === "GET" && !id) {
     const softDeleteInfo = softDelete ? detectSoftDeleteField(meta.fields, softDeleteField) : null;
@@ -410,11 +411,7 @@ async function executeOperation(prisma, meta, method, id, body, searchParams, de
     ]);
     const safeData = data.map((r) => stripResponse(r, fg));
     if (!envelope) {
-      return {
-        status: 200,
-        data: safeData,
-        headers: { "X-Total-Count": String(total) }
-      };
+      return { status: 200, data: safeData, headers: { "X-Total-Count": String(total) } };
     }
     return {
       status: 200,
@@ -459,9 +456,7 @@ async function executeOperation(prisma, meta, method, id, body, searchParams, de
       });
       return { status: 200, data: record };
     }
-    await delegate.delete({
-      where: { [meta.idField]: coerceId(id) }
-    });
+    await delegate.delete({ where: { [meta.idField]: coerceId(id) } });
     return { status: 204, data: null };
   }
   return { status: 405, data: { error: `Method ${method} not allowed.` } };
@@ -497,10 +492,7 @@ function handlePrismaError(e) {
   }
   if (code === "P2002") {
     const fields = e?.meta?.target ?? "unknown fields";
-    return {
-      status: 409,
-      data: { error: `Unique constraint failed on: ${fields}` }
-    };
+    return { status: 409, data: { error: `Unique constraint failed on: ${fields}` } };
   }
   if (code === "P2003") {
     return { status: 400, data: { error: "Foreign key constraint failed." } };

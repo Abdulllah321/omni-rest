@@ -109,6 +109,12 @@ Choose your preferred framework below to see how to initialize the API instance:
       <Icon icon="logos:nestjs" className="text-xl"/>
     </div>
      
+  </div>,
+  <div key="hono" className="flex items-center gap-2 font-medium">
+    <div className="bg-white p-1 rounded-full size-8 flex items-center justify-center flex-shrink-0">
+      <Icon icon="simple-icons:hono" className="text-xl"/>
+    </div>
+     
   </div>
 ]}>
   <Tabs.Tab>
@@ -227,6 +233,24 @@ Choose your preferred framework below to see how to initialize the API instance:
       controllers: [OmniRestController],
     })
     export class AppModule {}
+    ```
+
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```typescript
+    // index.ts (Cloudflare Workers / Bun / Deno / Node)
+    import { Hono } from "hono";
+    import { PrismaClient } from "@prisma/client";
+    import { honoAdapter } from "omni-rest/hono";
+
+    const app = new Hono();
+    const prisma = new PrismaClient();
+
+    honoAdapter(app, prisma, {
+      prefix: "/api",
+    });
+
+    export default app;
     ```
 
   </Tabs.Tab>
