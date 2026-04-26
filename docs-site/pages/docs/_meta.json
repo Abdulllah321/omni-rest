@@ -2,6 +2,7 @@
   "index": "Introduction",
   "getting-started": "Getting Started",
   "api-reference": "API Reference",
+  "subscriptions": "Subscriptions (SSE)",
   "configuration": "Configuration",
   "cli": "CLI Tools",
   "generate-frontend": "Frontend Generator",

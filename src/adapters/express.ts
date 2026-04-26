@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { createRouter } from "../router";
+import { formatSseEvent, formatSseHeartbeat } from "../subscriptions";
 import type { PrismaRestOptions } from "../types";
 
 /**
@@ -38,7 +39,53 @@ export function expressAdapter(
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { Router } = require("express");
   const router = Router();
-  const { handle } = createRouter(prisma, options);
+  const { handle, modelMap, subscriptionBus } = createRouter(prisma, options);
+
+  const heartbeatMs = options.subscription?.heartbeatInterval ?? 30_000;
+  const guards = (options.guards ?? {}) as Record<string, any>;
+  const fieldGuards = (options.fieldGuards ?? {}) as Record<string, any>;
+
+  // ── SSE: GET /:model/subscribe ────────────────────────────────────────
+  // Registered BEFORE /:model/:id so the literal "subscribe" is not treated as :id.
+  router.get("/:model/subscribe", async (req: any, res: any) => {
+    const modelName: string = req.params.model;
+    const meta = modelMap[modelName.toLowerCase()];
+
+    if (!meta) {
+      return res.status(404).json({ error: `Model "${modelName}" not found or not exposed.` });
+    }
+
+    // Guard check — re-use existing GET guard
+    const guardError = await subscriptionBus.checkGuard(guards, meta.routeName, { body: {} });
+    if (guardError) {
+      return res.status(403).json({ error: guardError });
+    }
+
+    // Open SSE stream
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no"); // disable nginx buffering
+    res.flushHeaders();
+
+    const fg = fieldGuards[meta.routeName];
+
+    const unsubscribe = await subscriptionBus.subscribe(
+      meta,
+      (event) => { res.write(formatSseEvent(event)); },
+      fg
+    );
+
+    const heartbeat = setInterval(() => { res.write(formatSseHeartbeat()); }, heartbeatMs);
+
+    const cleanup = () => {
+      clearInterval(heartbeat);
+      unsubscribe();
+    };
+
+    req.on("close", cleanup);
+    req.on("error", cleanup);
+  });
 
   // PATCH + DELETE /model/bulk/update and /model/bulk/delete
   router.patch("/:model/bulk/update", async (req: any, res: any) => {

@@ -1,5 +1,7 @@
+import { PassThrough } from "stream";
 import { PrismaClient } from "@prisma/client";
 import { createRouter } from "../router";
+import { formatSseEvent, formatSseHeartbeat } from "../subscriptions";
 import type { PrismaRestOptions } from "../types";
 
 /**
@@ -31,7 +33,10 @@ export function koaAdapter(
   prisma: PrismaClient,
   options: PrismaRestOptions = {}
 ) {
-  const { handle } = createRouter(prisma, options);
+  const { handle, modelMap, subscriptionBus } = createRouter(prisma, options);
+  const heartbeatMs = options.subscription?.heartbeatInterval ?? 30_000;
+  const guards = (options.guards ?? {}) as Record<string, any>;
+  const fieldGuards = (options.fieldGuards ?? {}) as Record<string, any>;
 
   // Helper to extract query as URLSearchParams
   const getSearchParams = (ctx: any): URLSearchParams => {
@@ -41,6 +46,56 @@ export function koaAdapter(
         .join("&")
     );
   };
+
+  // ── SSE: GET /:model/subscribe ────────────────────────────────────────
+  // Must be registered BEFORE /:model/:id.
+  router.get("/:model/subscribe", async (ctx: any) => {
+    const modelName: string = ctx.params.model;
+    const meta = modelMap[modelName.toLowerCase()];
+
+    if (!meta) {
+      ctx.status = 404;
+      ctx.body = { error: `Model "${modelName}" not found or not exposed.` };
+      return;
+    }
+
+    const guardError = await subscriptionBus.checkGuard(guards, meta.routeName, { body: {} });
+    if (guardError) {
+      ctx.status = 403;
+      ctx.body = { error: guardError };
+      return;
+    }
+
+    ctx.set({
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+      "X-Accel-Buffering": "no",
+    });
+    ctx.status = 200;
+
+    const passThrough = new PassThrough();
+    ctx.body = passThrough;
+
+    const fg = fieldGuards[meta.routeName];
+
+    const unsubscribe = await subscriptionBus.subscribe(
+      meta,
+      (event) => { passThrough.write(formatSseEvent(event)); },
+      fg
+    );
+
+    const heartbeat = setInterval(() => { passThrough.write(formatSseHeartbeat()); }, heartbeatMs);
+
+    const cleanup = () => {
+      clearInterval(heartbeat);
+      unsubscribe();
+      passThrough.end();
+    };
+
+    ctx.req.on("close", cleanup);
+    ctx.req.on("error", cleanup);
+  });
 
   // Internal Koa handler
   const koaHandler = async (ctx: any) => {

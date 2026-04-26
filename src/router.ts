@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { getModels, buildModelMap, getDelegate, detectSoftDeleteField } from "./introspect";
 import { buildQuery } from "./query-builder";
 import { runGuard, runHook } from "./middleware-helpers";
+import { SubscriptionBus } from "./subscriptions";
 import type {
   PrismaRestOptions,
   HandlerResult,
@@ -32,11 +33,15 @@ export function createRouter(
     envelope = true,
     fieldGuards = {},
     rateLimit,
+    subscription = {},
   } = options;
 
   // Introspect schema once at startup
   const models = getModels(prisma);
   const modelMap = buildModelMap(models, allow);
+
+  // One shared subscription bus — zero overhead until a client actually connects
+  const subscriptionBus = new SubscriptionBus(prisma, subscription);
 
   async function handle(
     method: string,
@@ -113,7 +118,7 @@ export function createRouter(
     return result;
   }
 
-  return { handle, modelMap, models };
+  return { handle, modelMap, models, subscriptionBus };
 }
 
 // ─── Operation executor ────────────────────────────────────────────────────────

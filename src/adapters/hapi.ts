@@ -1,5 +1,7 @@
+import { PassThrough } from "stream";
 import { PrismaClient } from "@prisma/client";
 import { createRouter } from "../router";
+import { formatSseEvent, formatSseHeartbeat } from "../subscriptions";
 import type { PrismaRestOptions } from "../types";
 
 export interface HapiAdapterOptions extends PrismaRestOptions {
@@ -39,7 +41,10 @@ export const hapiAdapter = {
     }
 
     const { prisma, prefix = "", ...restOptions } = options;
-    const { handle } = createRouter(prisma, restOptions);
+    const { handle, modelMap, subscriptionBus } = createRouter(prisma, restOptions);
+    const heartbeatMs = options.subscription?.heartbeatInterval ?? 30_000;
+    const guards = (options.guards ?? {}) as Record<string, any>;
+    const fieldGuards = (options.fieldGuards ?? {}) as Record<string, any>;
 
     const getSearchParams = (request: any): URLSearchParams => {
       const urlParams = new URLSearchParams();
@@ -105,6 +110,53 @@ export const hapiAdapter = {
         return h.response({ error: e.message }).code(500);
       }
     };
+
+    // ── SSE: GET /prefix/{model}/subscribe ──────────────────────────────
+    // Registered before the generic {model}/{id} route.
+    server.route({
+      method: "GET",
+      path: `${prefix}/{model}/subscribe`,
+      handler: async (request: any, h: any) => {
+        const modelName: string = request.params.model;
+        const meta = modelMap[modelName.toLowerCase()];
+
+        if (!meta) {
+          return h.response({ error: `Model "${modelName}" not found or not exposed.` }).code(404);
+        }
+
+        const guardError = await subscriptionBus.checkGuard(guards, meta.routeName, { body: {} });
+        if (guardError) {
+          return h.response({ error: guardError }).code(403);
+        }
+
+        const passThrough = new PassThrough();
+        const fg = fieldGuards[meta.routeName];
+
+        const unsubscribe = await subscriptionBus.subscribe(
+          meta,
+          (event) => { passThrough.write(formatSseEvent(event)); },
+          fg
+        );
+
+        const heartbeat = setInterval(() => { passThrough.write(formatSseHeartbeat()); }, heartbeatMs);
+
+        const cleanup = () => {
+          clearInterval(heartbeat);
+          unsubscribe();
+          passThrough.end();
+        };
+
+        request.raw.req.on("close", cleanup);
+        request.raw.req.on("error", cleanup);
+
+        return h
+          .response(passThrough)
+          .type("text/event-stream")
+          .header("Cache-Control", "no-cache")
+          .header("X-Accel-Buffering", "no")
+          .code(200);
+      },
+    });
 
     // Bulk Operations
     server.route({

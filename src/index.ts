@@ -18,6 +18,9 @@ export { validateBody, withValidation } from "./validate";
 // ─── OpenAPI ──────────────────────────────────────────────────────────────────
 export { generateOpenApiSpec } from "./openapi";
 
+// ─── Subscriptions (SSE) ──────────────────────────────────────────────────────
+export { SubscriptionBus, formatSseEvent, formatSseHeartbeat } from "./subscriptions";
+
 // ─── Config (for omni-rest-client) ───────────────────────────────────────────
 export { generateConfig } from "./config-generator";
 export type { OmniRestConfig } from "./config-generator";
@@ -42,4 +45,6 @@ export type {
   GuardMap,
   HookFn,
   HookContext,
+  SseEvent,
+  SubscriptionOptions,
 } from "./types";

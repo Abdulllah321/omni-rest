@@ -1,0 +1,358 @@
+import { Tabs, Callout, Steps, Cards, Card } from 'nextra/components'
+import { Icon } from '@iconify/react'
+
+# Subscriptions (SSE)
+
+Stream live `create`, `update`, and `delete` events to browser clients over **Server-Sent Events** — no WebSocket setup required.
+
+<Callout type="info">
+  SSE works over a plain HTTP/1.1 `GET` request. Browsers have built-in `EventSource` support, making it the simplest possible real-time transport for dashboards and admin panels.
+</Callout>
+
+## How It Works
+
+Opening `GET /api/:model/subscribe` establishes a long-lived HTTP stream. omni-rest polls Prisma on a configurable interval and fans out mutation events to every connected client.
+
+```
+Client A  ──────┐
+Client B  ──────┤  One shared poll per model
+Client C  ──────┘  (zero DB overhead when no one is watching)
+```
+
+**Key performance properties:**
+
+| Property | Detail |
+|----------|--------|
+| **Lazy start** | No DB queries run for a model until the first client subscribes |
+| **Fan-out** | 100 clients on `department` → 1 shared `setInterval`, not 100 |
+| **Instant teardown** | Interval cleared the moment the last client disconnects |
+
+## Quick Start
+
+### 1. Enable on the server
+
+No extra config required — the endpoint is automatically registered alongside the CRUD routes:
+
+```typescript copy
+import { expressAdapter } from "omni-rest/express";
+
+app.use("/api", expressAdapter(prisma, {
+  allow: ["department", "order"], // only these models get /subscribe
+}));
+```
+
+That's it. `GET /api/department/subscribe` is now live.
+
+### 2. Connect from the browser
+
+```typescript copy
+const source = new EventSource("/api/department/subscribe");
+
+source.onmessage = (e) => {
+  const { event, model, record, id } = JSON.parse(e.data);
+
+  if (event === "create") console.log("New record:", record);
+  if (event === "update") console.log("Updated:", record);
+  if (event === "delete") console.log("Deleted id:", id);
+};
+
+source.onerror = () => source.close(); // reconnect handled by browser
+```
+
+## Event Shape
+
+Every message has the following structure:
+
+```ts
+interface SseEvent {
+  event: "create" | "update" | "delete";
+  /** Original Prisma model name, e.g. "Department" */
+  model: string;
+  /** Full record for create / update events */
+  record?: Record<string, any>;
+  /** Primary-key value for delete events */
+  id?: unknown;
+}
+```
+
+**Example stream:**
+
+```
+data: {"event":"create","model":"Department","record":{"id":5,"name":"Engineering"}}
+
+data: {"event":"update","model":"Department","record":{"id":5,"name":"Engineering Dept"}}
+
+data: {"event":"delete","model":"Department","id":5}
+
+: heartbeat
+
+: heartbeat
+```
+
+<Callout type="info">
+  Lines starting with `: ` are SSE **comment lines** (heartbeats). They keep the TCP connection alive through proxies and load balancers but are invisible to `EventSource.onmessage`.
+</Callout>
+
+## Change Detection
+
+omni-rest uses a **polling watermark** strategy that works with every Prisma version and every database — no Prisma extensions or DB triggers required.
+
+| Model fields available | Creates | Updates | Deletes |
+|---|---|---|---|
+| `createdAt` **+** `updatedAt` | `createdAt > watermark` | `updatedAt > watermark` | ID-set diff |
+| `updatedAt` only | ID-set diff | `updatedAt > watermark` | ID-set diff |
+| No timestamps | ID-set diff | — | ID-set diff |
+
+<Callout type="warning">
+  **Tip:** Add `createdAt DateTime @default(now())` and `updatedAt DateTime @updatedAt` to your Prisma models for the most accurate and efficient event detection. Without timestamps, only create and delete events can be detected (not field-level updates).
+</Callout>
+
+## Configuration
+
+Tune polling and heartbeat intervals globally via `subscription` in your adapter options:
+
+```typescript copy
+expressAdapter(prisma, {
+  subscription: {
+    pollInterval: 1000,        // How often to query Prisma, ms. Default: 1000
+    heartbeatInterval: 30_000, // How often to send keepalive. Default: 30000
+  },
+});
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `pollInterval` | `number` | `1000` | Prisma poll frequency in ms. Lower = faster events, higher DB load. |
+| `heartbeatInterval` | `number` | `30000` | SSE keepalive comment frequency in ms. |
+
+<Callout type="info">
+  **Cost tip:** Set `pollInterval` higher (e.g. `5000`) for tables that change infrequently. The interval only runs when at least one client is connected, so inactive tables are completely free.
+</Callout>
+
+## Guards
+
+The existing `GET` guard for a model is applied before the SSE stream opens. A blocked request receives a `403 JSON` response — the stream never starts.
+
+```typescript copy
+expressAdapter(prisma, {
+  guards: {
+    order: {
+      // Same guard used for GET /api/order also gates GET /api/order/subscribe
+      GET: async ({ id, body }) => {
+        if (!req.user?.isAdmin) return "Admin access required";
+        return null;
+      },
+    },
+  },
+});
+```
+
+## Field Guards
+
+`fieldGuards` apply to SSE events just like regular GET responses — `hidden` and `writeOnly` fields are stripped from every `record` before it is streamed:
+
+```typescript copy
+expressAdapter(prisma, {
+  fieldGuards: {
+    user: {
+      hidden:    ["passwordHash", "salt"],
+      writeOnly: ["resetToken"],
+    },
+  },
+});
+```
+
+Records in `create` and `update` events will never contain `passwordHash`, `salt`, or `resetToken`.
+
+## Adapter Support
+
+<Callout type="warning">
+  **Next.js is not supported.** Next.js Route Handlers run in a serverless function model that cannot hold long-lived HTTP connections. Use the WebSocket approach or a dedicated event service for Next.js real-time needs.
+</Callout>
+
+<Tabs items={[
+  <div key="express" className="flex items-center gap-2 font-medium"><Icon icon="logos:express" className="text-xl dark:invert"/> Express</div>,
+  <div key="fastify" className="flex items-center gap-2 font-medium"><Icon icon="logos:fastify-icon" className="text-xl dark:invert"/> Fastify</div>,
+  <div key="koa" className="flex items-center gap-2 font-medium"><Icon icon="logos:koa" className="text-xl dark:invert"/> Koa</div>,
+  <div key="hapi" className="flex items-center gap-2 font-medium"><Icon icon="logos:hapi" className="text-xl"/> Hapi</div>,
+  <div key="nestjs" className="flex items-center gap-2 font-medium"><Icon icon="logos:nestjs" className="text-xl"/> NestJS</div>,
+  <div key="hono" className="flex items-center gap-2 font-medium"><Icon icon="logos:hono" className="text-xl"/> Hono</div>,
+]}>
+  <Tabs.Tab>
+    Works out of the box. Uses `res.write()` on the underlying Node.js `ServerResponse`.
+
+    ```typescript copy
+    import { expressAdapter } from "omni-rest/express";
+
+    app.use("/api", expressAdapter(prisma, {
+      subscription: { pollInterval: 2000 },
+    }));
+
+    // GET /api/department/subscribe → SSE stream
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    Uses `reply.raw` (the underlying Node.js `ServerResponse`). The route returns a never-resolving promise to keep Fastify's lifecycle open.
+
+    ```typescript copy
+    import { fastifyAdapter } from "omni-rest/fastify";
+
+    fastifyAdapter(app, prisma, {
+      prefix: "/api",
+      subscription: { pollInterval: 2000 },
+    });
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    Streams via a `PassThrough` piped to `ctx.body`.
+
+    ```typescript copy
+    import { koaAdapter } from "omni-rest/koa";
+    import Router from "@koa/router";
+
+    const router = new Router({ prefix: "/api" });
+    koaAdapter(router, prisma, {
+      subscription: { pollInterval: 2000 },
+    });
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    Streams via `h.response(PassThrough)`. The route is registered before the generic `{model}/{id}` route to avoid param collision.
+
+    ```typescript copy
+    import { hapiAdapter } from "omni-rest/hapi";
+
+    await server.register({
+      plugin: hapiAdapter,
+      options: {
+        prisma,
+        prefix: "/api",
+        subscription: { pollInterval: 2000 },
+      },
+    });
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    Uses NestJS's built-in `@Sse` decorator and returns an `Observable<MessageEvent>`. NestJS manages the client lifecycle automatically.
+
+    ```typescript copy
+    import { nestjsController } from "omni-rest/nestjs";
+
+    const OmniRestController = nestjsController(prisma, {
+      subscription: { pollInterval: 2000 },
+    }, "api");
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    Uses the Web Streams `ReadableStream` API.
+
+    <Callout type="warning">
+      **Node.js only.** Hono is widely deployed to Cloudflare Workers, which impose a maximum response duration that makes persistent SSE impossible. This route is only suitable for Hono running on Node.js, Bun, or Deno.
+    </Callout>
+
+    ```typescript copy
+    import { honoAdapter } from "omni-rest/hono";
+
+    honoAdapter(app, prisma, {
+      prefix: "/api",
+      subscription: { pollInterval: 2000 },
+    });
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+## Multiple Concurrent Subscribers
+
+The `SubscriptionBus` handles this transparently. A single `setInterval` is shared across all clients watching the same model:
+
+```
+GET /api/department/subscribe  ← client 1 connects → bus created, poll starts
+GET /api/department/subscribe  ← client 2 connects → joins existing bus
+GET /api/department/subscribe  ← client 3 connects → joins existing bus
+
+// All three clients share ONE poll interval
+// DB is queried once per tick regardless of subscriber count
+
+client 1 disconnects → removed from bus (bus stays alive, 2 listeners left)
+client 2 disconnects → removed from bus (bus stays alive, 1 listener left)
+client 3 disconnects → removed from bus (0 listeners → bus torn down, poll stops)
+```
+
+## Using the SubscriptionBus Directly
+
+For custom routes or non-standard integrations, you can access the `SubscriptionBus` from the router instance:
+
+```typescript copy
+import { createRouter, formatSseEvent, formatSseHeartbeat } from "omni-rest";
+
+const { handle, modelMap, subscriptionBus } = createRouter(prisma, options);
+
+// Custom SSE endpoint
+app.get("/live/:model", async (req, res) => {
+  const meta = modelMap[req.params.model];
+  if (!meta) return res.status(404).json({ error: "Not found" });
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.flushHeaders();
+
+  const unsubscribe = await subscriptionBus.subscribe(meta, (event) => {
+    res.write(formatSseEvent(event));
+  });
+
+  const hb = setInterval(() => res.write(formatSseHeartbeat()), 30_000);
+
+  req.on("close", () => {
+    clearInterval(hb);
+    unsubscribe();
+  });
+});
+```
+
+## TypeScript Types
+
+```typescript copy
+import type { SseEvent, SubscriptionOptions } from "omni-rest";
+
+// Event shape streamed to clients
+type SseEvent = {
+  event: "create" | "update" | "delete";
+  model: string;
+  record?: any;   // present for create / update
+  id?: unknown;   // present for delete
+};
+
+// Passed via PrismaRestOptions.subscription
+type SubscriptionOptions = {
+  pollInterval?: number;      // default: 1000 ms
+  heartbeatInterval?: number; // default: 30000 ms
+};
+```
+
+## Best Practices
+
+<Steps>
+  ### Restrict the allow list
+  Only expose models that genuinely need real-time updates. Every `allow`-listed model becomes a potential SSE endpoint.
+
+  ### Tune poll intervals per environment
+  Use a shorter interval in development (`500ms`) and a longer one in production (`2000–5000ms`) to balance freshness against DB load.
+
+  ### Always add a GET guard for sensitive models
+  The SSE endpoint reuses the `GET` guard. Any model without a guard is publicly subscribable.
+
+  ### Use `createdAt` + `updatedAt` on Prisma models
+  These two fields unlock the full watermark-based event detection. Without them, updates to existing records cannot be detected.
+
+  ### Monitor active subscribers
+  The `SubscriptionBus` exposes `activeSubscriberCount` and `activeModels` for diagnostics — wire these into your metrics endpoint.
+
+  ```typescript copy
+  app.get("/metrics/sse", (req, res) => {
+    res.json({
+      subscribers: subscriptionBus.activeSubscriberCount,
+      models: subscriptionBus.activeModels,
+    });
+  });
+  ```
+</Steps>

@@ -114,6 +114,25 @@ export interface PrismaRestOptions {
    * ```
    */
   rateLimit?: RateLimitFn;
+
+  /**
+   * Configuration for the SSE subscription engine.
+   *
+   * When omitted, the engine defaults are used (1 s poll, 30 s heartbeat).
+   * The engine itself is **lazy** — no Prisma queries are issued for a model
+   * until at least one client connects to `GET /:model/subscribe`.
+   *
+   * @example
+   * ```ts
+   * omniRest(prisma, {
+   *   subscription: {
+   *     pollInterval: 2000,      // poll every 2 s
+   *     heartbeatInterval: 60_000, // heartbeat every 60 s
+   *   }
+   * })
+   * ```
+   */
+  subscription?: SubscriptionOptions;
 }
 
 // ─── Rate Limit ───────────────────────────────────────────────────────────────
@@ -150,6 +169,40 @@ export interface ParsedQuery {
   select: Record<string, boolean> | null;
 }
 
+// ─── SSE / Subscriptions ─────────────────────────────────────────────────────
+
+/** A single event emitted over an SSE subscription stream. */
+export interface SseEvent {
+  /** The mutation type that triggered this event. */
+  event: "create" | "update" | "delete";
+  /** Original Prisma model name (e.g. "Department"). */
+  model: string;
+  /** Full record for create/update events (respects fieldGuards). */
+  record?: any;
+  /** Primary-key value for delete events. */
+  id?: unknown;
+}
+
+/**
+ * Tuning options for the SSE subscription engine.
+ * Passed via `PrismaRestOptions.subscription`.
+ */
+export interface SubscriptionOptions {
+  /**
+   * How often (ms) the engine polls Prisma for changes.
+   * Lower values give faster updates but increase DB load.
+   * Defaults to 1000 ms.
+   */
+  pollInterval?: number;
+
+  /**
+   * How often (ms) a keepalive heartbeat comment is written to the stream.
+   * Prevents proxies from closing idle connections.
+   * Defaults to 30_000 ms.
+   */
+  heartbeatInterval?: number;
+}
+
 // ─── Handler Result ──────────────────────────────────────────────────────────
 
 export interface HandlerResult {
@@ -171,4 +224,6 @@ export interface RouterInstance {
   ) => Promise<HandlerResult>;
   modelMap: Record<string, ModelMeta>;
   models: ModelMeta[];
+  /** Shared subscription bus — adapters attach SSE routes against this. */
+  subscriptionBus: import("./subscriptions").SubscriptionBus;
 }

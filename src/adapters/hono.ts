@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { createRouter } from "../router";
+import { formatSseEvent, formatSseHeartbeat } from "../subscriptions";
 import type { PrismaRestOptions } from "../types";
 
 /**
@@ -28,8 +29,11 @@ export function honoAdapter(
   prisma: PrismaClient,
   options: PrismaRestOptions = {}
 ): void {
-  const { handle } = createRouter(prisma, options);
+  const { handle, modelMap, subscriptionBus } = createRouter(prisma, options);
   const prefix = options.prefix ?? "";
+  const heartbeatMs = options.subscription?.heartbeatInterval ?? 30_000;
+  const guards = (options.guards ?? {}) as Record<string, any>;
+  const fieldGuards = (options.fieldGuards ?? {}) as Record<string, any>;
 
   // Helper: build URLSearchParams from Hono's query object
   function toSearchParams(query: Record<string, string | string[]>): URLSearchParams {
@@ -43,6 +47,67 @@ export function honoAdapter(
     }
     return params;
   }
+
+  // ── SSE: GET /prefix/:model/subscribe ───────────────────────────────
+  //
+  // @warning This route uses Node.js streaming APIs and is intended for
+  // Node.js/Bun/Deno deployments only. Cloudflare Workers and similar
+  // edge runtimes cannot maintain long-lived SSE connections because they
+  // impose a maximum response duration at the platform level.
+  app.get(`${prefix}/:model/subscribe`, async (c: any) => {
+    const modelName: string = c.req.param("model");
+    const meta = modelMap[modelName.toLowerCase()];
+
+    if (!meta) {
+      return c.json({ error: `Model "${modelName}" not found or not exposed.` }, 404);
+    }
+
+    const guardError = await subscriptionBus.checkGuard(guards, meta.routeName, { body: {} });
+    if (guardError) {
+      return c.json({ error: guardError }, 403);
+    }
+
+    const fg = fieldGuards[meta.routeName];
+    const encoder = new TextEncoder();
+
+    let controllerRef: ReadableStreamDefaultController | null = null;
+    let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+    let unsubscribeFn: (() => void) | null = null;
+
+    const readable = new ReadableStream({
+      start(controller) {
+        controllerRef = controller;
+
+        subscriptionBus.subscribe(
+          meta,
+          (event) => {
+            try { controller.enqueue(encoder.encode(formatSseEvent(event))); } catch { /* stream closed */ }
+          },
+          fg
+        ).then((unsub) => {
+          unsubscribeFn = unsub;
+          heartbeatTimer = setInterval(() => {
+            try { controller.enqueue(encoder.encode(formatSseHeartbeat())); } catch { /* stream closed */ }
+          }, heartbeatMs);
+        });
+      },
+      cancel() {
+        if (heartbeatTimer) clearInterval(heartbeatTimer);
+        if (unsubscribeFn) unsubscribeFn();
+        controllerRef = null;
+      },
+    });
+
+    return new Response(readable, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no",
+      },
+    });
+  });
 
   // ── POST /prefix/:model/bulk — createMany ──────────────────────────────────
   app.post(`${prefix}/:model/bulk`, async (c: any) => {

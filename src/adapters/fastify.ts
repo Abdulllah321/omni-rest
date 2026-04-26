@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { createRouter } from "../router";
+import { formatSseEvent, formatSseHeartbeat } from "../subscriptions";
 import type { PrismaRestOptions } from "../types";
 
 /**
@@ -27,8 +28,56 @@ export function fastifyAdapter(
   prisma: PrismaClient,
   options: PrismaRestOptions = {}
 ) {
-  const { handle } = createRouter(prisma, options);
+  const { handle, modelMap, subscriptionBus } = createRouter(prisma, options);
   const prefix = options.prefix ?? "/api";
+  const heartbeatMs = options.subscription?.heartbeatInterval ?? 30_000;
+  const guards = (options.guards ?? {}) as Record<string, any>;
+  const fieldGuards = (options.fieldGuards ?? {}) as Record<string, any>;
+
+  // ── SSE: GET /prefix/:model/subscribe ─────────────────────────────
+  // Must be registered before the generic /:model/:id route.
+  fastify.get(`${prefix}/:model/subscribe`, async (request: any, reply: any) => {
+    const modelName: string = request.params.model;
+    const meta = modelMap[modelName.toLowerCase()];
+
+    if (!meta) {
+      return reply.status(404).send({ error: `Model "${modelName}" not found or not exposed.` });
+    }
+
+    const guardError = await subscriptionBus.checkGuard(guards, meta.routeName, { body: {} });
+    if (guardError) {
+      return reply.status(403).send({ error: guardError });
+    }
+
+    const raw = reply.raw;
+    raw.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+      "X-Accel-Buffering": "no",
+    });
+
+    const fg = fieldGuards[meta.routeName];
+
+    const unsubscribe = await subscriptionBus.subscribe(
+      meta,
+      (event) => { raw.write(formatSseEvent(event)); },
+      fg
+    );
+
+    const heartbeat = setInterval(() => { raw.write(formatSseHeartbeat()); }, heartbeatMs);
+
+    const cleanup = () => {
+      clearInterval(heartbeat);
+      unsubscribe();
+    };
+
+    raw.on("close", cleanup);
+    raw.on("error", cleanup);
+
+    // Keep the Fastify reply open — return a never-resolving promise
+    return new Promise<void>(() => { /* closed by client disconnect */ });
+  });
 
   async function routeHandler(request: any, reply: any) {
     const { model, id } = request.params;
