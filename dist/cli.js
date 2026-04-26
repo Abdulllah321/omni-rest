@@ -27,6 +27,8 @@ var fs3__namespace = /*#__PURE__*/_interopNamespace(fs3);
 var path3__namespace = /*#__PURE__*/_interopNamespace(path3);
 var readline__namespace = /*#__PURE__*/_interopNamespace(readline);
 
+var __defProp = Object.defineProperty;
+var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
   get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
 }) : x)(function(x) {
@@ -59,14 +61,10 @@ function getModels(prisma) {
     }
   }
   if (!raw) {
-    throw new Error(
-      "[omni-rest] Could not find Prisma DMMF. Ensure Prisma client is generated and you're passing a PrismaClient instance to omni-rest."
-    );
+    throw new Error("[omni-rest] Could not find Prisma DMMF. Ensure Prisma client is generated and you're passing a PrismaClient instance to omni-rest.");
   }
   if (!Array.isArray(raw)) {
-    throw new Error(
-      `[omni-rest] Expected models to be an array, got ${typeof raw}. Debug: prisma._runtimeDataModel.models=${!!prisma?._runtimeDataModel?.models}, raw value=${JSON.stringify(raw).slice(0, 100)}`
-    );
+    throw new Error(`[omni-rest] Expected models to be an array, got ${typeof raw}. Debug: prisma._runtimeDataModel.models=${!!prisma?._runtimeDataModel?.models}, raw value=${JSON.stringify(raw).slice(0, 100)}`);
   }
   return raw.map((model) => {
     const fields = model.fields.map((f) => ({
@@ -88,9 +86,11 @@ function getModels(prisma) {
     };
   });
 }
+__name(getModels, "getModels");
 function toRouteName(modelName) {
   return modelName.toLowerCase();
 }
+__name(toRouteName, "toRouteName");
 
 // src/zod-generator.ts
 var PRISMA_TO_ZOD = {
@@ -115,6 +115,7 @@ function fieldToZod(field) {
   }
   return zod;
 }
+__name(fieldToZod, "fieldToZod");
 function generateModelSchema(meta) {
   const name = meta.name;
   const createFields = meta.fields.filter((f) => !f.isRelation && !f.isId && !f.hasDefaultValue && !f.isUpdatedAt).map((f) => {
@@ -143,6 +144,7 @@ export type ${name}Create = z.infer<typeof ${name}CreateSchema>;
 export type ${name}Update = z.infer<typeof ${name}UpdateSchema>;
 `.trim();
 }
+__name(generateModelSchema, "generateModelSchema");
 function generateZodSchemas(prisma) {
   const models = getModels(prisma);
   const schemas = models.map(generateModelSchema).join("\n\n");
@@ -156,24 +158,51 @@ import { z } from "zod";
 ${schemas}
 `;
 }
+__name(generateZodSchemas, "generateZodSchemas");
 
 // src/openapi.ts
 var PRISMA_TO_OAS = {
-  String: { type: "string" },
-  Int: { type: "integer", format: "int32" },
-  Float: { type: "number", format: "float" },
-  Decimal: { type: "number" },
-  Boolean: { type: "boolean" },
-  DateTime: { type: "string", format: "date-time" },
-  Json: { type: "object" },
-  BigInt: { type: "integer", format: "int64" }
+  String: {
+    type: "string"
+  },
+  Int: {
+    type: "integer",
+    format: "int32"
+  },
+  Float: {
+    type: "number",
+    format: "float"
+  },
+  Decimal: {
+    type: "number"
+  },
+  Boolean: {
+    type: "boolean"
+  },
+  DateTime: {
+    type: "string",
+    format: "date-time"
+  },
+  Json: {
+    type: "object"
+  },
+  BigInt: {
+    type: "integer",
+    format: "int64"
+  }
 };
 function fieldToOasSchema(field) {
   if (field.isRelation) return null;
-  const base = PRISMA_TO_OAS[field.type] ?? { type: "string" };
-  if (field.isList) return { type: "array", items: base };
+  const base = PRISMA_TO_OAS[field.type] ?? {
+    type: "string"
+  };
+  if (field.isList) return {
+    type: "array",
+    items: base
+  };
   return base;
 }
+__name(fieldToOasSchema, "fieldToOasSchema");
 function buildModelSchema(meta, forCreate = false) {
   const properties = {};
   const required = [];
@@ -190,20 +219,19 @@ function buildModelSchema(meta, forCreate = false) {
   return {
     type: "object",
     properties,
-    ...required.length > 0 ? { required } : {}
+    ...required.length > 0 ? {
+      required
+    } : {}
   };
 }
+__name(buildModelSchema, "buildModelSchema");
 function generateOpenApiSpec(prisma, options = {}) {
-  const {
-    title = "omni-rest API",
-    version = "1.0.0",
-    basePath = "/api",
-    allow,
-    servers = [{ url: "http://localhost:3000" }]
-  } = options;
-  const models = getModels(prisma).filter(
-    (m) => !allow || allow.includes(m.routeName)
-  );
+  const { title = "omni-rest API", version = "1.0.0", basePath = "/api", allow, servers = [
+    {
+      url: "http://localhost:3000"
+    }
+  ] } = options;
+  const models = getModels(prisma).filter((m) => !allow || allow.includes(m.routeName));
   const paths = {};
   const schemas = {};
   for (const meta of models) {
@@ -214,12 +242,13 @@ function generateOpenApiSpec(prisma, options = {}) {
     schemas[`${name}Update`] = {
       ...buildModelSchema(meta, true),
       required: []
-      // all optional for PATCH
     };
     paths[`${basePath}/${route}`] = {
       get: {
         summary: `List ${name}s`,
-        tags: [name],
+        tags: [
+          name
+        ],
         parameters: buildListParameters(),
         responses: {
           200: {
@@ -229,8 +258,15 @@ function generateOpenApiSpec(prisma, options = {}) {
                 schema: {
                   type: "object",
                   properties: {
-                    data: { type: "array", items: { $ref: `#/components/schemas/${name}` } },
-                    meta: { $ref: "#/components/schemas/PaginationMeta" }
+                    data: {
+                      type: "array",
+                      items: {
+                        $ref: `#/components/schemas/${name}`
+                      }
+                    },
+                    meta: {
+                      $ref: "#/components/schemas/PaginationMeta"
+                    }
                   }
                 }
               }
@@ -240,12 +276,16 @@ function generateOpenApiSpec(prisma, options = {}) {
       },
       post: {
         summary: `Create ${name}`,
-        tags: [name],
+        tags: [
+          name
+        ],
         requestBody: {
           required: true,
           content: {
             "application/json": {
-              schema: { $ref: `#/components/schemas/${name}Create` }
+              schema: {
+                $ref: `#/components/schemas/${name}Create`
+              }
             }
           }
         },
@@ -254,12 +294,18 @@ function generateOpenApiSpec(prisma, options = {}) {
             description: `Created ${name}`,
             content: {
               "application/json": {
-                schema: { $ref: `#/components/schemas/${name}` }
+                schema: {
+                  $ref: `#/components/schemas/${name}`
+                }
               }
             }
           },
-          400: { $ref: "#/components/responses/BadRequest" },
-          409: { $ref: "#/components/responses/Conflict" }
+          400: {
+            $ref: "#/components/responses/BadRequest"
+          },
+          409: {
+            $ref: "#/components/responses/Conflict"
+          }
         }
       }
     };
@@ -269,33 +315,45 @@ function generateOpenApiSpec(prisma, options = {}) {
           name: "id",
           in: "path",
           required: true,
-          schema: { type: "string" },
+          schema: {
+            type: "string"
+          },
           description: `${name} ID`
         }
       ],
       get: {
         summary: `Get ${name} by ID`,
-        tags: [name],
+        tags: [
+          name
+        ],
         responses: {
           200: {
             description: `${name} record`,
             content: {
               "application/json": {
-                schema: { $ref: `#/components/schemas/${name}` }
+                schema: {
+                  $ref: `#/components/schemas/${name}`
+                }
               }
             }
           },
-          404: { $ref: "#/components/responses/NotFound" }
+          404: {
+            $ref: "#/components/responses/NotFound"
+          }
         }
       },
       put: {
         summary: `Update ${name}`,
-        tags: [name],
+        tags: [
+          name
+        ],
         requestBody: {
           required: true,
           content: {
             "application/json": {
-              schema: { $ref: `#/components/schemas/${name}Create` }
+              schema: {
+                $ref: `#/components/schemas/${name}Create`
+              }
             }
           }
         },
@@ -304,21 +362,29 @@ function generateOpenApiSpec(prisma, options = {}) {
             description: `Updated ${name}`,
             content: {
               "application/json": {
-                schema: { $ref: `#/components/schemas/${name}` }
+                schema: {
+                  $ref: `#/components/schemas/${name}`
+                }
               }
             }
           },
-          404: { $ref: "#/components/responses/NotFound" }
+          404: {
+            $ref: "#/components/responses/NotFound"
+          }
         }
       },
       patch: {
         summary: `Partially update ${name}`,
-        tags: [name],
+        tags: [
+          name
+        ],
         requestBody: {
           required: true,
           content: {
             "application/json": {
-              schema: { $ref: `#/components/schemas/${name}Update` }
+              schema: {
+                $ref: `#/components/schemas/${name}Update`
+              }
             }
           }
         },
@@ -327,26 +393,38 @@ function generateOpenApiSpec(prisma, options = {}) {
             description: `Updated ${name}`,
             content: {
               "application/json": {
-                schema: { $ref: `#/components/schemas/${name}` }
+                schema: {
+                  $ref: `#/components/schemas/${name}`
+                }
               }
             }
           },
-          404: { $ref: "#/components/responses/NotFound" }
+          404: {
+            $ref: "#/components/responses/NotFound"
+          }
         }
       },
       delete: {
         summary: `Delete ${name}`,
-        tags: [name],
+        tags: [
+          name
+        ],
         responses: {
-          204: { description: "Deleted successfully" },
-          404: { $ref: "#/components/responses/NotFound" }
+          204: {
+            description: "Deleted successfully"
+          },
+          404: {
+            $ref: "#/components/responses/NotFound"
+          }
         }
       }
     };
     paths[`${basePath}/${route}/bulk/update`] = {
       patch: {
         summary: `Bulk update ${name}s`,
-        tags: [name],
+        tags: [
+          name
+        ],
         requestBody: {
           required: true,
           description: `Array of ${name} objects with id field to update`,
@@ -354,7 +432,9 @@ function generateOpenApiSpec(prisma, options = {}) {
             "application/json": {
               schema: {
                 type: "array",
-                items: { $ref: `#/components/schemas/${name}Update` }
+                items: {
+                  $ref: `#/components/schemas/${name}Update`
+                }
               }
             }
           }
@@ -367,24 +447,32 @@ function generateOpenApiSpec(prisma, options = {}) {
                 schema: {
                   type: "object",
                   properties: {
-                    updated: { type: "integer" },
+                    updated: {
+                      type: "integer"
+                    },
                     records: {
                       type: "array",
-                      items: { $ref: `#/components/schemas/${name}` }
+                      items: {
+                        $ref: `#/components/schemas/${name}`
+                      }
                     }
                   }
                 }
               }
             }
           },
-          400: { $ref: "#/components/responses/BadRequest" }
+          400: {
+            $ref: "#/components/responses/BadRequest"
+          }
         }
       }
     };
     paths[`${basePath}/${route}/bulk/delete`] = {
       delete: {
         summary: `Bulk delete ${name}s`,
-        tags: [name],
+        tags: [
+          name
+        ],
         requestBody: {
           required: true,
           description: `Array of IDs to delete`,
@@ -392,7 +480,9 @@ function generateOpenApiSpec(prisma, options = {}) {
             "application/json": {
               schema: {
                 type: "array",
-                items: { type: "string" }
+                items: {
+                  type: "string"
+                }
               }
             }
           }
@@ -405,20 +495,27 @@ function generateOpenApiSpec(prisma, options = {}) {
                 schema: {
                   type: "object",
                   properties: {
-                    deleted: { type: "integer" }
+                    deleted: {
+                      type: "integer"
+                    }
                   }
                 }
               }
             }
           },
-          400: { $ref: "#/components/responses/BadRequest" }
+          400: {
+            $ref: "#/components/responses/BadRequest"
+          }
         }
       }
     };
   }
   return {
     openapi: "3.0.3",
-    info: { title, version },
+    info: {
+      title,
+      version
+    },
     servers,
     paths,
     components: {
@@ -427,15 +524,27 @@ function generateOpenApiSpec(prisma, options = {}) {
         PaginationMeta: {
           type: "object",
           properties: {
-            total: { type: "integer" },
-            page: { type: "integer" },
-            limit: { type: "integer" },
-            totalPages: { type: "integer" }
+            total: {
+              type: "integer"
+            },
+            page: {
+              type: "integer"
+            },
+            limit: {
+              type: "integer"
+            },
+            totalPages: {
+              type: "integer"
+            }
           }
         },
         Error: {
           type: "object",
-          properties: { error: { type: "string" } }
+          properties: {
+            error: {
+              type: "string"
+            }
+          }
         }
       },
       responses: {
@@ -443,7 +552,9 @@ function generateOpenApiSpec(prisma, options = {}) {
           description: "Record not found",
           content: {
             "application/json": {
-              schema: { $ref: "#/components/schemas/Error" }
+              schema: {
+                $ref: "#/components/schemas/Error"
+              }
             }
           }
         },
@@ -451,7 +562,9 @@ function generateOpenApiSpec(prisma, options = {}) {
           description: "Bad request",
           content: {
             "application/json": {
-              schema: { $ref: "#/components/schemas/Error" }
+              schema: {
+                $ref: "#/components/schemas/Error"
+              }
             }
           }
         },
@@ -459,24 +572,67 @@ function generateOpenApiSpec(prisma, options = {}) {
           description: "Unique constraint violation",
           content: {
             "application/json": {
-              schema: { $ref: "#/components/schemas/Error" }
+              schema: {
+                $ref: "#/components/schemas/Error"
+              }
             }
           }
         }
       }
     },
-    tags: models.map((m) => ({ name: m.name }))
+    tags: models.map((m) => ({
+      name: m.name
+    }))
   };
 }
+__name(generateOpenApiSpec, "generateOpenApiSpec");
 function buildListParameters() {
   return [
-    { name: "page", in: "query", schema: { type: "integer", default: 1 }, description: "Page number" },
-    { name: "limit", in: "query", schema: { type: "integer", default: 20 }, description: "Items per page" },
-    { name: "sort", in: "query", schema: { type: "string" }, description: "e.g. createdAt:desc" },
-    { name: "include", in: "query", schema: { type: "string" }, description: "Comma-separated relations" },
-    { name: "select", in: "query", schema: { type: "string" }, description: "Comma-separated fields" }
+    {
+      name: "page",
+      in: "query",
+      schema: {
+        type: "integer",
+        default: 1
+      },
+      description: "Page number"
+    },
+    {
+      name: "limit",
+      in: "query",
+      schema: {
+        type: "integer",
+        default: 20
+      },
+      description: "Items per page"
+    },
+    {
+      name: "sort",
+      in: "query",
+      schema: {
+        type: "string"
+      },
+      description: "e.g. createdAt:desc"
+    },
+    {
+      name: "include",
+      in: "query",
+      schema: {
+        type: "string"
+      },
+      description: "Comma-separated relations"
+    },
+    {
+      name: "select",
+      in: "query",
+      schema: {
+        type: "string"
+      },
+      description: "Comma-separated fields"
+    }
   ];
 }
+__name(buildListParameters, "buildListParameters");
 
 // src/config-generator.ts
 function generateConfig(prisma) {
@@ -499,6 +655,7 @@ function generateConfig(prisma) {
     if (field.isList) zod = `z.array(${zod})`;
     return zod;
   }
+  __name(fieldToZod2, "fieldToZod");
   const schemaBlocks = models.map((meta) => {
     const createFields = meta.fields.filter((f) => !f.isRelation && !f.isId && !f.hasDefaultValue && !f.isUpdatedAt).map((f) => {
       const z = fieldToZod2(f);
@@ -539,7 +696,15 @@ ${schemaBlocks.join("\n\n")}
     zodSchemas
   };
 }
-var EXCLUDED_DIRS = /* @__PURE__ */ new Set(["node_modules", ".git", "dist", "build", ".next", "out"]);
+__name(generateConfig, "generateConfig");
+var EXCLUDED_DIRS = /* @__PURE__ */ new Set([
+  "node_modules",
+  ".git",
+  "dist",
+  "build",
+  ".next",
+  "out"
+]);
 function readPackageJson(dir) {
   const pkgPath = path3__namespace.join(dir, "package.json");
   try {
@@ -549,6 +714,7 @@ function readPackageJson(dir) {
     return null;
   }
 }
+__name(readPackageJson, "readPackageJson");
 function scoreDir(dir, cwd2) {
   let score = 0;
   const signals = [];
@@ -585,6 +751,7 @@ function scoreDir(dir, cwd2) {
     signals
   };
 }
+__name(scoreDir, "scoreDir");
 function walk(dir, cwd2, currentDepth, maxDepth, results) {
   const absDir = path3__namespace.resolve(dir);
   const candidate = scoreDir(absDir, cwd2);
@@ -594,7 +761,9 @@ function walk(dir, cwd2, currentDepth, maxDepth, results) {
   if (currentDepth >= maxDepth) return;
   let entries;
   try {
-    entries = fs3__namespace.readdirSync(absDir, { withFileTypes: true });
+    entries = fs3__namespace.readdirSync(absDir, {
+      withFileTypes: true
+    });
   } catch {
     return;
   }
@@ -604,23 +773,24 @@ function walk(dir, cwd2, currentDepth, maxDepth, results) {
     walk(path3__namespace.join(absDir, entry.name), cwd2, currentDepth + 1, maxDepth, results);
   }
 }
+__name(walk, "walk");
 function scoreCandidates(dir) {
   const cwd2 = process.cwd();
   const results = /* @__PURE__ */ new Map();
   walk(dir, cwd2, 0, 3, results);
   return Array.from(results.values()).sort((a, b) => b.score - a.score);
 }
+__name(scoreCandidates, "scoreCandidates");
 async function scanForFrontendDir(dir) {
   return scoreCandidates(dir);
 }
+__name(scanForFrontendDir, "scanForFrontendDir");
 async function findSchema(startDir, explicitPath) {
   if (explicitPath !== void 0) {
     const resolved = path3__namespace.resolve(explicitPath);
     if (!fs3__namespace.existsSync(resolved)) {
-      throw new Error(
-        `[omni-rest] Schema file not found at the specified path: "${resolved}"
-Please check that the path is correct and the file is readable.`
-      );
+      throw new Error(`[omni-rest] Schema file not found at the specified path: "${resolved}"
+Please check that the path is correct and the file is readable.`);
     }
     return resolved;
   }
@@ -637,14 +807,13 @@ Please check that the path is correct and the file is readable.`
     }
     const parent = path3__namespace.dirname(current);
     if (parent === current) {
-      throw new Error(
-        `[omni-rest] Could not find "schema.prisma" by walking up from "${startDir}".
-Please run this command from within your Prisma project, or specify the path with --schema <path>.`
-      );
+      throw new Error(`[omni-rest] Could not find "schema.prisma" by walking up from "${startDir}".
+Please run this command from within your Prisma project, or specify the path with --schema <path>.`);
     }
     current = parent;
   }
 }
+__name(findSchema, "findSchema");
 async function loadDMMF(frontendDir, schemaPath) {
   let clientPath = null;
   try {
@@ -666,33 +835,28 @@ async function loadDMMF(frontendDir, schemaPath) {
   try {
     prismaClientModule = __require(clientPath);
   } catch (err) {
-    throw new Error(
-      `[omni-rest] Could not load "@prisma/client" from "${clientPath}".
-Please run "npx prisma generate" to generate the Prisma client, then try again.`
-    );
+    throw new Error(`[omni-rest] Could not load "@prisma/client" from "${clientPath}".
+Please run "npx prisma generate" to generate the Prisma client, then try again.`);
   }
   const prismaNamespace = prismaClientModule?.Prisma ?? prismaClientModule?.default?.Prisma;
   if (!prismaNamespace?.dmmf?.datamodel?.models) {
-    throw new Error(
-      `[omni-rest] Could not read DMMF from "@prisma/client" at "${clientPath}".
-Please run "npx prisma generate" to regenerate the Prisma client, then try again.`
-    );
+    throw new Error(`[omni-rest] Could not read DMMF from "@prisma/client" at "${clientPath}".
+Please run "npx prisma generate" to regenerate the Prisma client, then try again.`);
   }
   const dmmfModels = prismaNamespace.dmmf.datamodel.models;
   const syntheticPrisma = {
     _runtimeDataModel: {
-      models: Object.fromEntries(
-        dmmfModels.map((m) => [
-          m.name,
-          {
-            fields: m.fields
-          }
-        ])
-      )
+      models: Object.fromEntries(dmmfModels.map((m) => [
+        m.name,
+        {
+          fields: m.fields
+        }
+      ]))
     }
   };
   return getModels(syntheticPrisma);
 }
+__name(loadDMMF, "loadDMMF");
 function detectProjectStructure(frontendDir) {
   const hasSrc = fs3__namespace.existsSync(path3__namespace.join(frontendDir, "src"));
   const hasApp = fs3__namespace.existsSync(path3__namespace.join(frontendDir, "app"));
@@ -716,6 +880,7 @@ function detectProjectStructure(frontendDir) {
     appPath
   };
 }
+__name(detectProjectStructure, "detectProjectStructure");
 function detectFramework(frontendDir) {
   const hasNextConfig = fs3__namespace.existsSync(path3__namespace.join(frontendDir, "next.config.js")) || fs3__namespace.existsSync(path3__namespace.join(frontendDir, "next.config.ts"));
   if (hasNextConfig) return "nextjs";
@@ -733,11 +898,10 @@ function detectFramework(frontendDir) {
     } catch {
     }
   }
-  console.warn(
-    `[omni-rest] Warning: Could not detect frontend framework in "${frontendDir}". Defaulting to "react".`
-  );
+  console.warn(`[omni-rest] Warning: Could not detect frontend framework in "${frontendDir}". Defaulting to "react".`);
   return "react";
 }
+__name(detectFramework, "detectFramework");
 function parseEnvFile(filePath) {
   const result = /* @__PURE__ */ new Map();
   let content;
@@ -760,6 +924,7 @@ function parseEnvFile(filePath) {
   }
   return result;
 }
+__name(parseEnvFile, "parseEnvFile");
 function resolveBaseUrl(frontendDir) {
   const envLocal = parseEnvFile(path3__namespace.join(frontendDir, ".env.local"));
   if (envLocal.has("NEXT_PUBLIC_API_URL")) {
@@ -774,6 +939,7 @@ function resolveBaseUrl(frontendDir) {
   }
   return "/api";
 }
+__name(resolveBaseUrl, "resolveBaseUrl");
 function resolveOutputDir(frontendDir, framework, outFlag) {
   if (outFlag) {
     return path3__namespace.resolve(frontendDir, outFlag);
@@ -784,6 +950,7 @@ function resolveOutputDir(frontendDir, framework, outFlag) {
   }
   return frontendDir;
 }
+__name(resolveOutputDir, "resolveOutputDir");
 var BASE_PACKAGES = [
   "@tanstack/react-query",
   "@tanstack/react-table",
@@ -792,8 +959,12 @@ var BASE_PACKAGES = [
   "@hookform/resolvers"
 ];
 var FRAMEWORK_PACKAGES = {
-  nextjs: ["next"],
-  "vite-react": ["react-router-dom"]
+  nextjs: [
+    "next"
+  ],
+  "vite-react": [
+    "react-router-dom"
+  ]
 };
 function checkDependencies(frontendDir, framework) {
   const required = [
@@ -806,28 +977,34 @@ function checkDependencies(frontendDir, framework) {
     const pkg = JSON.parse(fs3__namespace.readFileSync(pkgPath, "utf-8"));
     const deps = Object.keys(pkg.dependencies ?? {});
     const devDeps = Object.keys(pkg.devDependencies ?? {});
-    installed = /* @__PURE__ */ new Set([...deps, ...devDeps]);
+    installed = /* @__PURE__ */ new Set([
+      ...deps,
+      ...devDeps
+    ]);
   } catch {
     return required;
   }
   return required.filter((pkg) => !installed.has(pkg));
 }
+__name(checkDependencies, "checkDependencies");
 function shouldUseMultiStep(fieldCount, stepsFlag) {
   if (stepsFlag === "always") return true;
   if (stepsFlag === "never") return false;
   return fieldCount > 6;
 }
+__name(shouldUseMultiStep, "shouldUseMultiStep");
 function scalarFields(model) {
   return model.fields.filter((f) => !f.isRelation);
 }
+__name(scalarFields, "scalarFields");
 function relationalFields(model) {
   return model.fields.filter((f) => f.isRelation);
 }
+__name(relationalFields, "relationalFields");
 function formEditableFields(model) {
-  return model.fields.filter(
-    (f) => !f.isRelation && !f.isId && !f.hasDefaultValue && !f.isUpdatedAt
-  );
+  return model.fields.filter((f) => !f.isRelation && !f.isId && !f.hasDefaultValue && !f.isUpdatedAt);
 }
+__name(formEditableFields, "formEditableFields");
 function buildAutopilotConfig(models, flags) {
   return models.map((model) => {
     const scalars = scalarFields(model).map((f) => f.name);
@@ -838,7 +1015,6 @@ function buildAutopilotConfig(models, flags) {
       model,
       tableFields: scalars,
       formFields: editableFields,
-      // Use editable fields for forms
       relationalFields: relations,
       bulkDelete: !flags.noBulk,
       canExport: true,
@@ -846,9 +1022,11 @@ function buildAutopilotConfig(models, flags) {
     };
   });
 }
+__name(buildAutopilotConfig, "buildAutopilotConfig");
 function ask(rl, question) {
   return new Promise((resolve5) => rl.question(question, resolve5));
 }
+__name(ask, "ask");
 async function multiSelect(rl, prompt2, items) {
   console.log(prompt2);
   items.forEach((item, i) => console.log(`  ${i + 1}. ${item}`));
@@ -859,6 +1037,7 @@ async function multiSelect(rl, prompt2, items) {
   }
   return trimmed.split(/[\s,]+/).map((s) => parseInt(s, 10) - 1).filter((i) => i >= 0 && i < items.length);
 }
+__name(multiSelect, "multiSelect");
 async function yesNo(rl, prompt2, defaultYes = true) {
   const hint = defaultYes ? "[Y/n]" : "[y/N]";
   const answer = await ask(rl, `${prompt2} ${hint}: `);
@@ -866,17 +1045,14 @@ async function yesNo(rl, prompt2, defaultYes = true) {
   if (trimmed === "") return defaultYes;
   return trimmed === "y" || trimmed === "yes";
 }
+__name(yesNo, "yesNo");
 async function buildInteractiveConfig(models, flags) {
   const rl = readline__namespace.createInterface({
     input: process.stdin,
     output: process.stdout
   });
   try {
-    const modelIndices = await multiSelect(
-      rl,
-      "\nWhich models do you want to generate? (default: all)",
-      models.map((m) => m.name)
-    );
+    const modelIndices = await multiSelect(rl, "\nWhich models do you want to generate? (default: all)", models.map((m) => m.name));
     const selectedModels = modelIndices.map((i) => models[i]);
     const configs = [];
     for (const model of selectedModels) {
@@ -887,24 +1063,12 @@ async function buildInteractiveConfig(models, flags) {
       const relations = relationalFields(model);
       let selectedRelations = relations.map((f) => f.name);
       if (relations.length > 0) {
-        const relIndices = await multiSelect(
-          rl,
-          `  Relational fields for ${model.name} (searchable-select dropdowns):`,
-          relations.map((f) => f.name)
-        );
+        const relIndices = await multiSelect(rl, `  Relational fields for ${model.name} (searchable-select dropdowns):`, relations.map((f) => f.name));
         selectedRelations = relIndices.map((i) => relations[i].name);
       }
-      const tableIndices = await multiSelect(
-        rl,
-        `  Scalar fields to show in the table for ${model.name}:`,
-        scalars.map((f) => f.name)
-      );
+      const tableIndices = await multiSelect(rl, `  Scalar fields to show in the table for ${model.name}:`, scalars.map((f) => f.name));
       const tableFields = tableIndices.map((i) => scalars[i].name);
-      const formIndices = await multiSelect(
-        rl,
-        `  Fields to include in the form for ${model.name}:`,
-        editableFields.map((f) => f.name)
-      );
+      const formIndices = await multiSelect(rl, `  Fields to include in the form for ${model.name}:`, editableFields.map((f) => f.name));
       const formFields = formIndices.map((i) => editableFields[i].name);
       const bulkDelete = flags.noBulk ? false : await yesNo(rl, `  Enable bulk delete for ${model.name}?`);
       const canExport = await yesNo(rl, `  Enable CSV/JSON export for ${model.name}?`);
@@ -915,11 +1079,7 @@ async function buildInteractiveConfig(models, flags) {
         multiStep = false;
       } else {
         const suggested = formFields.length > 6;
-        multiStep = await yesNo(
-          rl,
-          `  Enable multi-step form for ${model.name}?`,
-          suggested
-        );
+        multiStep = await yesNo(rl, `  Enable multi-step form for ${model.name}?`, suggested);
       }
       configs.push({
         model,
@@ -936,6 +1096,7 @@ async function buildInteractiveConfig(models, flags) {
     rl.close();
   }
 }
+__name(buildInteractiveConfig, "buildInteractiveConfig");
 async function buildConfig(models, flags) {
   const filtered = flags.modelsFilter && flags.modelsFilter.length > 0 ? models.filter((m) => flags.modelsFilter.includes(m.name)) : models;
   if (flags.autopilot) {
@@ -943,6 +1104,7 @@ async function buildConfig(models, flags) {
   }
   return buildInteractiveConfig(filtered, flags);
 }
+__name(buildConfig, "buildConfig");
 
 // src/frontend/codegen/hook.ts
 function generateHookFile(config, modelConfig) {
@@ -1104,11 +1266,13 @@ function generateHookFile(config, modelConfig) {
   }
   return lines.join("\n");
 }
+__name(generateHookFile, "generateHookFile");
 
 // src/frontend/codegen/utils.ts
 function camelToTitle(name) {
   return name.replace(/([A-Z])/g, " $1").replace(/^./, (ch) => ch.toUpperCase()).trim();
 }
+__name(camelToTitle, "camelToTitle");
 function fieldTypeMap(field) {
   if (field.isRelation) return "searchable-select";
   switch (field.type) {
@@ -1129,6 +1293,7 @@ function fieldTypeMap(field) {
       return "text";
   }
 }
+__name(fieldTypeMap, "fieldTypeMap");
 function chunkFields(fields, maxPerStep = 4) {
   const steps = [];
   for (let i = 0; i < fields.length; i += maxPerStep) {
@@ -1136,6 +1301,7 @@ function chunkFields(fields, maxPerStep = 4) {
   }
   return steps;
 }
+__name(chunkFields, "chunkFields");
 
 // src/frontend/codegen/columns.ts
 function generateColumnsFile(_config, modelConfig) {
@@ -1167,6 +1333,7 @@ function generateColumnsFile(_config, modelConfig) {
   lines.push(``);
   return lines.join("\n");
 }
+__name(generateColumnsFile, "generateColumnsFile");
 
 // src/frontend/codegen/table.ts
 function generateTableFile(config, modelConfig) {
@@ -1185,7 +1352,10 @@ function generateTableFile(config, modelConfig) {
     lines.push(`'use client'`);
     lines.push(``);
   }
-  const hookImports = [useListHook, useDeleteHook];
+  const hookImports = [
+    useListHook,
+    useDeleteHook
+  ];
   if (bulkDelete) {
     hookImports.push(useBulkDeleteHook);
   }
@@ -1244,6 +1414,7 @@ function generateTableFile(config, modelConfig) {
   lines.push(``);
   return lines.join("\n");
 }
+__name(generateTableFile, "generateTableFile");
 
 // src/frontend/codegen/form.ts
 function generateFormFile(config, modelConfig) {
@@ -1262,19 +1433,14 @@ function generateFormFile(config, modelConfig) {
       relationalFieldMeta.push({
         fieldName: relFieldName,
         relatedModel: fieldMeta.type
-        // e.g. "User" for a userId relation
       });
     }
   }
   lines.push(`import { FormGenerator } from "../form-generator";`);
   lines.push(`import { ${name}CreateSchema } from "../../schemas.generated";`);
-  lines.push(
-    `import { useCreate${name}, useUpdate${name} } from "../../hooks/use${name}";`
-  );
+  lines.push(`import { useCreate${name}, useUpdate${name} } from "../../hooks/use${name}";`);
   for (const { relatedModel } of relationalFieldMeta) {
-    lines.push(
-      `import { use${relatedModel}s } from "../../hooks/use${relatedModel}";`
-    );
+    lines.push(`import { use${relatedModel}s } from "../../hooks/use${relatedModel}";`);
   }
   lines.push(``);
   lines.push(`export function ${name}Form({ id, onSuccess }: { id?: string; onSuccess?: () => void }) {`);
@@ -1282,9 +1448,7 @@ function generateFormFile(config, modelConfig) {
   lines.push(`  const update${name} = useUpdate${name}();`);
   for (const { fieldName, relatedModel } of relationalFieldMeta) {
     const varName = fieldName.charAt(0).toLowerCase() + fieldName.slice(1) + "Options";
-    lines.push(
-      `  const { data: ${varName}Data } = use${relatedModel}s();`
-    );
+    lines.push(`  const { data: ${varName}Data } = use${relatedModel}s();`);
   }
   lines.push(``);
   lines.push(`  const fields = [`);
@@ -1303,9 +1467,7 @@ function generateFormFile(config, modelConfig) {
     lines.push(`      name: "${fieldName}",`);
     lines.push(`      label: "${camelToTitle(fieldName)}",`);
     lines.push(`      type: "searchable-select",`);
-    lines.push(
-      `      options: (${varName}Data?.data ?? []).map((r: any) => ({ label: String(r.name ?? r.id), value: String(r.id) })),`
-    );
+    lines.push(`      options: (${varName}Data?.data ?? []).map((r: any) => ({ label: String(r.name ?? r.id), value: String(r.id) })),`);
     lines.push(`    },`);
   }
   lines.push(`  ];`);
@@ -1320,9 +1482,7 @@ function generateFormFile(config, modelConfig) {
     chunks.forEach((chunk, i) => {
       lines.push(`    {`);
       lines.push(`      title: "Step ${i + 1}",`);
-      lines.push(
-        `      fields: [${chunk.map((f) => `"${f}"`).join(", ")}],`
-      );
+      lines.push(`      fields: [${chunk.map((f) => `"${f}"`).join(", ")}],`);
       lines.push(`    },`);
     });
     lines.push(`  ];`);
@@ -1364,6 +1524,7 @@ function generateFormFile(config, modelConfig) {
   lines.push(``);
   return lines.join("\n");
 }
+__name(generateFormFile, "generateFormFile");
 
 // src/frontend/codegen/page.ts
 function generatePageFile(config, modelConfig) {
@@ -1387,6 +1548,7 @@ function generatePageFile(config, modelConfig) {
   lines.push(``);
   return lines.join("\n");
 }
+__name(generatePageFile, "generatePageFile");
 
 // src/frontend/codegen/menu.ts
 function generateMenuData(config) {
@@ -1432,6 +1594,7 @@ function generateMenuData(config) {
   lines.push(``);
   return lines.join("\n");
 }
+__name(generateMenuData, "generateMenuData");
 
 // src/frontend/codegen/providers.ts
 function generateProvidersFile(config) {
@@ -1461,6 +1624,7 @@ function generateProvidersFile(config) {
   lines.push(``);
   return lines.join("\n");
 }
+__name(generateProvidersFile, "generateProvidersFile");
 var GREEN = "\x1B[32m";
 var YELLOW = "\x1B[33m";
 var BLUE = "\x1B[34m";
@@ -1470,16 +1634,32 @@ async function writeFile(destPath, content) {
   let existed = false;
   try {
     existed = fs3__namespace.existsSync(destPath);
-    fs3__namespace.mkdirSync(path3__namespace.dirname(destPath), { recursive: true });
+    fs3__namespace.mkdirSync(path3__namespace.dirname(destPath), {
+      recursive: true
+    });
     fs3__namespace.writeFileSync(destPath, content, "utf8");
-    return { path: destPath, status: existed ? "overwritten" : "created" };
+    return {
+      path: destPath,
+      status: existed ? "overwritten" : "created"
+    };
   } catch (err) {
-    return { path: destPath, status: "error", error: err instanceof Error ? err : new Error(String(err)) };
+    return {
+      path: destPath,
+      status: "error",
+      error: err instanceof Error ? err : new Error(String(err))
+    };
   }
 }
+__name(writeFile, "writeFile");
 var BASE_COMPONENTS = [
-  { src: "frontend-next/data-table.tsx", dest: "components/data-table.tsx" },
-  { src: "frontend-next/form-generator.tsx", dest: "components/form-generator.tsx" }
+  {
+    src: "frontend-next/data-table.tsx",
+    dest: "components/data-table.tsx"
+  },
+  {
+    src: "frontend-next/form-generator.tsx",
+    dest: "components/form-generator.tsx"
+  }
 ];
 async function copyBaseComponents(outputDir, packageRoot) {
   const results = [];
@@ -1487,13 +1667,21 @@ async function copyBaseComponents(outputDir, packageRoot) {
     const srcPath = path3__namespace.join(packageRoot, src);
     const destPath = path3__namespace.join(outputDir, dest);
     if (fs3__namespace.existsSync(destPath)) {
-      results.push({ path: destPath, status: "skipped" });
+      results.push({
+        path: destPath,
+        status: "skipped"
+      });
       continue;
     }
     try {
-      fs3__namespace.mkdirSync(path3__namespace.dirname(destPath), { recursive: true });
+      fs3__namespace.mkdirSync(path3__namespace.dirname(destPath), {
+        recursive: true
+      });
       fs3__namespace.copyFileSync(srcPath, destPath);
-      results.push({ path: destPath, status: "created" });
+      results.push({
+        path: destPath,
+        status: "created"
+      });
     } catch (err) {
       results.push({
         path: destPath,
@@ -1504,6 +1692,7 @@ async function copyBaseComponents(outputDir, packageRoot) {
   }
   return results;
 }
+__name(copyBaseComponents, "copyBaseComponents");
 function printSummary(results) {
   for (const r of results) {
     switch (r.status) {
@@ -1525,19 +1714,18 @@ function printSummary(results) {
   const overwritten = results.filter((r) => r.status === "overwritten").length;
   const skipped = results.filter((r) => r.status === "skipped").length;
   const errors = results.filter((r) => r.status === "error").length;
-  console.log(
-    `
-Generated ${created} files (${overwritten} overwritten, ${skipped} skipped, ${errors} errors)`
-  );
+  console.log(`
+Generated ${created} files (${overwritten} overwritten, ${skipped} skipped, ${errors} errors)`);
 }
+__name(printSummary, "printSummary");
 
 // src/frontend-generator.ts
 var COLORS = {
-  green: (s) => `\x1B[32m${s}\x1B[0m`,
-  yellow: (s) => `\x1B[33m${s}\x1B[0m`,
-  cyan: (s) => `\x1B[36m${s}\x1B[0m`,
-  red: (s) => `\x1B[31m${s}\x1B[0m`,
-  bold: (s) => `\x1B[1m${s}\x1B[0m`
+  green: /* @__PURE__ */ __name((s) => `\x1B[32m${s}\x1B[0m`, "green"),
+  yellow: /* @__PURE__ */ __name((s) => `\x1B[33m${s}\x1B[0m`, "yellow"),
+  cyan: /* @__PURE__ */ __name((s) => `\x1B[36m${s}\x1B[0m`, "cyan"),
+  red: /* @__PURE__ */ __name((s) => `\x1B[31m${s}\x1B[0m`, "red"),
+  bold: /* @__PURE__ */ __name((s) => `\x1B[1m${s}\x1B[0m`, "bold")
 };
 async function generateAll(config) {
   const { outputDir, models, framework, frontendDir } = config;
@@ -1584,6 +1772,7 @@ async function generateAll(config) {
   printSummary(results);
   return results;
 }
+__name(generateAll, "generateAll");
 var HELP_TEXT = `
   Usage: npx omni-rest generate:frontend [options]
 
@@ -1604,7 +1793,10 @@ var HELP_TEXT = `
     --help                  Print this help
 `;
 function prompt(question) {
-  const rl = readline__namespace.createInterface({ input: process.stdin, output: process.stdout });
+  const rl = readline__namespace.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
   return new Promise((resolve5) => {
     rl.question(question, (answer) => {
       rl.close();
@@ -1612,6 +1804,7 @@ function prompt(question) {
     });
   });
 }
+__name(prompt, "prompt");
 async function run(argv) {
   let schemaPath;
   let frontendDirFlag;
@@ -1682,26 +1875,18 @@ async function run(argv) {
   let frontendDir;
   if (frontendDirFlag) {
     const resolved = __require("path").resolve(cwd2, frontendDirFlag);
-    const fs7 = __require("fs");
-    if (!fs7.existsSync(resolved) || !fs7.statSync(resolved).isDirectory()) {
-      console.error(
-        COLORS.red(
-          `  \u2717 --frontend-dir path does not exist or is not a directory: "${resolved}"`
-        )
-      );
+    const fs8 = __require("fs");
+    if (!fs8.existsSync(resolved) || !fs8.statSync(resolved).isDirectory()) {
+      console.error(COLORS.red(`  \u2717 --frontend-dir path does not exist or is not a directory: "${resolved}"`));
       process.exit(1);
     }
     frontendDir = resolved;
   } else {
     const candidates = await scanForFrontendDir(cwd2);
     if (candidates.length === 0) {
-      console.error(
-        COLORS.red(
-          `  \u2717 No frontend project found.
+      console.error(COLORS.red(`  \u2717 No frontend project found.
     Scan criteria: next.config.*, vite.config.*, or package.json with react dependency.
-    Run from your frontend directory or use --frontend-dir <path>.`
-        )
-      );
+    Run from your frontend directory or use --frontend-dir <path>.`));
       process.exit(1);
     }
     if (autopilot) {
@@ -1714,10 +1899,8 @@ async function run(argv) {
       frontendDir = candidates[0].dir;
       console.log(COLORS.cyan(`  \u2192 Using frontend dir: ${frontendDir}`));
     } else if (candidates.length === 1) {
-      const answer = await prompt(
-        `  Frontend dir detected: ${COLORS.bold(candidates[0].dir)}
-  Use this directory? [Y/n]: `
-      );
+      const answer = await prompt(`  Frontend dir detected: ${COLORS.bold(candidates[0].dir)}
+  Use this directory? [Y/n]: `);
       if (answer.toLowerCase() === "n" || answer.toLowerCase() === "no") {
         console.log("  Aborted.");
         return;
@@ -1762,12 +1945,8 @@ async function run(argv) {
   console.log(COLORS.cyan(`  \u2192 Output dir: ${outputDir}`));
   const missing = checkDependencies(frontendDir, framework);
   if (missing.length > 0) {
-    console.warn(
-      COLORS.yellow(
-        `  \u26A0 Missing dependencies: ${missing.join(", ")}
-    Install with: npm install ${missing.join(" ")}`
-      )
-    );
+    console.warn(COLORS.yellow(`  \u26A0 Missing dependencies: ${missing.join(", ")}
+    Install with: npm install ${missing.join(" ")}`));
   }
   const modelsFilter = modelsFlag ? modelsFlag.split(",").map((s) => s.trim()).filter(Boolean) : void 0;
   if (modelsFilter) {
@@ -1801,6 +1980,128 @@ async function run(argv) {
   await generateAll(generatorConfig);
   console.log(COLORS.bold("\n  Done!\n"));
 }
+__name(run, "run");
+var SKILL_PACK = [
+  {
+    source: "AI/PROJECT_INTELLIGENCE.md",
+    destination: "AI/PROJECT_INTELLIGENCE.md"
+  },
+  {
+    source: "AI/PORTABLE_API_PLAYBOOK.md",
+    destination: "AI/PORTABLE_API_PLAYBOOK.md"
+  },
+  {
+    source: "AGENTS.md",
+    destination: "AGENTS.md"
+  },
+  {
+    source: "CLAUDE.md",
+    destination: "CLAUDE.md"
+  },
+  {
+    source: ".cursor/rules/omni-rest.mdc",
+    destination: ".cursor/rules/omni-rest.mdc"
+  },
+  {
+    source: ".kiro/agent-guide.md",
+    destination: ".kiro/agent-guide.md"
+  },
+  {
+    source: "ai/codex/omni-rest/SKILL.md",
+    destination: "ai/codex/omni-rest/SKILL.md"
+  }
+];
+function getSkillPack(packageRoot = resolvePackageRoot()) {
+  return SKILL_PACK.map((item) => ({
+    source: path3__namespace.default.resolve(packageRoot, item.source),
+    destination: item.destination
+  }));
+}
+__name(getSkillPack, "getSkillPack");
+function installSkillPack(targetDir, options = {}) {
+  const packageRoot = path3__namespace.default.resolve(options.packageRoot ?? resolvePackageRoot());
+  const targetRoot = path3__namespace.default.resolve(targetDir);
+  const results = [];
+  for (const item of getSkillPack(packageRoot)) {
+    const destPath = path3__namespace.default.join(targetRoot, item.destination);
+    try {
+      if (!fs3__namespace.default.existsSync(item.source)) {
+        results.push({
+          source: item.source,
+          destination: destPath,
+          path: destPath,
+          status: "error",
+          error: new Error(`Missing template file: ${item.source}`)
+        });
+        continue;
+      }
+      const existed = fs3__namespace.default.existsSync(destPath);
+      if (existed && !options.overwrite) {
+        results.push({
+          source: item.source,
+          destination: destPath,
+          path: destPath,
+          status: "skipped"
+        });
+        continue;
+      }
+      fs3__namespace.default.mkdirSync(path3__namespace.default.dirname(destPath), {
+        recursive: true
+      });
+      fs3__namespace.default.copyFileSync(item.source, destPath);
+      results.push({
+        source: item.source,
+        destination: destPath,
+        path: destPath,
+        status: existed ? "overwritten" : "created"
+      });
+    } catch (error) {
+      results.push({
+        source: item.source,
+        destination: destPath,
+        path: destPath,
+        status: "error",
+        error: error instanceof Error ? error : new Error(String(error))
+      });
+    }
+  }
+  return results;
+}
+__name(installSkillPack, "installSkillPack");
+function printSkillPackSummary(results) {
+  const GREEN2 = "\x1B[32m";
+  const YELLOW2 = "\x1B[33m";
+  const BLUE2 = "\x1B[34m";
+  const RED2 = "\x1B[31m";
+  const RESET2 = "\x1B[0m";
+  for (const result of results) {
+    switch (result.status) {
+      case "created":
+        console.log(`${GREEN2}+${RESET2} installed  ${result.destination}`);
+        break;
+      case "overwritten":
+        console.log(`${YELLOW2}!${RESET2} updated    ${result.destination}`);
+        break;
+      case "skipped":
+        console.log(`${BLUE2}i${RESET2} skipped    ${result.destination}`);
+        break;
+      case "error":
+        console.log(`${RED2}x${RESET2} failed     ${result.destination}${result.error ? ` - ${result.error.message}` : ""}`);
+        break;
+    }
+  }
+  const created = results.filter((r) => r.status === "created").length;
+  const overwritten = results.filter((r) => r.status === "overwritten").length;
+  const skipped = results.filter((r) => r.status === "skipped").length;
+  const errors = results.filter((r) => r.status === "error").length;
+  console.log(`
+Installed ${created} files (${overwritten} updated, ${skipped} skipped, ${errors} errors)`);
+}
+__name(printSkillPackSummary, "printSkillPackSummary");
+function resolvePackageRoot() {
+  return path3__namespace.default.resolve(__dirname, "..");
+}
+__name(resolvePackageRoot, "resolvePackageRoot");
 
 // src/cli.ts
 var args = process.argv.slice(2);
@@ -1808,25 +2109,32 @@ var command = args[0] ?? "generate";
 var remainingArgs = args.slice(1);
 var cwd = process.cwd();
 var COLORS2 = {
-  green: (s) => `\x1B[32m${s}\x1B[0m`,
-  yellow: (s) => `\x1B[33m${s}\x1B[0m`,
-  cyan: (s) => `\x1B[36m${s}\x1B[0m`,
-  red: (s) => `\x1B[31m${s}\x1B[0m`,
-  bold: (s) => `\x1B[1m${s}\x1B[0m`
+  green: /* @__PURE__ */ __name((s) => `\x1B[32m${s}\x1B[0m`, "green"),
+  yellow: /* @__PURE__ */ __name((s) => `\x1B[33m${s}\x1B[0m`, "yellow"),
+  cyan: /* @__PURE__ */ __name((s) => `\x1B[36m${s}\x1B[0m`, "cyan"),
+  red: /* @__PURE__ */ __name((s) => `\x1B[31m${s}\x1B[0m`, "red"),
+  bold: /* @__PURE__ */ __name((s) => `\x1B[1m${s}\x1B[0m`, "bold")
 };
 function write(filePath, content) {
   const abs = path3__namespace.default.resolve(cwd, filePath);
-  fs3__namespace.default.mkdirSync(path3__namespace.default.dirname(abs), { recursive: true });
+  fs3__namespace.default.mkdirSync(path3__namespace.default.dirname(abs), {
+    recursive: true
+  });
   fs3__namespace.default.writeFileSync(abs, content, "utf-8");
   console.log(COLORS2.green(`  \u2713 Written: ${filePath}`));
 }
+__name(write, "write");
 function createPrismaClient() {
   const customClient = tryLoadFromSchemaOutput();
   if (customClient) return customClient;
   const standardPrismaClient = tryLoadFromStandardOutput();
   if (standardPrismaClient) return standardPrismaClient;
   try {
-    const clientPath = __require.resolve("@prisma/client", { paths: [cwd] });
+    const clientPath = __require.resolve("@prisma/client", {
+      paths: [
+        cwd
+      ]
+    });
     const textResult = extractRuntimeDataModelFromFile(clientPath);
     if (textResult) return textResult;
     const mod = __require(clientPath);
@@ -1834,11 +2142,10 @@ function createPrismaClient() {
     if (!PrismaClient) throw new Error("PrismaClient not found in @prisma/client");
     return new PrismaClient();
   } catch {
-    throw new Error(
-      "[omni-rest] Could not load @prisma/client from your project. Run `npx prisma generate` first, then try again."
-    );
+    throw new Error("[omni-rest] Could not load @prisma/client from your project. Run `npx prisma generate` first, then try again.");
   }
 }
+__name(createPrismaClient, "createPrismaClient");
 function tryLoadFromSchemaOutput() {
   const schemaPaths = [
     path3__namespace.default.resolve(cwd, "prisma/schema.prisma"),
@@ -1860,6 +2167,7 @@ function tryLoadFromSchemaOutput() {
   }
   return null;
 }
+__name(tryLoadFromSchemaOutput, "tryLoadFromSchemaOutput");
 function tryLoadFromStandardOutput() {
   const candidates = [
     path3__namespace.default.resolve(cwd, "node_modules/.prisma/client/index.js"),
@@ -1871,6 +2179,7 @@ function tryLoadFromStandardOutput() {
   }
   return null;
 }
+__name(tryLoadFromStandardOutput, "tryLoadFromStandardOutput");
 function extractRuntimeDataModelFromFile(filePath) {
   if (!fs3__namespace.default.existsSync(filePath)) return null;
   try {
@@ -1880,8 +2189,11 @@ function extractRuntimeDataModelFromFile(filePath) {
       const json = match[1].replace(/\\"/g, '"').replace(/\\\\/g, "\\");
       const runtimeDataModel = JSON.parse(json);
       if (runtimeDataModel?.models) {
-        return { _runtimeDataModel: runtimeDataModel, $disconnect: async () => {
-        } };
+        return {
+          _runtimeDataModel: runtimeDataModel,
+          $disconnect: /* @__PURE__ */ __name(async () => {
+          }, "$disconnect")
+        };
       }
     }
     const match2 = src.match(/runtimeDataModel\s*=\s*(\{[\s\S]*?"models"\s*:\s*\{[\s\S]*?\}\s*\})/);
@@ -1889,8 +2201,11 @@ function extractRuntimeDataModelFromFile(filePath) {
       try {
         const runtimeDataModel = JSON.parse(match2[1]);
         if (runtimeDataModel?.models) {
-          return { _runtimeDataModel: runtimeDataModel, $disconnect: async () => {
-          } };
+          return {
+            _runtimeDataModel: runtimeDataModel,
+            $disconnect: /* @__PURE__ */ __name(async () => {
+            }, "$disconnect")
+          };
         }
       } catch {
       }
@@ -1899,6 +2214,7 @@ function extractRuntimeDataModelFromFile(filePath) {
   }
   return null;
 }
+__name(extractRuntimeDataModelFromFile, "extractRuntimeDataModelFromFile");
 var USAGE = `
   Usage:
     npx omni-rest generate            Generate both Zod schemas and OpenAPI spec
@@ -1906,6 +2222,7 @@ var USAGE = `
     npx omni-rest generate:openapi    Generate OpenAPI spec only
     npx omni-rest generate:config     Generate omni-rest.config.json for omni-rest-client
     npx omni-rest generate:frontend   Scaffold frontend components from Prisma schema (legacy)
+    npx omni-rest install:skills      Install the portable AI instruction pack into a project
 `;
 async function run2() {
   console.log(COLORS2.bold("\n  omni-rest generator\n"));
@@ -1918,7 +2235,27 @@ async function run2() {
     }
     return;
   }
-  if (!["generate", "generate:zod", "generate:openapi", "generate:config"].includes(command)) {
+  if (command === "install:skills") {
+    const targetArg = readArg(remainingArgs, "--target");
+    const overwrite = remainingArgs.includes("--overwrite");
+    const targetDir = targetArg ? path3__namespace.default.resolve(cwd, targetArg) : cwd;
+    try {
+      const results = installSkillPack(targetDir, {
+        overwrite
+      });
+      printSkillPackSummary(results);
+    } catch (e) {
+      console.error(COLORS2.red(`  x ${e.message}`));
+      process.exit(1);
+    }
+    return;
+  }
+  if (![
+    "generate",
+    "generate:zod",
+    "generate:openapi",
+    "generate:config"
+  ].includes(command)) {
     console.log(USAGE);
     console.log(COLORS2.bold("\n  Done!\n"));
     return;
@@ -1968,29 +2305,34 @@ async function run2() {
   }
   console.log(COLORS2.bold("\n  Done!\n"));
 }
+__name(run2, "run");
 function getPackageName() {
   try {
-    const pkg = JSON.parse(
-      fs3__namespace.default.readFileSync(path3__namespace.default.resolve(cwd, "package.json"), "utf-8")
-    );
+    const pkg = JSON.parse(fs3__namespace.default.readFileSync(path3__namespace.default.resolve(cwd, "package.json"), "utf-8"));
     return pkg.name ?? "My API";
   } catch {
     return "My API";
   }
 }
+__name(getPackageName, "getPackageName");
 function getPackageVersion() {
   try {
-    const pkg = JSON.parse(
-      fs3__namespace.default.readFileSync(path3__namespace.default.resolve(cwd, "package.json"), "utf-8")
-    );
+    const pkg = JSON.parse(fs3__namespace.default.readFileSync(path3__namespace.default.resolve(cwd, "package.json"), "utf-8"));
     return pkg.version ?? "1.0.0";
   } catch {
     return "1.0.0";
   }
 }
+__name(getPackageVersion, "getPackageVersion");
 run2().catch((e) => {
   console.error(e);
   process.exit(1);
 });
+function readArg(args2, flag) {
+  const index = args2.indexOf(flag);
+  if (index === -1) return void 0;
+  return args2[index + 1];
+}
+__name(readArg, "readArg");
 //# sourceMappingURL=cli.js.map
 //# sourceMappingURL=cli.js.map

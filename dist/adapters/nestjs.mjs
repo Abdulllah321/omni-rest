@@ -1078,91 +1078,271 @@ function handlePrismaError(e) {
 }
 __name(handlePrismaError, "handlePrismaError");
 
-// src/adapters/fastify.ts
-function fastifyAdapter(fastify, prisma, options = {}) {
+// src/adapters/nestjs.ts
+function _ts_decorate(decorators, target, key, desc) {
+  var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+  else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+  return c > 3 && r && Object.defineProperty(target, key, r), r;
+}
+__name(_ts_decorate, "_ts_decorate");
+function _ts_metadata(k, v) {
+  if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+}
+__name(_ts_metadata, "_ts_metadata");
+function _ts_param(paramIndex, decorator) {
+  return function(target, key) {
+    decorator(target, key, paramIndex);
+  };
+}
+__name(_ts_param, "_ts_param");
+function nestjsController(prisma, options = {}, prefix = "api") {
+  var _a;
+  const { Controller, Get, Post, Put, Patch, Delete, Param, Body, Query, Req, Res, HttpStatus, Sse, MessageEvent } = __require("@nestjs/common");
+  const { Observable } = __require("rxjs");
   const { handle, modelMap, subscriptionBus } = createRouter(prisma, options);
-  const prefix = options.prefix ?? "/api";
   const heartbeatMs = options.subscription?.heartbeatInterval ?? 3e4;
   const guards = options.guards ?? {};
   const fieldGuards = options.fieldGuards ?? {};
-  fastify.get(`${prefix}/:model/subscribe`, async (request, reply) => {
-    const modelName = request.params.model;
-    const meta = modelMap[modelName.toLowerCase()];
-    if (!meta) {
-      return reply.status(404).send({
-        error: `Model "${modelName}" not found or not exposed.`
+  const getSearchParams = /* @__PURE__ */ __name((query) => {
+    return new URLSearchParams(Object.entries(query || {}).map(([k, v]) => `${k}=${v}`).join("&"));
+  }, "getSearchParams");
+  let OmniRestDynamicController = (_a = class {
+    async bulkUpdate(model, body, query, res) {
+      try {
+        const { status, data } = await handle("PATCH", model, null, body ?? [], getSearchParams(query), "bulk-update");
+        if (status === 204) return res.status(HttpStatus.NO_CONTENT).send();
+        return res.status(status).json(data);
+      } catch (e) {
+        return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+          error: e.message
+        });
+      }
+    }
+    async bulkDelete(model, body, query, res) {
+      try {
+        const { status, data } = await handle("DELETE", model, null, body ?? [], getSearchParams(query), "bulk-delete");
+        if (status === 204) return res.status(HttpStatus.NO_CONTENT).send();
+        return res.status(status).json(data);
+      } catch (e) {
+        return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+          error: e.message
+        });
+      }
+    }
+    // ── SSE: GET :model/subscribe ───────────────────────────────────────
+    // Decorated with @Sse so NestJS handles Content-Type and streaming lifecycle.
+    // Must appear before @Get(":model") to avoid route shadowing.
+    subscribe(model, query, req) {
+      const meta = modelMap[model.toLowerCase()];
+      return new Observable((subscriber) => {
+        if (!meta) {
+          subscriber.error(new Error(`Model "${model}" not found or not exposed.`));
+          return;
+        }
+        const fg = fieldGuards[meta.routeName];
+        let heartbeatTimer;
+        let unsubscribeFn;
+        subscriptionBus.checkGuard(guards, meta.routeName, {
+          body: {}
+        }).then((guardError) => {
+          if (guardError) {
+            subscriber.error(new Error(guardError));
+            return;
+          }
+          subscriptionBus.subscribe(meta, (event) => {
+            subscriber.next({
+              data: formatSseEvent(event)
+            });
+          }, fg).then((unsub) => {
+            unsubscribeFn = unsub;
+            heartbeatTimer = setInterval(() => {
+              subscriber.next({
+                data: formatSseHeartbeat()
+              });
+            }, heartbeatMs);
+          });
+        });
+        return () => {
+          if (heartbeatTimer) clearInterval(heartbeatTimer);
+          if (unsubscribeFn) unsubscribeFn();
+        };
       });
     }
-    const guardError = await subscriptionBus.checkGuard(guards, meta.routeName, {
-      body: {}
-    });
-    if (guardError) {
-      return reply.status(403).send({
-        error: guardError
-      });
+    async list(model, query, res) {
+      return await this._processRequest("GET", model, null, {}, query, res);
     }
-    const raw = reply.raw;
-    raw.writeHead(200, {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      "Connection": "keep-alive",
-      "X-Accel-Buffering": "no"
-    });
-    const fg = fieldGuards[meta.routeName];
-    const unsubscribe = await subscriptionBus.subscribe(meta, (event) => {
-      raw.write(formatSseEvent(event));
-    }, fg);
-    const heartbeat = setInterval(() => {
-      raw.write(formatSseHeartbeat());
-    }, heartbeatMs);
-    const cleanup = /* @__PURE__ */ __name(() => {
-      clearInterval(heartbeat);
-      unsubscribe();
-    }, "cleanup");
-    raw.on("close", cleanup);
-    raw.on("error", cleanup);
-    return new Promise(() => {
-    });
-  });
-  async function routeHandler(request, reply) {
-    const { model, id } = request.params;
-    const body = request.body ?? {};
-    const query = request.query ?? {};
-    const searchParams = new URLSearchParams(Object.entries(query).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join("&"));
-    const { status, data } = await handle(request.method, model, id ?? null, body, searchParams);
-    if (status === 204) {
-      return reply.status(204).send();
+    async create(model, body, query, res) {
+      return await this._processRequest("POST", model, null, body, query, res);
     }
-    return reply.status(status).send(data);
-  }
-  __name(routeHandler, "routeHandler");
-  async function bulkHandler(request, reply, operation) {
-    const { model } = request.params;
-    const body = request.body ?? [];
-    const query = request.query ?? {};
-    const searchParams = new URLSearchParams(Object.entries(query).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join("&"));
-    const { status, data } = await handle(operation.includes("update") ? "PATCH" : "DELETE", model, null, body, searchParams, operation);
-    if (status === 204) {
-      return reply.status(204).send();
+    async read(model, id, query, res) {
+      return await this._processRequest("GET", model, id, {}, query, res);
     }
-    return reply.status(status).send(data);
-  }
-  __name(bulkHandler, "bulkHandler");
-  fastify.get(`${prefix}/:model`, routeHandler);
-  fastify.post(`${prefix}/:model`, routeHandler);
-  fastify.get(`${prefix}/:model/:id`, routeHandler);
-  fastify.put(`${prefix}/:model/:id`, routeHandler);
-  fastify.patch(`${prefix}/:model/:id`, routeHandler);
-  fastify.delete(`${prefix}/:model/:id`, routeHandler);
-  fastify.patch(`${prefix}/:model/bulk/update`, async (request, reply) => {
-    await bulkHandler(request, reply, "bulk-update");
-  });
-  fastify.delete(`${prefix}/:model/bulk/delete`, async (request, reply) => {
-    await bulkHandler(request, reply, "bulk-delete");
-  });
+    async replace(model, id, body, query, res) {
+      return await this._processRequest("PUT", model, id, body, query, res);
+    }
+    async update(model, id, body, query, res) {
+      return await this._processRequest("PATCH", model, id, body, query, res);
+    }
+    async remove(model, id, query, res) {
+      return await this._processRequest("DELETE", model, id, {}, query, res);
+    }
+    async _processRequest(method, model, id, body, query, res) {
+      try {
+        const { status, data } = await handle(method, model, id, body ?? {}, getSearchParams(query));
+        if (status === 204) {
+          return res.status(HttpStatus.NO_CONTENT).send();
+        }
+        return res.status(status).json(data);
+      } catch (e) {
+        return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+          error: e.message
+        });
+      }
+    }
+  }, __name(_a, "OmniRestDynamicController"), _a);
+  _ts_decorate([
+    Patch(":model/bulk/update"),
+    _ts_param(0, Param("model")),
+    _ts_param(1, Body()),
+    _ts_param(2, Query()),
+    _ts_param(3, Res()),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+      String,
+      Array,
+      Object,
+      Object
+    ]),
+    _ts_metadata("design:returntype", Promise)
+  ], OmniRestDynamicController.prototype, "bulkUpdate", null);
+  _ts_decorate([
+    Delete(":model/bulk/delete"),
+    _ts_param(0, Param("model")),
+    _ts_param(1, Body()),
+    _ts_param(2, Query()),
+    _ts_param(3, Res()),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+      String,
+      Array,
+      Object,
+      Object
+    ]),
+    _ts_metadata("design:returntype", Promise)
+  ], OmniRestDynamicController.prototype, "bulkDelete", null);
+  _ts_decorate([
+    Sse(":model/subscribe"),
+    _ts_param(0, Param("model")),
+    _ts_param(1, Query()),
+    _ts_param(2, Req()),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+      String,
+      Object,
+      Object
+    ]),
+    _ts_metadata("design:returntype", void 0)
+  ], OmniRestDynamicController.prototype, "subscribe", null);
+  _ts_decorate([
+    Get(":model"),
+    _ts_param(0, Param("model")),
+    _ts_param(1, Query()),
+    _ts_param(2, Res()),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+      String,
+      Object,
+      Object
+    ]),
+    _ts_metadata("design:returntype", Promise)
+  ], OmniRestDynamicController.prototype, "list", null);
+  _ts_decorate([
+    Post(":model"),
+    _ts_param(0, Param("model")),
+    _ts_param(1, Body()),
+    _ts_param(2, Query()),
+    _ts_param(3, Res()),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+      String,
+      Object,
+      Object,
+      Object
+    ]),
+    _ts_metadata("design:returntype", Promise)
+  ], OmniRestDynamicController.prototype, "create", null);
+  _ts_decorate([
+    Get(":model/:id"),
+    _ts_param(0, Param("model")),
+    _ts_param(1, Param("id")),
+    _ts_param(2, Query()),
+    _ts_param(3, Res()),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+      String,
+      String,
+      Object,
+      Object
+    ]),
+    _ts_metadata("design:returntype", Promise)
+  ], OmniRestDynamicController.prototype, "read", null);
+  _ts_decorate([
+    Put(":model/:id"),
+    _ts_param(0, Param("model")),
+    _ts_param(1, Param("id")),
+    _ts_param(2, Body()),
+    _ts_param(3, Query()),
+    _ts_param(4, Res()),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+      String,
+      String,
+      Object,
+      Object,
+      Object
+    ]),
+    _ts_metadata("design:returntype", Promise)
+  ], OmniRestDynamicController.prototype, "replace", null);
+  _ts_decorate([
+    Patch(":model/:id"),
+    _ts_param(0, Param("model")),
+    _ts_param(1, Param("id")),
+    _ts_param(2, Body()),
+    _ts_param(3, Query()),
+    _ts_param(4, Res()),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+      String,
+      String,
+      Object,
+      Object,
+      Object
+    ]),
+    _ts_metadata("design:returntype", Promise)
+  ], OmniRestDynamicController.prototype, "update", null);
+  _ts_decorate([
+    Delete(":model/:id"),
+    _ts_param(0, Param("model")),
+    _ts_param(1, Param("id")),
+    _ts_param(2, Query()),
+    _ts_param(3, Res()),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+      String,
+      String,
+      Object,
+      Object
+    ]),
+    _ts_metadata("design:returntype", Promise)
+  ], OmniRestDynamicController.prototype, "remove", null);
+  OmniRestDynamicController = _ts_decorate([
+    Controller(prefix)
+  ], OmniRestDynamicController);
+  return OmniRestDynamicController;
 }
-__name(fastifyAdapter, "fastifyAdapter");
+__name(nestjsController, "nestjsController");
 
-export { fastifyAdapter };
-//# sourceMappingURL=fastify.mjs.map
-//# sourceMappingURL=fastify.mjs.map
+export { nestjsController };
+//# sourceMappingURL=nestjs.mjs.map
+//# sourceMappingURL=nestjs.mjs.map

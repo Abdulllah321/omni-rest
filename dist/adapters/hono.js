@@ -1,3 +1,5 @@
+'use strict';
+
 var __defProp = Object.defineProperty;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
@@ -1078,91 +1080,148 @@ function handlePrismaError(e) {
 }
 __name(handlePrismaError, "handlePrismaError");
 
-// src/adapters/fastify.ts
-function fastifyAdapter(fastify, prisma, options = {}) {
+// src/adapters/hono.ts
+function honoAdapter(app, prisma, options = {}) {
   const { handle, modelMap, subscriptionBus } = createRouter(prisma, options);
-  const prefix = options.prefix ?? "/api";
+  const prefix = options.prefix ?? "";
   const heartbeatMs = options.subscription?.heartbeatInterval ?? 3e4;
   const guards = options.guards ?? {};
   const fieldGuards = options.fieldGuards ?? {};
-  fastify.get(`${prefix}/:model/subscribe`, async (request, reply) => {
-    const modelName = request.params.model;
+  function toSearchParams(query) {
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(query)) {
+      if (Array.isArray(v)) {
+        v.forEach((val) => params.append(k, val));
+      } else {
+        params.set(k, v);
+      }
+    }
+    return params;
+  }
+  __name(toSearchParams, "toSearchParams");
+  app.get(`${prefix}/:model/subscribe`, async (c) => {
+    const modelName = c.req.param("model");
     const meta = modelMap[modelName.toLowerCase()];
     if (!meta) {
-      return reply.status(404).send({
+      return c.json({
         error: `Model "${modelName}" not found or not exposed.`
-      });
+      }, 404);
     }
     const guardError = await subscriptionBus.checkGuard(guards, meta.routeName, {
       body: {}
     });
     if (guardError) {
-      return reply.status(403).send({
+      return c.json({
         error: guardError
-      });
+      }, 403);
     }
-    const raw = reply.raw;
-    raw.writeHead(200, {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      "Connection": "keep-alive",
-      "X-Accel-Buffering": "no"
-    });
     const fg = fieldGuards[meta.routeName];
-    const unsubscribe = await subscriptionBus.subscribe(meta, (event) => {
-      raw.write(formatSseEvent(event));
-    }, fg);
-    const heartbeat = setInterval(() => {
-      raw.write(formatSseHeartbeat());
-    }, heartbeatMs);
-    const cleanup = /* @__PURE__ */ __name(() => {
-      clearInterval(heartbeat);
-      unsubscribe();
-    }, "cleanup");
-    raw.on("close", cleanup);
-    raw.on("error", cleanup);
-    return new Promise(() => {
+    const encoder = new TextEncoder();
+    let heartbeatTimer = null;
+    let unsubscribeFn = null;
+    const readable = new ReadableStream({
+      start(controller) {
+        subscriptionBus.subscribe(meta, (event) => {
+          try {
+            controller.enqueue(encoder.encode(formatSseEvent(event)));
+          } catch {
+          }
+        }, fg).then((unsub) => {
+          unsubscribeFn = unsub;
+          heartbeatTimer = setInterval(() => {
+            try {
+              controller.enqueue(encoder.encode(formatSseHeartbeat()));
+            } catch {
+            }
+          }, heartbeatMs);
+        });
+      },
+      cancel() {
+        if (heartbeatTimer) clearInterval(heartbeatTimer);
+        if (unsubscribeFn) unsubscribeFn();
+      }
+    });
+    return new Response(readable, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no"
+      }
     });
   });
-  async function routeHandler(request, reply) {
-    const { model, id } = request.params;
-    const body = request.body ?? {};
-    const query = request.query ?? {};
-    const searchParams = new URLSearchParams(Object.entries(query).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join("&"));
-    const { status, data } = await handle(request.method, model, id ?? null, body, searchParams);
-    if (status === 204) {
-      return reply.status(204).send();
+  app.post(`${prefix}/:model/bulk`, async (c) => {
+    try {
+      const body = await c.req.json().catch(() => []);
+      const { status, data, headers } = await handle("POST", c.req.param("model"), "bulk", body, toSearchParams(c.req.query()));
+      const res = c.json(data, status);
+      if (headers) Object.entries(headers).forEach(([k, v]) => res.headers.set(k, v));
+      return res;
+    } catch (e) {
+      return c.json({
+        error: e.message
+      }, 500);
     }
-    return reply.status(status).send(data);
-  }
-  __name(routeHandler, "routeHandler");
-  async function bulkHandler(request, reply, operation) {
-    const { model } = request.params;
-    const body = request.body ?? [];
-    const query = request.query ?? {};
-    const searchParams = new URLSearchParams(Object.entries(query).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join("&"));
-    const { status, data } = await handle(operation.includes("update") ? "PATCH" : "DELETE", model, null, body, searchParams, operation);
-    if (status === 204) {
-      return reply.status(204).send();
-    }
-    return reply.status(status).send(data);
-  }
-  __name(bulkHandler, "bulkHandler");
-  fastify.get(`${prefix}/:model`, routeHandler);
-  fastify.post(`${prefix}/:model`, routeHandler);
-  fastify.get(`${prefix}/:model/:id`, routeHandler);
-  fastify.put(`${prefix}/:model/:id`, routeHandler);
-  fastify.patch(`${prefix}/:model/:id`, routeHandler);
-  fastify.delete(`${prefix}/:model/:id`, routeHandler);
-  fastify.patch(`${prefix}/:model/bulk/update`, async (request, reply) => {
-    await bulkHandler(request, reply, "bulk-update");
   });
-  fastify.delete(`${prefix}/:model/bulk/delete`, async (request, reply) => {
-    await bulkHandler(request, reply, "bulk-delete");
+  app.put(`${prefix}/:model/bulk`, async (c) => {
+    try {
+      const body = await c.req.json().catch(() => ({}));
+      const { status, data, headers } = await handle("PUT", c.req.param("model"), "bulk", body, toSearchParams(c.req.query()));
+      const res = c.json(data, status);
+      if (headers) Object.entries(headers).forEach(([k, v]) => res.headers.set(k, v));
+      return res;
+    } catch (e) {
+      return c.json({
+        error: e.message
+      }, 500);
+    }
+  });
+  app.delete(`${prefix}/:model/bulk`, async (c) => {
+    try {
+      const body = await c.req.json().catch(() => ({}));
+      const { status, data, headers } = await handle("DELETE", c.req.param("model"), "bulk", body, toSearchParams(c.req.query()));
+      const res = c.json(data, status);
+      if (headers) Object.entries(headers).forEach(([k, v]) => res.headers.set(k, v));
+      return res;
+    } catch (e) {
+      return c.json({
+        error: e.message
+      }, 500);
+    }
+  });
+  app.all(`${prefix}/:model/:id?`, async (c) => {
+    try {
+      const method = c.req.method.toUpperCase();
+      const model = c.req.param("model");
+      const id = c.req.param("id") ?? null;
+      let body = {};
+      if ([
+        "POST",
+        "PUT",
+        "PATCH",
+        "DELETE"
+      ].includes(method)) {
+        body = await c.req.json().catch(() => ({}));
+      }
+      const { status, data, headers } = await handle(method, model, id, body, toSearchParams(c.req.query()));
+      if (status === 204) {
+        return new Response(null, {
+          status: 204
+        });
+      }
+      const res = c.json(data, status);
+      if (headers) Object.entries(headers).forEach(([k, v]) => res.headers.set(k, v));
+      return res;
+    } catch (e) {
+      return c.json({
+        error: e.message
+      }, 500);
+    }
   });
 }
-__name(fastifyAdapter, "fastifyAdapter");
+__name(honoAdapter, "honoAdapter");
 
-export { fastifyAdapter };
-//# sourceMappingURL=fastify.mjs.map
-//# sourceMappingURL=fastify.mjs.map
+exports.honoAdapter = honoAdapter;
+//# sourceMappingURL=hono.js.map
+//# sourceMappingURL=hono.js.map

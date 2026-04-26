@@ -1,3 +1,5 @@
+import { PassThrough } from 'stream';
+
 var __defProp = Object.defineProperty;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
@@ -1078,91 +1080,133 @@ function handlePrismaError(e) {
 }
 __name(handlePrismaError, "handlePrismaError");
 
-// src/adapters/fastify.ts
-function fastifyAdapter(fastify, prisma, options = {}) {
-  const { handle, modelMap, subscriptionBus } = createRouter(prisma, options);
-  const prefix = options.prefix ?? "/api";
-  const heartbeatMs = options.subscription?.heartbeatInterval ?? 3e4;
-  const guards = options.guards ?? {};
-  const fieldGuards = options.fieldGuards ?? {};
-  fastify.get(`${prefix}/:model/subscribe`, async (request, reply) => {
-    const modelName = request.params.model;
-    const meta = modelMap[modelName.toLowerCase()];
-    if (!meta) {
-      return reply.status(404).send({
-        error: `Model "${modelName}" not found or not exposed.`
-      });
+// src/adapters/hapi.ts
+var hapiAdapter = {
+  name: "omni-rest",
+  version: "1.0.0",
+  register: /* @__PURE__ */ __name(async (server, options) => {
+    if (!options.prisma) {
+      throw new Error("[omni-rest/hapi] You must provide the prisma client inside options.prisma");
     }
-    const guardError = await subscriptionBus.checkGuard(guards, meta.routeName, {
-      body: {}
+    const { prisma, prefix = "", ...restOptions } = options;
+    const { handle, modelMap, subscriptionBus } = createRouter(prisma, restOptions);
+    const heartbeatMs = options.subscription?.heartbeatInterval ?? 3e4;
+    const guards = options.guards ?? {};
+    const fieldGuards = options.fieldGuards ?? {};
+    const getSearchParams = /* @__PURE__ */ __name((request) => {
+      const urlParams = new URLSearchParams();
+      for (const [key, value] of Object.entries(request.query || {})) {
+        if (Array.isArray(value)) {
+          value.forEach((v) => urlParams.append(key, v));
+        } else {
+          urlParams.append(key, value);
+        }
+      }
+      return urlParams;
+    }, "getSearchParams");
+    const handler = /* @__PURE__ */ __name(async (request, h) => {
+      try {
+        const { status, data } = await handle(request.method.toUpperCase(), request.params.model, request.params.id ?? null, request.payload ?? {}, getSearchParams(request));
+        if (status === 204) {
+          return h.response().code(204);
+        }
+        return h.response(data).code(status);
+      } catch (e) {
+        return h.response({
+          error: e.message
+        }).code(500);
+      }
+    }, "handler");
+    const bulkUpdateHandler = /* @__PURE__ */ __name(async (request, h) => {
+      try {
+        const { status, data } = await handle("PATCH", request.params.model, null, request.payload ?? [], getSearchParams(request), "bulk-update");
+        if (status === 204) return h.response().code(204);
+        return h.response(data).code(status);
+      } catch (e) {
+        return h.response({
+          error: e.message
+        }).code(500);
+      }
+    }, "bulkUpdateHandler");
+    const bulkDeleteHandler = /* @__PURE__ */ __name(async (request, h) => {
+      try {
+        const { status, data } = await handle("DELETE", request.params.model, null, request.payload ?? [], getSearchParams(request), "bulk-delete");
+        if (status === 204) return h.response().code(204);
+        return h.response(data).code(status);
+      } catch (e) {
+        return h.response({
+          error: e.message
+        }).code(500);
+      }
+    }, "bulkDeleteHandler");
+    server.route({
+      method: "GET",
+      path: `${prefix}/{model}/subscribe`,
+      handler: /* @__PURE__ */ __name(async (request, h) => {
+        const modelName = request.params.model;
+        const meta = modelMap[modelName.toLowerCase()];
+        if (!meta) {
+          return h.response({
+            error: `Model "${modelName}" not found or not exposed.`
+          }).code(404);
+        }
+        const guardError = await subscriptionBus.checkGuard(guards, meta.routeName, {
+          body: {}
+        });
+        if (guardError) {
+          return h.response({
+            error: guardError
+          }).code(403);
+        }
+        const passThrough = new PassThrough();
+        const fg = fieldGuards[meta.routeName];
+        const unsubscribe = await subscriptionBus.subscribe(meta, (event) => {
+          passThrough.write(formatSseEvent(event));
+        }, fg);
+        const heartbeat = setInterval(() => {
+          passThrough.write(formatSseHeartbeat());
+        }, heartbeatMs);
+        const cleanup = /* @__PURE__ */ __name(() => {
+          clearInterval(heartbeat);
+          unsubscribe();
+          passThrough.end();
+        }, "cleanup");
+        request.raw.req.on("close", cleanup);
+        request.raw.req.on("error", cleanup);
+        return h.response(passThrough).type("text/event-stream").header("Cache-Control", "no-cache").header("X-Accel-Buffering", "no").code(200);
+      }, "handler")
     });
-    if (guardError) {
-      return reply.status(403).send({
-        error: guardError
-      });
-    }
-    const raw = reply.raw;
-    raw.writeHead(200, {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      "Connection": "keep-alive",
-      "X-Accel-Buffering": "no"
+    server.route({
+      method: "PATCH",
+      path: `${prefix}/{model}/bulk/update`,
+      handler: bulkUpdateHandler
     });
-    const fg = fieldGuards[meta.routeName];
-    const unsubscribe = await subscriptionBus.subscribe(meta, (event) => {
-      raw.write(formatSseEvent(event));
-    }, fg);
-    const heartbeat = setInterval(() => {
-      raw.write(formatSseHeartbeat());
-    }, heartbeatMs);
-    const cleanup = /* @__PURE__ */ __name(() => {
-      clearInterval(heartbeat);
-      unsubscribe();
-    }, "cleanup");
-    raw.on("close", cleanup);
-    raw.on("error", cleanup);
-    return new Promise(() => {
+    server.route({
+      method: "DELETE",
+      path: `${prefix}/{model}/bulk/delete`,
+      handler: bulkDeleteHandler
     });
-  });
-  async function routeHandler(request, reply) {
-    const { model, id } = request.params;
-    const body = request.body ?? {};
-    const query = request.query ?? {};
-    const searchParams = new URLSearchParams(Object.entries(query).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join("&"));
-    const { status, data } = await handle(request.method, model, id ?? null, body, searchParams);
-    if (status === 204) {
-      return reply.status(204).send();
-    }
-    return reply.status(status).send(data);
-  }
-  __name(routeHandler, "routeHandler");
-  async function bulkHandler(request, reply, operation) {
-    const { model } = request.params;
-    const body = request.body ?? [];
-    const query = request.query ?? {};
-    const searchParams = new URLSearchParams(Object.entries(query).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join("&"));
-    const { status, data } = await handle(operation.includes("update") ? "PATCH" : "DELETE", model, null, body, searchParams, operation);
-    if (status === 204) {
-      return reply.status(204).send();
-    }
-    return reply.status(status).send(data);
-  }
-  __name(bulkHandler, "bulkHandler");
-  fastify.get(`${prefix}/:model`, routeHandler);
-  fastify.post(`${prefix}/:model`, routeHandler);
-  fastify.get(`${prefix}/:model/:id`, routeHandler);
-  fastify.put(`${prefix}/:model/:id`, routeHandler);
-  fastify.patch(`${prefix}/:model/:id`, routeHandler);
-  fastify.delete(`${prefix}/:model/:id`, routeHandler);
-  fastify.patch(`${prefix}/:model/bulk/update`, async (request, reply) => {
-    await bulkHandler(request, reply, "bulk-update");
-  });
-  fastify.delete(`${prefix}/:model/bulk/delete`, async (request, reply) => {
-    await bulkHandler(request, reply, "bulk-delete");
-  });
-}
-__name(fastifyAdapter, "fastifyAdapter");
+    server.route({
+      method: [
+        "GET",
+        "POST"
+      ],
+      path: `${prefix}/{model}`,
+      handler
+    });
+    server.route({
+      method: [
+        "GET",
+        "PUT",
+        "PATCH",
+        "DELETE"
+      ],
+      path: `${prefix}/{model}/{id}`,
+      handler
+    });
+  }, "register")
+};
 
-export { fastifyAdapter };
-//# sourceMappingURL=fastify.mjs.map
-//# sourceMappingURL=fastify.mjs.map
+export { hapiAdapter };
+//# sourceMappingURL=hapi.mjs.map
+//# sourceMappingURL=hapi.mjs.map

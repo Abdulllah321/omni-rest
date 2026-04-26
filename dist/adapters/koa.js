@@ -1,3 +1,7 @@
+'use strict';
+
+var stream = require('stream');
+
 var __defProp = Object.defineProperty;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
@@ -1078,91 +1082,111 @@ function handlePrismaError(e) {
 }
 __name(handlePrismaError, "handlePrismaError");
 
-// src/adapters/fastify.ts
-function fastifyAdapter(fastify, prisma, options = {}) {
+// src/adapters/koa.ts
+function koaAdapter(router, prisma, options = {}) {
   const { handle, modelMap, subscriptionBus } = createRouter(prisma, options);
-  const prefix = options.prefix ?? "/api";
   const heartbeatMs = options.subscription?.heartbeatInterval ?? 3e4;
   const guards = options.guards ?? {};
   const fieldGuards = options.fieldGuards ?? {};
-  fastify.get(`${prefix}/:model/subscribe`, async (request, reply) => {
-    const modelName = request.params.model;
+  const getSearchParams = /* @__PURE__ */ __name((ctx) => {
+    return new URLSearchParams(Object.entries(ctx.query).map(([k, v]) => `${k}=${v}`).join("&"));
+  }, "getSearchParams");
+  router.get("/:model/subscribe", async (ctx) => {
+    const modelName = ctx.params.model;
     const meta = modelMap[modelName.toLowerCase()];
     if (!meta) {
-      return reply.status(404).send({
+      ctx.status = 404;
+      ctx.body = {
         error: `Model "${modelName}" not found or not exposed.`
-      });
+      };
+      return;
     }
     const guardError = await subscriptionBus.checkGuard(guards, meta.routeName, {
       body: {}
     });
     if (guardError) {
-      return reply.status(403).send({
+      ctx.status = 403;
+      ctx.body = {
         error: guardError
-      });
+      };
+      return;
     }
-    const raw = reply.raw;
-    raw.writeHead(200, {
+    ctx.set({
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
       "Connection": "keep-alive",
       "X-Accel-Buffering": "no"
     });
+    ctx.status = 200;
+    const passThrough = new stream.PassThrough();
+    ctx.body = passThrough;
     const fg = fieldGuards[meta.routeName];
     const unsubscribe = await subscriptionBus.subscribe(meta, (event) => {
-      raw.write(formatSseEvent(event));
+      passThrough.write(formatSseEvent(event));
     }, fg);
     const heartbeat = setInterval(() => {
-      raw.write(formatSseHeartbeat());
+      passThrough.write(formatSseHeartbeat());
     }, heartbeatMs);
     const cleanup = /* @__PURE__ */ __name(() => {
       clearInterval(heartbeat);
       unsubscribe();
+      passThrough.end();
     }, "cleanup");
-    raw.on("close", cleanup);
-    raw.on("error", cleanup);
-    return new Promise(() => {
-    });
+    ctx.req.on("close", cleanup);
+    ctx.req.on("error", cleanup);
   });
-  async function routeHandler(request, reply) {
-    const { model, id } = request.params;
-    const body = request.body ?? {};
-    const query = request.query ?? {};
-    const searchParams = new URLSearchParams(Object.entries(query).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join("&"));
-    const { status, data } = await handle(request.method, model, id ?? null, body, searchParams);
-    if (status === 204) {
-      return reply.status(204).send();
+  const koaHandler = /* @__PURE__ */ __name(async (ctx) => {
+    try {
+      const { status, data } = await handle(ctx.method, ctx.params.model, ctx.params.id ?? null, ctx.request.body ?? {}, getSearchParams(ctx));
+      ctx.status = status;
+      if (status !== 204) {
+        ctx.body = data;
+      }
+    } catch (e) {
+      ctx.status = 500;
+      ctx.body = {
+        error: e.message
+      };
     }
-    return reply.status(status).send(data);
-  }
-  __name(routeHandler, "routeHandler");
-  async function bulkHandler(request, reply, operation) {
-    const { model } = request.params;
-    const body = request.body ?? [];
-    const query = request.query ?? {};
-    const searchParams = new URLSearchParams(Object.entries(query).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join("&"));
-    const { status, data } = await handle(operation.includes("update") ? "PATCH" : "DELETE", model, null, body, searchParams, operation);
-    if (status === 204) {
-      return reply.status(204).send();
+  }, "koaHandler");
+  router.patch("/:model/bulk/update", async (ctx) => {
+    try {
+      const { status, data } = await handle("PATCH", ctx.params.model, null, ctx.request.body ?? [], getSearchParams(ctx), "bulk-update");
+      ctx.status = status;
+      if (status !== 204) {
+        ctx.body = data;
+      }
+    } catch (e) {
+      ctx.status = 500;
+      ctx.body = {
+        error: e.message
+      };
     }
-    return reply.status(status).send(data);
-  }
-  __name(bulkHandler, "bulkHandler");
-  fastify.get(`${prefix}/:model`, routeHandler);
-  fastify.post(`${prefix}/:model`, routeHandler);
-  fastify.get(`${prefix}/:model/:id`, routeHandler);
-  fastify.put(`${prefix}/:model/:id`, routeHandler);
-  fastify.patch(`${prefix}/:model/:id`, routeHandler);
-  fastify.delete(`${prefix}/:model/:id`, routeHandler);
-  fastify.patch(`${prefix}/:model/bulk/update`, async (request, reply) => {
-    await bulkHandler(request, reply, "bulk-update");
   });
-  fastify.delete(`${prefix}/:model/bulk/delete`, async (request, reply) => {
-    await bulkHandler(request, reply, "bulk-delete");
+  router.delete("/:model/bulk/delete", async (ctx) => {
+    try {
+      const { status, data } = await handle("DELETE", ctx.params.model, null, ctx.request.body ?? [], getSearchParams(ctx), "bulk-delete");
+      ctx.status = status;
+      if (status !== 204) {
+        ctx.body = data;
+      }
+    } catch (e) {
+      ctx.status = 500;
+      ctx.body = {
+        error: e.message
+      };
+    }
   });
+  router.get("/:model", koaHandler);
+  router.post("/:model", koaHandler);
+  router.get("/:model/:id", koaHandler);
+  router.put("/:model/:id", koaHandler);
+  router.patch("/:model/:id", koaHandler);
+  router.delete("/:model/:id", koaHandler);
+  return router;
 }
-__name(fastifyAdapter, "fastifyAdapter");
+__name(koaAdapter, "koaAdapter");
 
-export { fastifyAdapter };
-//# sourceMappingURL=fastify.mjs.map
-//# sourceMappingURL=fastify.mjs.map
+exports.koaAdapter = koaAdapter;
+//# sourceMappingURL=koa.js.map
+//# sourceMappingURL=koa.js.map

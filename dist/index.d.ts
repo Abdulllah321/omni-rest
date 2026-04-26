@@ -1,9 +1,12 @@
 import { PrismaClient } from '@prisma/client';
-import { P as PrismaRestOptions, R as RouterInstance, M as ModelMeta, F as FieldMeta, a as ParsedQuery, G as GuardMap, H as HookFn, b as HookContext } from './types-CLcDS1BU.js';
-export { c as GuardFn, d as HandlerResult } from './types-CLcDS1BU.js';
+import { P as PrismaRestOptions, R as RouterInstance, M as ModelMeta, F as FieldMeta, a as ParsedQuery, G as GuardMap, H as HookFn, b as HookContext } from './types-s-sMlBeU.js';
+export { c as GuardFn, d as HandlerResult, S as SseEvent, e as SubscriptionBus, f as SubscriptionOptions, g as formatSseEvent, h as formatSseHeartbeat } from './types-s-sMlBeU.js';
 export { expressAdapter } from './adapters/express.js';
 export { nextjsAdapter } from './adapters/nextjs.js';
 export { fastifyAdapter } from './adapters/fastify.js';
+export { koaAdapter } from './adapters/koa.js';
+export { hapiAdapter } from './adapters/hapi.js';
+export { nestjsController } from './adapters/nestjs.js';
 
 /**
  * Creates a framework-agnostic CRUD router powered by Prisma DMMF.
@@ -57,7 +60,7 @@ declare function getDelegate(prisma: any, meta: ModelMeta): any;
  * Deeply nested filters (relation.nested.field) are not supported and will
  * be treated as a regular (non-relation) filter key.
  */
-declare function buildQuery(searchParams: URLSearchParams, defaultLimit?: number, maxLimit?: number, modelFields?: FieldMeta[]): ParsedQuery;
+declare function buildQuery(searchParams: URLSearchParams, defaultLimit?: number, maxLimit?: number, modelFields?: FieldMeta[], defaultPaginationMode?: "offset" | "cursor"): ParsedQuery;
 
 /**
  * Runs the guard for the given model+method combo.
@@ -157,88 +160,4 @@ interface OmniRestConfig {
  */
 declare function generateConfig(prisma: any): OmniRestConfig;
 
-/**
- * Koa adapter for omni-rest.
- * Allows using omni-rest within a Koa application using @koa/router.
- *
- * @example
- * ```ts
- * import Koa from "koa";
- * import bodyParser from "koa-bodyparser";
- * import Router from "@koa/router";
- * import { PrismaClient } from "@prisma/client";
- * import { koaAdapter } from "omni-rest/koa";
- *
- * const app = new Koa();
- * const router = new Router({ prefix: "/api" });
- * const prisma = new PrismaClient();
- *
- * app.use(bodyParser());
- * koaAdapter(router, prisma, {
- *   allow: ["product", "category"],
- * });
- *
- * app.use(router.routes());
- * ```
- */
-declare function koaAdapter(router: any, prisma: PrismaClient, options?: PrismaRestOptions): any;
-
-interface HapiAdapterOptions extends PrismaRestOptions {
-    prisma: PrismaClient;
-    prefix?: string;
-}
-/**
- * Hapi plugin adapter for omni-rest.
- * Registers dynamic REST endpoints directly on the Hapi server instance.
- *
- * @example
- * ```ts
- * import Hapi from "@hapi/hapi";
- * import { PrismaClient } from "@prisma/client";
- * import { hapiAdapter } from "omni-rest/hapi";
- *
- * const prisma = new PrismaClient();
- * const server = Hapi.server({ port: 3000 });
- *
- * await server.register({
- *   plugin: hapiAdapter,
- *   options: {
- *     prisma,
- *     prefix: "/api",
- *     allow: ["product", "category"],
- *   }
- * });
- * ```
- */
-declare const hapiAdapter: {
-    name: string;
-    version: string;
-    register: (server: any, options: HapiAdapterOptions) => Promise<void>;
-};
-
-/**
- * NestJS adapter for omni-rest.
- * Generates a dynamic controller block that maps wildcard routes directly into omni-rest handlers.
- *
- * @example
- * ```ts
- * import { Controller, Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
- * import { PrismaClient } from '@prisma/client';
- * import { nestjsController } from 'omni-rest/nestjs';
- *
- * const prisma = new PrismaClient();
- *
- * // Create generating Controller natively via factory
- * export const OmniRestController = nestjsController(prisma, {
- *   allow: ["product", "category"],
- * });
- *
- * @Module({
- *   controllers: [OmniRestController],
- * })
- * export class AppModule {}
- * ```
- */
-declare function nestjsController(prisma: PrismaClient, options?: PrismaRestOptions, prefix?: string): any;
-
-export { FieldMeta, GuardMap, HookContext, HookFn, ModelMeta, type OmniRestConfig, ParsedQuery, PrismaRestOptions, RouterInstance, buildModelMap, buildQuery, buildRuntimeSchemas, createRouter, generateConfig, generateOpenApiSpec, generateZodSchemas, getDelegate, getModels, hapiAdapter, koaAdapter, nestjsController, runGuard, runHook, toRouteName, validateBody, withValidation };
+export { FieldMeta, GuardMap, HookContext, HookFn, ModelMeta, type OmniRestConfig, ParsedQuery, PrismaRestOptions, RouterInstance, buildModelMap, buildQuery, buildRuntimeSchemas, createRouter, generateConfig, generateOpenApiSpec, generateZodSchemas, getDelegate, getModels, runGuard, runHook, toRouteName, validateBody, withValidation };

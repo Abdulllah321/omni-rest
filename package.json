@@ -75,12 +75,12 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "@prisma/client": ">=4.0.0",
     "@hapi/hapi": "*",
     "@koa/router": "*",
     "@nestjs/common": "*",
-    "koa": "*",
-    "hono": "*"
+    "@prisma/client": ">=4.0.0",
+    "hono": "*",
+    "koa": "*"
   },
   "peerDependenciesMeta": {
     "@hapi/hapi": {
@@ -101,6 +101,7 @@
   },
   "devDependencies": {
     "@prisma/client": "^5.0.0",
+    "@swc/core": "^1.15.30",
     "@types/express": "^4.17.0",
     "@types/node": "^20.0.0",
     "prisma": "^5.0.0",
