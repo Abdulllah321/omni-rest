@@ -53,6 +53,12 @@
   "files": [
     "dist",
     "frontend-next",
+    "AI",
+    "AGENTS.md",
+    "CLAUDE.md",
+    ".cursor",
+    ".kiro",
+    "ai",
     "README.md",
     "LICENSE"
   ],

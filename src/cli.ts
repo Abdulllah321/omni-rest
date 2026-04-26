@@ -14,6 +14,7 @@ import { generateZodSchemas } from "./zod-generator";
 import { generateOpenApiSpec } from "./openapi";
 import { generateConfig } from "./config-generator";
 import { run as runFrontendGenerator } from "./frontend-generator";
+import { installSkillPack, printSkillPackSummary } from "./skill-installer";
 
 const args = process.argv.slice(2);
 const command = args[0] ?? "generate";
@@ -173,6 +174,7 @@ const USAGE = `
     npx omni-rest generate:openapi    Generate OpenAPI spec only
     npx omni-rest generate:config     Generate omni-rest.config.json for omni-rest-client
     npx omni-rest generate:frontend   Scaffold frontend components from Prisma schema (legacy)
+    npx omni-rest install:skills      Install the portable AI instruction pack into a project
 `;
 
 async function run() {
@@ -183,6 +185,21 @@ async function run() {
       await runFrontendGenerator(remainingArgs);
     } catch (e: any) {
       console.error(COLORS.red(`  ✗ ${e.message}`));
+      process.exit(1);
+    }
+    return;
+  }
+
+  if (command === "install:skills") {
+    const targetArg = readArg(remainingArgs, "--target");
+    const overwrite = remainingArgs.includes("--overwrite");
+    const targetDir = targetArg ? path.resolve(cwd, targetArg) : cwd;
+
+    try {
+      const results = installSkillPack(targetDir, { overwrite });
+      printSkillPackSummary(results);
+    } catch (e: any) {
+      console.error(COLORS.red(`  x ${e.message}`));
       process.exit(1);
     }
     return;
@@ -271,3 +288,9 @@ run().catch((e) => {
   console.error(e);
   process.exit(1);
 });
+
+function readArg(args: string[], flag: string): string | undefined {
+  const index = args.indexOf(flag);
+  if (index === -1) return undefined;
+  return args[index + 1];
+}

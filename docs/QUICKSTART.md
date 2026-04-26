@@ -173,3 +173,5 @@ http://localhost:3000/api/department?select=id,name
 - Check [Examples](../examples)
 - Learn about [Configuration](./CONFIGURATION.md)
 - **Scaffold a frontend**: `npx omni-rest generate:frontend --autopilot`
+- **Install the AI skill pack**: `npx omni-rest install:skills`
+- Read [AI Skills Pack](./AI_SKILLS.md)

@@ -1,0 +1,15 @@
+---
+description: Omni Rest repository instructions for Cursor and other compatible agents.
+---
+
+# Omni Rest
+
+Use [AI/PROJECT_INTELLIGENCE.md](../../AI/PROJECT_INTELLIGENCE.md) as the source of truth.
+
+## Rules
+
+- Read the runtime files before editing.
+- Keep changes aligned with existing package boundaries.
+- Do not assume the README is current if source files disagree.
+- Preserve public exports unless the user asks for a breaking change.
+- Add or update tests for behavior changes.

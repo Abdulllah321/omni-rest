@@ -521,6 +521,24 @@ MIT © [Omni Rest Contributors](LICENSE)
 - 🐛 [Report Issues](https://github.com/Abdulllah321/omni-rest/issues)
 - 💬 [Chat on Discord](https://discord.gg/omni-rest)
 
+## AI Collaboration Pack
+
+These files provide a portable project guide for Codex, Cursor, Claude-based tools, Kiro, and similar agents:
+
+- [AI/PROJECT_INTELLIGENCE.md](AI/PROJECT_INTELLIGENCE.md)
+- [AI/PORTABLE_API_PLAYBOOK.md](AI/PORTABLE_API_PLAYBOOK.md)
+- [AGENTS.md](AGENTS.md)
+- [CLAUDE.md](CLAUDE.md)
+- [.cursor/rules/omni-rest.mdc](.cursor/rules/omni-rest.mdc)
+- [.kiro/agent-guide.md](.kiro/agent-guide.md)
+- [ai/codex/omni-rest/SKILL.md](ai/codex/omni-rest/SKILL.md)
+
+Install them into another project with:
+
+```bash
+npx omni-rest install:skills --target ../my-project
+```
+
 ## Acknowledgments
 
 Inspired by PostgREST and built for the modern JavaScript/TypeScript ecosystem.
