@@ -317,3 +317,79 @@ describe("dot-notation relation filtering", () => {
     expect(where["posts.comments.text"]).toBe("hello");
   });
 });
+
+// ─── Cursor Pagination ────────────────────────────────────────────────────────
+
+describe("cursor pagination", () => {
+  it("uses offset logic when paginationMode is offset", () => {
+    const { paginationMode, skip, cursor } = buildQuery(
+      new URLSearchParams("page=2&limit=10"),
+      20,
+      100,
+      departmentFields,
+      "offset"
+    );
+    expect(paginationMode).toBe("offset");
+    expect(skip).toBe(10);
+    expect(cursor).toBeUndefined();
+  });
+
+  it("extracts and decodes cursor param correctly", () => {
+    const validCursor = Buffer.from(JSON.stringify({ id: 42 })).toString("base64");
+    const { paginationMode, cursor, skip } = buildQuery(
+      new URLSearchParams(`paginationMode=cursor&cursor=${validCursor}`),
+      20,
+      100,
+      departmentFields,
+      "offset" // default overridden by URL
+    );
+    expect(paginationMode).toBe("cursor");
+    expect(cursor).toEqual({ id: 42 });
+    expect(skip).toBe(1); // skip 1 when valid cursor is provided
+  });
+
+  it("handles invalid cursor string gracefully (treats as first page)", () => {
+    const { paginationMode, cursor, skip } = buildQuery(
+      new URLSearchParams("paginationMode=cursor&cursor=invalid_base64_or_json"),
+      20,
+      100,
+      departmentFields
+    );
+    expect(paginationMode).toBe("cursor");
+    expect(cursor).toBeUndefined();
+    expect(skip).toBe(0); // page 1 skip
+  });
+
+  it("defaults to offset but accepts defaultPaginationMode=cursor", () => {
+    const { paginationMode, skip } = buildQuery(
+      new URLSearchParams(""),
+      20,
+      100,
+      departmentFields,
+      "cursor"
+    );
+    expect(paginationMode).toBe("cursor");
+    expect(skip).toBe(0);
+  });
+
+  it("forces default sorting on idField when no sort is provided in cursor mode", () => {
+    const { orderBy } = buildQuery(
+      new URLSearchParams("paginationMode=cursor"),
+      20,
+      100,
+      departmentFields
+    );
+    expect(orderBy).toEqual({ id: "asc" });
+  });
+
+  it("respects custom sort in cursor mode", () => {
+    const { orderBy } = buildQuery(
+      new URLSearchParams("paginationMode=cursor&sort=createdAt:desc"),
+      20,
+      100,
+      departmentFields
+    );
+    expect(orderBy).toEqual({ createdAt: "desc" });
+  });
+});
+

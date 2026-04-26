@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-04-26
+
+### Added
+- **Server-Sent Events (SSE) Support** — `GET /api/:model/subscribe` streams real-time updates directly to clients via a low-overhead, lazy polling engine.
+- **Cursor-Based Pagination** — New `paginationMode: "cursor"` (globally or per-request) for O(1) high-performance deep pagination. Replaces `page`/`total` with `nextCursor`/`hasMore`.
+- **Aggregation Endpoints** — New `/api/:model/aggregate` and `/api/:model/groupBy` endpoints mapped directly to Prisma's aggregation features. Controlled via `features.aggregation` config.
+- **Query Complexity Scoring** — New `complexity` option in `PrismaRestOptions` to score queries based on includes, limits, sorts, and filters, and return a `429` error to prevent abuse.
+
 ## [0.4.9] - 2026-04-01
 
 ### Added

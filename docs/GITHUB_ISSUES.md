@@ -269,11 +269,11 @@ app.listen(3000);
 
 ---
 
-## Issue #13
+## Issue #13 [RESOLVED]
 
 **Title:** `feat: cursor-based pagination`
 
-**Labels:** `advanced`, `enhancement`, `query-builder`, `needs design`
+**Labels:** `advanced`, `enhancement`, `query-builder`
 
 **Body:**
 ```
@@ -335,11 +335,11 @@ Please discuss before implementing:
 
 ---
 
-## Issue #14
+## Issue #14 [RESOLVED]
 
 **Title:** `feat: aggregation endpoints (/aggregate and /groupBy)`
 
-**Labels:** `advanced`, `enhancement`, `router`, `needs design`
+**Labels:** `advanced`, `enhancement`, `router`
 
 **Body:**
 ```
@@ -397,7 +397,7 @@ Please discuss before implementing:
 
 ---
 
-## Issue #15
+## Issue #15 [RESOLVED]
 
 **Title:** `feat: query complexity scoring and limiting`
 
@@ -461,7 +461,7 @@ omniRest(prisma, {
 
 ---
 
-## Issue #16
+## Issue #16 ✅ RESOLVED
 
 **Title:** `feat: Server-Sent Events (SSE) subscription endpoint`
 

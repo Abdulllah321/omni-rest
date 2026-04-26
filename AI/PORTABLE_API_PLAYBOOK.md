@@ -23,6 +23,7 @@ Use Omni Rest when the project needs:
 4. Consistent CRUD UI generation.
 5. Swagger/OpenAPI documentation.
 6. Guards, hooks, soft delete, or field-level access control.
+7. O(1) Cursor-based pagination for large tables (`?paginationMode=cursor`).
 
 ## When Not To Force It
 

@@ -64,6 +64,12 @@ export interface PrismaRestOptions {
   /** Default page size. Defaults to 20. */
   defaultLimit?: number;
 
+  /**
+   * Default pagination mode. Defaults to "offset".
+   * Can be overridden per request via `?paginationMode=cursor|offset`.
+   */
+  paginationMode?: "offset" | "cursor";
+
   /** Max allowed page size. Defaults to 100. */
   maxLimit?: number;
 
@@ -121,18 +127,48 @@ export interface PrismaRestOptions {
    * When omitted, the engine defaults are used (1 s poll, 30 s heartbeat).
    * The engine itself is **lazy** — no Prisma queries are issued for a model
    * until at least one client connects to `GET /:model/subscribe`.
-   *
-   * @example
-   * ```ts
-   * omniRest(prisma, {
-   *   subscription: {
-   *     pollInterval: 2000,      // poll every 2 s
-   *     heartbeatInterval: 60_000, // heartbeat every 60 s
-   *   }
-   * })
-   * ```
    */
   subscription?: SubscriptionOptions;
+
+  /**
+   * Feature flags to toggle specific endpoints.
+   */
+  features?: FeaturesConfig;
+
+  /**
+   * Complexity limits to protect against abusive queries.
+   */
+  complexity?: ComplexityOptions;
+}
+
+// ─── Features ─────────────────────────────────────────────────────────────────
+
+export interface FeaturesConfig {
+  /**
+   * Enable /aggregate and /groupBy endpoints.
+   * Defaults to true.
+   */
+  aggregation?: boolean;
+}
+
+// ─── Complexity ───────────────────────────────────────────────────────────────
+
+export interface ComplexityRules {
+  /** Cost per relation included in ?include= */
+  perInclude?: number;
+  /** Cost per top-level filter key */
+  perFilter?: number;
+  /** Cost per sort field */
+  perSort?: number;
+  /** Cost per 100 limit */
+  perLimit100?: number;
+}
+
+export interface ComplexityOptions {
+  /** Maximum allowed score before returning 429 */
+  maxScore: number;
+  /** Rules for computing query score */
+  rules: ComplexityRules;
 }
 
 // ─── Rate Limit ───────────────────────────────────────────────────────────────
@@ -165,6 +201,8 @@ export interface ParsedQuery {
   orderBy: Record<string, any>;
   skip: number;
   take: number;
+  cursor?: Record<string, any>;
+  paginationMode: "offset" | "cursor";
   include: Record<string, boolean>;
   select: Record<string, boolean> | null;
 }

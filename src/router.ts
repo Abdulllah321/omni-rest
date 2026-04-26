@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { getModels, buildModelMap, getDelegate, detectSoftDeleteField } from "./introspect";
 import { buildQuery } from "./query-builder";
 import { runGuard, runHook } from "./middleware-helpers";
+import { scoreQuery } from "./complexity";
 import { SubscriptionBus } from "./subscriptions";
 import type {
   PrismaRestOptions,
@@ -34,6 +35,9 @@ export function createRouter(
     fieldGuards = {},
     rateLimit,
     subscription = {},
+    paginationMode = "offset",
+    features = { aggregation: true },
+    complexity,
   } = options;
 
   // Introspect schema once at startup
@@ -100,7 +104,10 @@ export function createRouter(
         softDelete,
         softDeleteField,
         envelope,
-        fieldGuards[meta.routeName]
+        fieldGuards[meta.routeName],
+        paginationMode,
+        features,
+        complexity
       );
     } catch (e: any) {
       return handlePrismaError(e);
@@ -136,15 +143,27 @@ async function executeOperation(
   softDelete = false,
   softDeleteField?: string,
   envelope = true,
-  fg?: FieldGuardConfig
+  fg?: FieldGuardConfig,
+  defaultPaginationMode: "offset" | "cursor" = "offset",
+  features?: { aggregation?: boolean },
+  complexity?: import("./types").ComplexityOptions
 ): Promise<HandlerResult> {
   const delegate = getDelegate(prisma, meta);
-  const { where, orderBy, skip, take, include, select } = buildQuery(
+  const { where, orderBy, skip, take, cursor, paginationMode, include, select } = buildQuery(
     searchParams,
     defaultLimit,
     maxLimit,
-    meta.fields
+    meta.fields,
+    defaultPaginationMode
   );
+
+  // ── Complexity Check ───────────────────────────────────────────────────────
+  if (complexity) {
+    const score = scoreQuery({ where, orderBy, skip, take, cursor, paginationMode, include, select }, complexity.rules);
+    if (score > complexity.maxScore) {
+      return { status: 429, data: { error: "Query too complex", score, maxScore: complexity.maxScore } };
+    }
+  }
 
   // Build include/select args (mutually exclusive in Prisma)
   const includeArg = Object.keys(include).length > 0 ? include : undefined;
@@ -153,6 +172,54 @@ async function executeOperation(
 
   // Sanitize write body — strip readOnly fields before passing to Prisma
   const safeBody = sanitizeBody(body, fg);
+
+  const parseAgg = (val: string | null) => {
+    if (!val) return undefined;
+    if (val === "*") return { _all: true };
+    const res: Record<string, true> = {};
+    val.split(",").forEach(f => res[f.trim()] = true);
+    return res;
+  };
+
+  // ── GET /model/aggregate ───────────────────────────────────────────────────
+  if (method === "GET" && id === "aggregate") {
+    if (features?.aggregation === false) {
+      return { status: 403, data: { error: "Aggregation endpoints are disabled." } };
+    }
+    const result = await delegate.aggregate({
+      where,
+      _count: parseAgg(searchParams.get("_count")),
+      _sum: parseAgg(searchParams.get("_sum")),
+      _avg: parseAgg(searchParams.get("_avg")),
+      _min: parseAgg(searchParams.get("_min")),
+      _max: parseAgg(searchParams.get("_max"))
+    });
+    return { status: 200, data: result };
+  }
+
+  // ── GET /model/groupBy ─────────────────────────────────────────────────────
+  if (method === "GET" && id === "groupBy") {
+    if (features?.aggregation === false) {
+      return { status: 403, data: { error: "Aggregation endpoints are disabled." } };
+    }
+    const byRaw = searchParams.get("by");
+    if (!byRaw) {
+      return { status: 400, data: { error: "groupBy requires a 'by' query parameter." } };
+    }
+    const result = await delegate.groupBy({
+      by: byRaw.split(",").map(f => f.trim()),
+      where,
+      orderBy: Object.keys(orderBy).length > 0 ? orderBy : undefined,
+      take: take !== defaultLimit ? take : undefined, // only apply if limit was set explicitly
+      skip: skip > 0 ? skip : undefined,
+      _count: parseAgg(searchParams.get("_count")),
+      _sum: parseAgg(searchParams.get("_sum")),
+      _avg: parseAgg(searchParams.get("_avg")),
+      _min: parseAgg(searchParams.get("_min")),
+      _max: parseAgg(searchParams.get("_max"))
+    });
+    return { status: 200, data: result };
+  }
 
   // ── POST /model/bulk — createMany ──────────────────────────────────────────
   if (method === "POST" && id === "bulk") {
@@ -231,27 +298,73 @@ async function executeOperation(
       ? { ...where, [softDeleteInfo.field]: softDeleteInfo.field === "isActive" ? true : null }
       : where;
 
-    const [data, total] = await (prisma as any).$transaction([
-      delegate.findMany({ where: listWhere, orderBy, skip, take, ...projection }),
-      delegate.count({ where: listWhere }),
-    ]);
+    let data: any[];
+    let total: number | undefined;
+    let nextCursor: string | null = null;
+    let hasMore = false;
 
-    const safeData = (data as any[]).map((r: any) => stripResponse(r, fg));
+    if (paginationMode === "cursor") {
+      try {
+        data = await delegate.findMany({
+          where: listWhere,
+          orderBy,
+          skip,
+          take,
+          cursor: cursor ? cursor : undefined,
+          ...projection
+        });
+        hasMore = data.length === take;
+        if (hasMore && data.length > 0) {
+          const lastRecord = data[data.length - 1];
+          nextCursor = Buffer.from(
+            JSON.stringify({ [meta.idField]: lastRecord[meta.idField] })
+          ).toString("base64");
+        }
+      } catch (err: any) {
+        // If cursor record is not found, Prisma throws P2025. Fallback gracefully.
+        if (err?.code === "P2025") {
+          data = [];
+          hasMore = false;
+        } else {
+          throw err;
+        }
+      }
+    } else {
+      const [dataResult, totalResult] = await (prisma as any).$transaction([
+        delegate.findMany({ where: listWhere, orderBy, skip, take, ...projection }),
+        delegate.count({ where: listWhere }),
+      ]);
+      data = dataResult;
+      total = totalResult;
+    }
+
+    const safeData = data.map((r: any) => stripResponse(r, fg));
 
     if (!envelope) {
-      return { status: 200, data: safeData, headers: { "X-Total-Count": String(total) } };
+      const headers: Record<string, string> = {};
+      if (paginationMode === "offset" && total !== undefined) {
+        headers["X-Total-Count"] = String(total);
+      } else if (paginationMode === "cursor") {
+        headers["X-Has-More"] = String(hasMore);
+        if (nextCursor) headers["X-Next-Cursor"] = nextCursor;
+      }
+      return { status: 200, data: safeData, headers };
     }
+
+    const metaBlock = paginationMode === "cursor"
+      ? { nextCursor, hasMore }
+      : {
+          total,
+          page: Math.floor(skip / take) + 1,
+          limit: take,
+          totalPages: Math.ceil((total ?? 0) / take),
+        };
 
     return {
       status: 200,
       data: {
         data: safeData,
-        meta: {
-          total,
-          page: Math.floor(skip / take) + 1,
-          limit: take,
-          totalPages: Math.ceil(total / take),
-        },
+        meta: metaBlock,
       },
     };
   }

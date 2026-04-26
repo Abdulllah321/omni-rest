@@ -36,6 +36,25 @@ Omni Rest supports powerful filtering, sorting, and pagination via standard quer
     |-----------|------|---------|-------------|
     | `limit` | number | 10 | Maximum number of records to return |
     | `offset` | number | 0 | Number of records to skip |
+
+    #### Cursor-Based Pagination
+
+    For larger datasets, cursor-based pagination is significantly faster (O(1)) than offset.
+
+    ```javascript copy
+    // 1. Initial request
+    GET /api/product?limit=20&paginationMode=cursor
+
+    // Response includes nextCursor
+    // { "data": [...], "meta": { "hasMore": true, "nextCursor": "eyJpZCI6MjB9" } }
+
+    // 2. Next page request
+    GET /api/product?limit=20&paginationMode=cursor&cursor=eyJpZCI6MjB9
+    ```
+
+    - **O(1) Performance:** Fast queries regardless of depth.
+    - **Stable results:** No skipped or duplicated items if records are inserted during pagination.
+    - **Note:** In cursor mode, the response `meta` object omits `total` and `page`, replacing them with `nextCursor` and `hasMore`.
   </Tabs.Tab>
   <Tabs.Tab>
     #### Regular Sort
@@ -167,7 +186,9 @@ Omni Rest supports powerful filtering, sorting, and pagination via standard quer
 
     **Query Parameters:**
     - `limit` (optional): Number of records per page
-    - `offset` (optional): Number of records to skip
+    - `offset` (optional): Number of records to skip (offset mode only)
+    - `paginationMode` (optional): `offset` (default) or `cursor`
+    - `cursor` (optional): Base64 encoded cursor for pagination
     - `sort` (optional): Sort field and direction, e.g. `name:asc` or `_count.posts:desc`
     - `search` (optional): Case-insensitive search across all String fields
     - `select` / `fields` (optional): Comma-separated field names to return

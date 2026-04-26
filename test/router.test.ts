@@ -173,4 +173,128 @@ describe("createRouter", () => {
     expect(res.status).toBe(200);
     expect(res.data).toHaveProperty("id");
   });
+
+  // ─── Cursor Pagination ────────────────────────────────────────────────────
+  describe("cursor pagination", () => {
+    it("returns nextCursor and hasMore instead of page/total in meta", async () => {
+      const { handle: cursorHandle } = createRouter(prisma as any, { paginationMode: "cursor" });
+      
+      // Mock findMany to return 20 items (simulating hasMore = true)
+      const mockData = Array.from({ length: 20 }).map((_, i) => ({ id: i + 1, name: `User ${i}` }));
+      prisma.user.findMany.mockResolvedValueOnce(mockData);
+
+      const res = await cursorHandle("GET", "user", null, {}, new URLSearchParams("limit=20"));
+      expect(res.status).toBe(200);
+      expect(res.data.meta).not.toHaveProperty("total");
+      expect(res.data.meta).not.toHaveProperty("page");
+      expect(res.data.meta).toHaveProperty("hasMore", true);
+      expect(res.data.meta).toHaveProperty("nextCursor");
+      expect(typeof res.data.meta.nextCursor).toBe("string");
+      
+      // Verify count is NOT called
+      expect(prisma.user.count).not.toHaveBeenCalled();
+    });
+
+    it("hasMore is false and nextCursor is null when items returned < limit", async () => {
+      const { handle: cursorHandle } = createRouter(prisma as any, { paginationMode: "cursor" });
+      
+      // Return 15 items when limit is 20
+      const mockData = Array.from({ length: 15 }).map((_, i) => ({ id: i + 1, name: `User ${i}` }));
+      prisma.user.findMany.mockResolvedValueOnce(mockData);
+
+      const res = await cursorHandle("GET", "user", null, {}, new URLSearchParams("limit=20"));
+      expect(res.data.meta).toHaveProperty("hasMore", false);
+      expect(res.data.meta).toHaveProperty("nextCursor", null);
+    });
+
+    it("uses headers when envelope is false", async () => {
+      const { handle: cursorHandle } = createRouter(prisma as any, { paginationMode: "cursor", envelope: false });
+      
+      const mockData = Array.from({ length: 20 }).map((_, i) => ({ id: i + 1, name: `User ${i}` }));
+      prisma.user.findMany.mockResolvedValueOnce(mockData);
+
+      const res = await cursorHandle("GET", "user", null, {}, new URLSearchParams("limit=20"));
+      expect(res.headers?.["X-Has-More"]).toBe("true");
+      expect(res.headers?.["X-Next-Cursor"]).toBeDefined();
+      expect(res.headers?.["X-Total-Count"]).toBeUndefined();
+    });
+
+    it("falls back gracefully if cursor record does not exist (P2025)", async () => {
+      const { handle: cursorHandle } = createRouter(prisma as any, { paginationMode: "cursor" });
+      
+      // Simulate Prisma error P2025 (Record not found)
+      prisma.user.findMany.mockRejectedValueOnce({ code: "P2025", message: "Record not found" });
+
+      const res = await cursorHandle("GET", "user", null, {}, new URLSearchParams("cursor=eyJpZCI6OTk5fQ=="));
+      
+      // It should gracefully return an empty array and hasMore: false, not a 404 or 500 error
+      expect(res.status).toBe(200);
+      expect(res.data.data).toEqual([]);
+      expect(res.data.meta).toEqual({ hasMore: false, nextCursor: null });
+    });
+    
+    it("can override paginationMode via search params", async () => {
+      const res = await handle("GET", "user", null, {}, new URLSearchParams("paginationMode=cursor&limit=10"));
+      expect(res.data.meta).toHaveProperty("hasMore");
+      expect(res.data.meta).not.toHaveProperty("total");
+    });
+  });
+
+  // ─── Aggregation ─────────────────────────────────────────────────────────
+  describe("aggregation endpoints", () => {
+    it("GET /aggregate maps to delegate.aggregate", async () => {
+      prisma.user.aggregate.mockResolvedValueOnce({ _all: 42 });
+      const res = await handle("GET", "user", "aggregate", {}, new URLSearchParams("_count=*&_sum=salary"));
+      expect(res.status).toBe(200);
+      expect(prisma.user.aggregate).toHaveBeenCalledWith(expect.objectContaining({
+        _count: { _all: true },
+        _sum: { salary: true }
+      }));
+    });
+
+    it("GET /groupBy maps to delegate.groupBy", async () => {
+      prisma.user.groupBy.mockResolvedValueOnce([{ departmentId: 1, _sum: { salary: 100 } }]);
+      const res = await handle("GET", "user", "groupBy", {}, new URLSearchParams("by=departmentId&_sum=salary"));
+      expect(res.status).toBe(200);
+      expect(prisma.user.groupBy).toHaveBeenCalledWith(expect.objectContaining({
+        by: ["departmentId"],
+        _sum: { salary: true }
+      }));
+    });
+
+    it("returns 400 if /groupBy lacks 'by' param", async () => {
+      const res = await handle("GET", "user", "groupBy", {}, new URLSearchParams("_sum=salary"));
+      expect(res.status).toBe(400);
+    });
+
+    it("blocks aggregation if features.aggregation is false", async () => {
+      const { handle: noAggHandle } = createRouter(prisma as any, { features: { aggregation: false } });
+      const res = await noAggHandle("GET", "user", "aggregate", {}, new URLSearchParams());
+      expect(res.status).toBe(403);
+    });
+  });
+
+  // ─── Complexity ─────────────────────────────────────────────────────────
+  describe("complexity scoring", () => {
+    it("allows query under maxScore", async () => {
+      const { handle: compHandle } = createRouter(prisma as any, { 
+        complexity: { maxScore: 100, rules: { perInclude: 10, perLimit100: 5 } } 
+      });
+      const res = await compHandle("GET", "user", null, {}, new URLSearchParams("include=posts&limit=50"));
+      expect(res.status).toBe(200);
+    });
+
+    it("blocks query over maxScore with 429", async () => {
+      const { handle: compHandle } = createRouter(prisma as any, { 
+        maxLimit: 1000,
+        complexity: { maxScore: 50, rules: { perInclude: 20, perLimit100: 10 } } 
+      });
+      // score: 3 includes (60) + limit=500 (50) = 110 > 50
+      const res = await compHandle("GET", "user", null, {}, new URLSearchParams("include=posts,comments,tags&limit=500"));
+      expect(res.status).toBe(429);
+      expect(res.data.error).toBe("Query too complex");
+      expect(res.data.score).toBe(110);
+    });
+  });
 });
+

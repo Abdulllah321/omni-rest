@@ -62,18 +62,38 @@ export function buildQuery(
   searchParams: URLSearchParams,
   defaultLimit = 20,
   maxLimit = 100,
-  modelFields?: FieldMeta[]
+  modelFields?: FieldMeta[],
+  defaultPaginationMode: "offset" | "cursor" = "offset"
 ): ParsedQuery {
   const where: Record<string, any> = {};
   const orderBy: Record<string, any> = {};
   let include: Record<string, boolean> = {};
   let select: Record<string, boolean> | null = null;
+  let parsedCursor: Record<string, any> | undefined;
 
   // ─── Pagination ────────────────────────────────────────────────────────────
+  const paginationMode =
+    (searchParams.get("paginationMode") as "offset" | "cursor") ||
+    defaultPaginationMode;
+
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1"));
   const rawLimit = parseInt(searchParams.get("limit") ?? String(defaultLimit));
   const take = Math.min(rawLimit, maxLimit);
-  const skip = (page - 1) * take;
+
+  if (paginationMode === "cursor") {
+    const cursorParam = searchParams.get("cursor");
+    if (cursorParam) {
+      try {
+        parsedCursor = JSON.parse(Buffer.from(cursorParam, "base64").toString("utf-8"));
+      } catch {
+        // Invalid cursor format, ignore and treat as first page
+      }
+    }
+  }
+
+  // If in cursor mode with a valid cursor, we skip 1 (the cursor record itself).
+  // Otherwise, use offset logic (skip = (page - 1) * take).
+  const skip = paginationMode === "cursor" && parsedCursor ? 1 : (page - 1) * take;
 
   // ─── Sort ──────────────────────────────────────────────────────────────────
   const sortParam = searchParams.get("sort");
@@ -94,6 +114,12 @@ export function buildQuery(
         orderBy[field] = direction;
       }
     }
+  }
+
+  // Ensure consistent sorting for cursor pagination if no sort is provided
+  if (paginationMode === "cursor" && Object.keys(orderBy).length === 0 && modelFields) {
+    const idField = modelFields.find((f) => f.isId)?.name ?? "id";
+    orderBy[idField] = "asc";
   }
 
   // ─── Include (relations) ───────────────────────────────────────────────────
@@ -240,5 +266,14 @@ export function buildQuery(
     }
   }
 
-  return { where, orderBy, skip, take, include, select };
+  return {
+    where,
+    orderBy,
+    skip,
+    take,
+    cursor: parsedCursor,
+    paginationMode,
+    include,
+    select
+  };
 }

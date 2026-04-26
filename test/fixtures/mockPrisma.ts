@@ -14,6 +14,8 @@ export function createMockPrisma() {
     update: vi.fn().mockResolvedValue({ id: 1, name: "Updated Record" }),
     delete: vi.fn().mockResolvedValue({ id: 1 }),
     count: vi.fn().mockResolvedValue(1),
+    aggregate: vi.fn().mockResolvedValue({}),
+    groupBy: vi.fn().mockResolvedValue([]),
     ...overrides,
   });
 
