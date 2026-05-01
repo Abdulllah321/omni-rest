@@ -14,7 +14,7 @@ omni-rest ships two CLIs:
 
 Run these from any directory that contains a `schema.prisma` file (or has one in a parent directory).
 
-<Tabs items={['generate:config', 'generate (all)', 'generate:zod', 'generate:openapi']}>
+<Tabs items={['generate:config', 'install:skills', 'generate (all)', 'generate:zod', 'generate:openapi']}>
   <Tabs.Tab>
     ```bash copy
     npx omni-rest generate:config
@@ -39,6 +39,16 @@ Run these from any directory that contains a `schema.prisma` file (or has one in
 
     <Callout type="info">
       Re-run this command any time your Prisma schema changes, then re-run `npx omni-rest-client generate:frontend` in your frontend project.
+    </Callout>
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash copy
+    npx omni-rest install:skills --target ../my-app
+    ```
+    Copies the portable Omni Rest AI pack into another project. It installs the repo guide, the cross-project API playbook, and the tool-specific instruction files for Codex, Cursor, Claude, and Kiro.
+
+    <Callout type="info">
+      Use `--overwrite` when you want to refresh an existing pack without editing files by hand.
     </Callout>
   </Tabs.Tab>
   <Tabs.Tab>

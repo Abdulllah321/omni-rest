@@ -1,0 +1,64 @@
+import { Cards, Card, Callout, Steps } from 'nextra/components'
+import { Sparkles, Package, FileBox } from 'lucide-react'
+
+# AI Skills Pack
+
+Omni Rest ships a portable AI instruction pack so agents can use the same project rules across Codex, Cursor, Claude, Kiro, and similar tools.
+
+<Callout type="info">
+  The pack does not train the model. It gives the agent the project-specific instructions, decision rules, and install target it needs to work in a more consistent way.
+</Callout>
+
+## Install
+
+```bash copy
+npx omni-rest install:skills
+```
+
+Install into another project:
+
+```bash copy
+npx omni-rest install:skills --target ../my-app
+```
+
+Refresh an existing install:
+
+```bash copy
+npx omni-rest install:skills --target ../my-app --overwrite
+```
+
+## What It Installs
+
+<Cards>
+  <Card icon={<FileBox />} title="Project Intelligence" description="Repo map, architecture notes, commands, and working rules." />
+  <Card icon={<Sparkles />} title="Portable Playbook" description="When to use Omni Rest for API work and how frontend calls should stay aligned." />
+  <Card icon={<Package />} title="Tool Instructions" description="Codex, Cursor, Claude, and Kiro entry files." />
+</Cards>
+
+## How To Use It
+
+<Steps>
+
+### Install once
+
+Run the CLI in any target project to copy the instruction pack into that repo.
+
+### Let agents read the pack
+
+The agent should open the pack before creating APIs, frontend hooks, or CRUD screens.
+
+### Keep the pack fresh
+
+Use `--overwrite` after project conventions or skill rules change.
+
+</Steps>
+
+## Best Fit
+
+Use the pack when the project is:
+
+- Prisma-backed
+- CRUD-heavy
+- using generated hooks or generated tables
+- sharing rules between backend and frontend agents
+

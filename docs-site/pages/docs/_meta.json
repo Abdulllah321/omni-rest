@@ -5,6 +5,7 @@
   "subscriptions": "Subscriptions (SSE)",
   "configuration": "Configuration",
   "cli": "CLI Tools",
+  "skills": "AI Skills Pack",
   "generate-frontend": "Frontend Generator",
   "omni-rest-client": "omni-rest-client",
   "examples": "Examples",

@@ -9,6 +9,7 @@ import {
   ArrowRight,
   Database,
   Cpu,
+  Package,
 } from "lucide-react";
 import { Icon } from "@iconify/react";
 import Navbar from "../components/Navbar";
@@ -268,6 +269,59 @@ export default function Home() {
                   <span className="framework-name">{fw.name}</span>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── AI Skills ── */}
+        <section className="page-section">
+          <div className="container mx-auto px-6 max-w-7xl">
+            <div className="section-header">
+              <h2 className="section-title">AI Skills Pack</h2>
+              <p className="section-sub">
+                Install the Omni Rest project instructions once and keep the same workflow across Codex, Cursor, Claude, and Kiro.
+              </p>
+            </div>
+
+            <div className="grid lg:grid-cols-2 gap-8">
+              <div className="feature-card-v2">
+                <div className="feature-icon-v2">
+                  <Package size={28} />
+                </div>
+                <h3 className="feature-title">One-command install</h3>
+                <p className="feature-body">
+                  Copy the portable skill pack into the current project or another codebase with `npx omni-rest install:skills`.
+                </p>
+                <div style={{ marginTop: "1.5rem" }}>
+                  <Link href="/docs/skills" className="btn-premium btn-premium-primary">
+                    Open Skills Docs <ArrowRight size={20} />
+                  </Link>
+                </div>
+              </div>
+
+              <div className="feature-card-v2">
+                <div className="feature-icon-v2">
+                  <ShieldCheck size={28} />
+                </div>
+                <h3 className="feature-title">Shared project rules</h3>
+                <p className="feature-body">
+                  The pack teaches agents when to use Omni Rest, how frontend API calls should stay aligned, and how to keep the repo conventions intact.
+                </p>
+                <ul className="checklist" style={{ marginTop: "1rem" }}>
+                  {[
+                    "Repo intelligence and architecture notes",
+                    "Portable API playbook",
+                    "Tool-specific instruction files",
+                  ].map((item, i) => (
+                    <li key={i} className="checklist-item">
+                      <span className="checklist-dot">
+                        <ArrowRight size={11} />
+                      </span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
         </section>

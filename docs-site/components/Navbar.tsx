@@ -8,6 +8,7 @@ const NAV_LINKS = [
   { label: 'Docs',            href: '/docs' },
   { label: 'Getting Started', href: '/docs/getting-started' },
   { label: 'API Reference',   href: '/docs/api-reference' },
+  { label: 'Skills',          href: '/docs/skills' },
   { label: 'Examples',        href: '/docs/examples' },
 ]
 
